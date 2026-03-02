@@ -1,0 +1,14 @@
+/* Xóa mọi khoảng cách thừa của trình duyệt */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Ép trang web và khung chứa gốc tràn 100% màn hình */
+html, body, #root {
+  width: 100%;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  background-color: #FDF9F1;
+}
