@@ -25,8 +25,8 @@ export default function LaSoTuVi() {
         <div style={styles.logo}>YIN♾️YANG</div>
 
         <nav style={styles.navMenu}>
-          <span style={styles.navLink}>SẢN PHẨM ▾</span>
-          <span style={styles.navLink}>HỎI, ĐÁP</span>
+          <span style={styles.navLink}>TRA CỨU ▾</span>
+          <span style={styles.navLink}>CHATBOT</span>
           <span style={styles.navLink}>14 CHÍNH TINH</span>
           <span style={styles.navLink}>BLOG</span>
           <span style={styles.navLink}>VỀ YIN♾️YANG ▾</span>
@@ -123,7 +123,7 @@ export default function LaSoTuVi() {
 
           <div style={styles.footerCol}>
             <h4 style={styles.footerColTitle}>NỘI DUNG</h4>
-            <p style={styles.footerLink}>Hỏi, đáp</p>
+            <p style={styles.footerLink}>Chat bot</p>
             <p style={styles.footerLink}>Blog</p>
             <p style={styles.footerLink}>12 Con giáp</p>
             <p style={styles.footerLink}>14 Chính tinh</p>
@@ -131,7 +131,7 @@ export default function LaSoTuVi() {
           </div>
 
           <div style={styles.footerCol}>
-            <h4 style={styles.footerColTitle}>SẢN PHẨM</h4>
+            <h4 style={styles.footerColTitle}>TRA CỨU</h4>
             <p style={styles.footerLink}>Tử vi cá nhân</p>
             <p style={styles.footerLink}>Tử vi tương hợp</p>
           </div>
