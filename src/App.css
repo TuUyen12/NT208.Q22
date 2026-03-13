@@ -6,8 +6,13 @@
   box-sizing: border-box;
 }
 
+/* src/App.css */
+
 .app-container {
-  background-color: #ffffff;
+  
+  /* ĐÂY LÀ DÒNG THẦN CHÚ OMBRE TỪ GIỮA RA */
+  background: radial-gradient(circle at center, #dec3f2 0%, #ffffff 100%); 
+  
   color: #111111;
   font-family: 'Inter', sans-serif; 
   min-height: 100vh;
@@ -180,3 +185,4 @@ h1, h2, h3, .logo-icon {
   border-color: #111;
   transform: translateY(-8px);
 }
+
