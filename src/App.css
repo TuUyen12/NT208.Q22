@@ -1,0 +1,182 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.app-container {
+  background-color: #ffffff;
+  color: #111111;
+  font-family: 'Inter', sans-serif; 
+  min-height: 100vh;
+}
+
+h1, h2, h3, .logo-icon {
+  font-family: 'Playfair Display', serif; 
+}
+
+/* --- HEADER --- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 25px 50px;
+  background-color: #ffffff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon { font-size: 32px; }
+
+.nav-menu { display: flex; gap: 40px; }
+
+.nav-menu span {
+  cursor: pointer;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: color 0.3s;
+}
+
+.nav-menu span:hover { color: #888; }
+
+/* --- HERO SECTION --- */
+.hero-section {
+  text-align: center;
+  padding: 100px 20px;
+  background-color: #fafafa;
+}
+
+.hero-section h1 {
+  font-size: 52px;
+  margin-bottom: 25px;
+  letter-spacing: 1px;
+}
+
+.hero-section p {
+  font-size: 16px;
+  max-width: 650px;
+  margin: 0 auto 50px;
+  line-height: 1.8;
+  color: #666;
+}
+
+/* --- FORM CARD --- */
+.form-card {
+  background-color: #ffffff;
+  max-width: 580px;
+  margin: 0 auto;
+  padding: 50px 40px;
+  border: 1px solid #eeeeee;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.03);
+  text-align: left;
+}
+
+.form-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 20px;
+  margin-bottom: 35px;
+  text-align: center;
+}
+
+.active-tab {
+  font-family: 'Playfair Display', serif;
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.tuvi-form .input-group { margin-bottom: 30px; }
+
+.tuvi-form label {
+  display: block;
+  font-size: 11px;
+  color: #999;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+/* GRID LAYOUT CHO FORM */
+.row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 25px; /* Khoảng cách giữa các ô */
+}
+
+.row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+/* CUSTOM SELECT & MŨI TÊN */
+.tuvi-form select {
+  width: 100%;
+  padding: 14px 15px;
+  padding-right: 40px;
+  border: 1px solid #e0e0e0;
+  background-color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: #333;
+  outline: none;
+  cursor: pointer;
+  appearance: none; 
+  -webkit-appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+  background-repeat: no-repeat;
+  background-position: right 15px center; 
+  background-size: 12px;
+  transition: all 0.3s;
+}
+
+.tuvi-form select:focus { border-color: #111; }
+
+.submit-btn {
+  width: 100%;
+  padding: 20px;
+  background-color: #111;
+  color: #fff;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.submit-btn:hover {
+  background-color: #333;
+  transform: translateY(-2px);
+}
+
+/* --- FEATURES --- */
+.features-section {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  padding: 100px 50px;
+}
+
+.feature-card {
+  flex: 1;
+  text-align: center;
+  padding: 40px;
+  border: 1px solid #f5f5f5;
+  transition: all 0.4s;
+}
+
+.feature-card:hover {
+  border-color: #111;
+  transform: translateY(-8px);
+}
