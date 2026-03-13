@@ -11,7 +11,7 @@
 .app-container {
   
   /* ĐÂY LÀ DÒNG THẦN CHÚ OMBRE TỪ GIỮA RA */
-  background: radial-gradient(circle at center, #dec3f2 0%, #ffffff 100%); 
+  background: radial-gradient(circle at center, #cfabe4 0%, #e0e0e0 100%); 
   
   color: #111111;
   font-family: 'Inter', sans-serif; 

@@ -15,6 +15,7 @@ export default function App() {
           <span>Trang chủ</span>
           <span>Kiến thức</span>
           <span>Liên hệ</span>
+          <span>Cài đặt</span>
         </nav>
       </header>
 
