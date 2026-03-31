@@ -1,0 +1,75 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tuvi
+      POSTGRES_PASSWORD: tuvi
+      POSTGRES_DB: tuvi
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tuvi"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - reports_tmp:/tmp/tuvi_reports
+    # start.sh runs `alembic upgrade head` then starts uvicorn
+    command: sh start.sh
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Celery worker — waits for API (= migrations done) before starting
+  worker:
+    build: .
+    env_file: .env
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - reports_tmp:/tmp/tuvi_reports
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
+
+  # Celery beat — waits for API (= migrations done) before starting
+  beat:
+    build: .
+    env_file: .env
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+
+volumes:
+  postgres_data:
+  reports_tmp:
