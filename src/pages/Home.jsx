@@ -1,535 +1,582 @@
-import { useState } from "react"; 
-import { useNavigate } from "react-router-dom";
-import zodiacBanner from "../assets/12ConGiap.png";
-//  1. IMPORT ẢNH 
-import avatarImg from "../assets/avatar.jpg"; 
+import { useState } from "react";
 
-export default function Home() {
-  const navigate = useNavigate();
+/* ─────────────────────────────────────────────
+   Tailwind custom-colour helpers (inline style
+   fallbacks for colours outside default palette)
+───────────────────────────────────────────────*/
+const C = {
+  background:               "#0f131c",
+  surface:                  "#0f131c",
+  surfaceContainerLowest:   "#0a0e17",
+  surfaceContainerLow:      "#181b25",
+  surfaceContainer:         "#1c1f29",
+  surfaceContainerHigh:     "#262a34",
+  surfaceContainerHighest:  "#31353f",
+  primary:                  "#edb1ff",
+  primaryContainer:         "#6d208c",
+  onPrimary:                "#520070",
+  onSurface:                "#dfe2ef",
+  onSurfaceVariant:         "#d0c2d3",
+  outlineVariant:           "#4d4351",
+  secondaryContainer:       "#583d5f",
+};
 
-  const isAuth = localStorage.getItem("isAuth") === "true";
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+/* ─────────────── Google Fonts (injected once) ──────────────── */
+const FontLoader = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Manrope:wght@200..800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
-  const handleLoginClick = () => {
-    navigate("/login");
-  };
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAuth");
-    setIsMenuOpen(false); 
-    navigate(0); 
-  };
+    body { background: ${C.background}; color: ${C.onSurface}; font-family: 'Manrope', sans-serif; }
+
+    .font-headline { font-family: 'Newsreader', serif; }
+
+    .glass-panel {
+      background: rgba(15,19,28,0.7);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+
+    .celestial-glow {
+      background: radial-gradient(circle at center, rgba(237,177,255,0.15) 0%, transparent 70%);
+    }
+
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined';
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      font-size: inherit;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, ${C.primary}, ${C.primaryContainer});
+      color: white;
+      border: none;
+      border-radius: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: box-shadow 0.3s, transform 0.15s;
+    }
+    .btn-primary:hover {
+      box-shadow: 0 0 30px -5px rgba(237,177,255,0.4);
+    }
+    .btn-primary:active { transform: scale(0.98); }
+
+    .btn-outline {
+      background: transparent;
+      color: ${C.primary};
+      border: 2px solid rgba(237,177,255,0.2);
+      border-radius: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-outline:hover { background: rgba(237,177,255,0.08); }
+    .btn-outline:active { transform: scale(0.97); }
+
+    .nav-link {
+      color: ${C.onSurfaceVariant};
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.875rem;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+    .nav-link:hover { color: ${C.primary}; }
+
+    .field-input, .field-select {
+      width: 100%;
+      background: ${C.surfaceContainerLowest};
+      border: none;
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      color: ${C.onSurface};
+      font-family: 'Manrope', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      transition: box-shadow 0.2s;
+    }
+    .field-input:focus, .field-select:focus {
+      box-shadow: 0 0 0 2px rgba(237,177,255,0.4);
+    }
+    .field-input::placeholder { color: rgba(208,194,211,0.4); }
+    .field-select option { background: ${C.surfaceContainerLowest}; }
+
+    .insight-card {
+      position: relative;
+      overflow: hidden;
+      background: ${C.surfaceContainerLow};
+      border-radius: 2rem;
+      padding: 2rem;
+      cursor: pointer;
+      transition: background 0.5s;
+    }
+    .insight-card:hover { background: ${C.surfaceContainerHigh}; }
+    .insight-card .glow-spot {
+      position: absolute; top: -1rem; right: -1rem;
+      width: 6rem; height: 6rem;
+      background: radial-gradient(circle at center, rgba(237,177,255,0.15) 0%, transparent 70%);
+      opacity: 0; transition: opacity 0.4s;
+    }
+    .insight-card:hover .glow-spot { opacity: 1; }
+
+    .zodiac-card {
+      background: ${C.surface};
+      padding: 1.5rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(77,67,81,0.1);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.3s;
+    }
+    .zodiac-card:hover { border-color: rgba(237,177,255,0.4); }
+    .zodiac-card img {
+      width: 100%; aspect-ratio: 1/1; object-fit: cover;
+      border-radius: 0.75rem; margin-bottom: 1rem;
+      filter: grayscale(1);
+      transition: filter 0.7s;
+    }
+    .zodiac-card:hover img { filter: grayscale(0); }
+
+    .footer-link {
+      color: ${C.onSurfaceVariant};
+      text-decoration: none;
+      display: inline-block;
+      transition: color 0.2s, transform 0.2s;
+    }
+    .footer-link:hover { color: ${C.primary}; transform: translateX(4px); }
+
+    @media (max-width: 768px) {
+      .hero-title { font-size: 3.5rem !important; }
+      .nav-links { display: none; }
+    }
+  `}</style>
+);
+
+/* ─────────────────────── Header ──────────────────────── */
+const Header = () => (
+  <nav style={{
+    position: "fixed", top: 0, width: "100%", zIndex: 50,
+    background: "rgba(15,19,28,0.8)",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    boxShadow: "0 32px 64px rgba(49,53,63,0.06)",
+  }}>
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      padding: "1rem 2rem", maxWidth: "80rem", margin: "0 auto",
+    }}>
+      {/* Logo */}
+      <div className="font-headline" style={{ fontSize: "1.5rem", fontWeight: 700, color: C.primary }}>
+        YinYang
+      </div>
+
+      {/* Nav Links */}
+      <div className="nav-links" style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
+        {["Tra cứu", "Chatbot", "14 Chính tinh", "Blog", "Về YinYang"].map(link => (
+          <a key={link} href="#" className="nav-link">{link}</a>
+        ))}
+      </div>
+
+      {/* CTA */}
+      <button
+        className="btn-primary"
+        style={{ padding: "0.5rem 1.5rem", fontSize: "0.95rem", borderRadius: "0.75rem",
+                 fontFamily: "'Manrope', sans-serif" }}
+        onClick={() => {}}
+      >
+        Login
+      </button>
+    </div>
+  </nav>
+);
+
+/* ─────────────────────── Hero / Banner ──────────────────────── */
+const HeroSection = () => {
+  const [form, setForm] = useState({ name: "", dob: "", time: "", gender: "Nam", year: "2024 (Giáp Thìn)" });
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   return (
-    <div style={styles.pageContainer}>
-      {/* 1. THANH ĐIỀU HƯỚNG (HEADER) */}
-      <header style={styles.header}>
-        <div style={styles.logo}>YIN♾️YANG</div>
-        
-        <nav style={styles.navMenu}>
-          <span style={styles.navLink}>TRA CỨU ▾</span>
-          <span style={styles.navLink}>CHATBOT</span>
-          <span style={styles.navLink}>14 CHÍNH TINH</span>
-          <span style={styles.navLink}>BLOG</span>
-          <span style={styles.navLink}>VỀ YIN♾️YANG ▾</span>
-        </nav>
+    <section style={{
+      position: "relative", minHeight: "100vh",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      overflow: "hidden", padding: "6rem 1.5rem 4rem",
+    }}>
+      {/* Background nebula */}
+      <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+        <img
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuAw8NoRR53N9kVzjPIXE5O763r_RODFkTje0VJ-pFHLXZFu750gjYin8lmfGchTK8f-UqaFxGKoZpokS5kee28ndaH0NZQMFcbXM3zvYeeFg_BUPh3BLjvj5PcdPS9oaq7HHBXJ0imlvFyBGzCHB6Ude7ACgx7kTSUx5d_nKWvTTKBI4N7VbU93AJDZ36v9sF5LqVW7sTJ7Rhhb1x0U44DGe2BKv_nP02Dchiniq-AQwgHnlovz99kGL2_bICYi0QKxN3v_Sjxw6xM"
+          alt="Cosmic nebula background"
+          style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.3 }}
+        />
+        <div style={{
+          position: "absolute", inset: 0,
+          background: `linear-gradient(to bottom, ${C.background}, transparent, ${C.background})`,
+        }} />
+      </div>
 
-        {/* 🔥 KHU VỰC TÀI KHOẢN */}
-        <div style={styles.authSection}>
-          {isAuth ? (
-            <div style={styles.userProfile}>
-              <div 
-                style={styles.avatarWrapper} 
-                onClick={() => setIsMenuOpen(!isMenuOpen)} 
-              >
-                {/* ẢNH AVATAR VÀ TÊN MỚI THÊM Ở ĐÂY */}
-                <img src={avatarImg} alt="Avatar" style={styles.avatarImage} />
-                <span style={styles.userName}>Me</span>
-                <span style={styles.arrowDown}>▼</span>
-              </div>
+      {/* Content */}
+      <div style={{ position: "relative", zIndex: 10, maxWidth: "60rem", width: "100%" }}>
+        {/* Headline */}
+        <div style={{ textAlign: "center", marginBottom: "3rem" }}>
+          <h1 className="font-headline hero-title" style={{
+            fontSize: "5.5rem", color: C.primary,
+            letterSpacing: "-0.02em", marginBottom: "1rem",
+            textShadow: "0 0 80px rgba(237,177,255,0.2)",
+            lineHeight: 1.1,
+          }}>
+            LÁ SỐ TỬ VI
+          </h1>
+          <p style={{
+            color: C.onSurfaceVariant, fontSize: "1.1rem",
+            maxWidth: "38rem", margin: "0 auto", fontWeight: 300,
+            letterSpacing: "0.02em", lineHeight: 1.7,
+          }}>
+            Khám phá bí mật vận mệnh qua bản đồ sao phương Đông cổ xưa, được giải mã bằng trí tuệ nhân tạo hiện đại.
+          </p>
+        </div>
 
-              {isMenuOpen && (
-                <div style={styles.dropdownMenu}>
-                  <div style={styles.dropdownItem}>👤 Thông tin cá nhân</div>
-                  <div style={styles.dropdownItem}>🕒 Lịch sử</div>
-                  <div style={styles.dropdownItem}>⚙️ Cài đặt</div>
-                  <div style={styles.dropdownDivider}></div>
-                  <div 
-                    style={{ ...styles.dropdownItem, color: "#e74c3c", fontWeight: "bold" }} 
-                    onClick={handleLogout}
-                  >
-                    🚪 Đăng xuất
-                  </div>
-                </div>
-              )}
+        {/* Form Panel */}
+        <div className="glass-panel" style={{
+          padding: "3rem", borderRadius: "2rem",
+          border: `1px solid rgba(77,67,81,0.1)`,
+          boxShadow: "0 32px 80px rgba(0,0,0,0.4)",
+        }}>
+          <div style={{
+            display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1.5rem",
+          }}>
+            {/* Họ và Tên */}
+            <div>
+              <label style={{
+                display: "block", fontSize: "0.7rem", fontWeight: 700,
+                letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase",
+                marginBottom: "0.5rem", marginLeft: "0.25rem",
+              }}>Họ và Tên</label>
+              <input
+                className="field-input" type="text" name="name"
+                placeholder="Nguyễn Văn A" value={form.name} onChange={handleChange}
+              />
             </div>
-          ) : (
-            <button onClick={handleLoginClick} style={styles.loginButton}>
-              Đăng nhập
-            </button>
-          )}
-        </div>
-      </header>
 
-      {/* 2. PHẦN BANNER CHÍNH (YinYang SECTION) */}
-      <section style={styles.yinyangSection}>
-        <h1 style={styles.mainTitle}>LÁ SỐ TỬ VI</h1>
-        <p style={styles.subTitle}>
-          Bản đồ vận mệnh chuẩn xác nhất. Biết mệnh để nắm bắt cơ hội, giải hạn.
-        </p>
+            {/* Ngày sinh */}
+            <div>
+              <label style={{
+                display: "block", fontSize: "0.7rem", fontWeight: 700,
+                letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase",
+                marginBottom: "0.5rem", marginLeft: "0.25rem",
+              }}>Ngày sinh</label>
+              <input
+                className="field-input" type="date" name="dob"
+                value={form.dob} onChange={handleChange}
+                style={{ colorScheme: "dark" }}
+              />
+            </div>
 
-        {/* 3. KHUNG FORM NHẬP LIỆU */}
-        <div style={styles.formCard}>
-          <input type="text" placeholder="Họ và tên (*)" style={styles.inputFull} />
-          
-          <div style={styles.row}>
-            <input type="date" style={styles.inputHalf} />
-            <select style={styles.inputHalf}>
-              <option>Giờ sinh</option>
-              <option>Tý (23h - 1h)</option>
-              <option>Sửu (1h - 3h)</option>
-            </select>
+            {/* Giờ sinh */}
+            <div>
+              <label style={{
+                display: "block", fontSize: "0.7rem", fontWeight: 700,
+                letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase",
+                marginBottom: "0.5rem", marginLeft: "0.25rem",
+              }}>Giờ sinh</label>
+              <input
+                className="field-input" type="time" name="time"
+                value={form.time} onChange={handleChange}
+                style={{ colorScheme: "dark" }}
+              />
+            </div>
+
+            {/* Giới tính */}
+            <div>
+              <label style={{
+                display: "block", fontSize: "0.7rem", fontWeight: 700,
+                letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase",
+                marginBottom: "0.5rem", marginLeft: "0.25rem",
+              }}>Giới tính</label>
+              <select className="field-select" name="gender" value={form.gender} onChange={handleChange}>
+                <option>Nam</option>
+                <option>Nữ</option>
+              </select>
+            </div>
+
+            {/* Năm tra cứu */}
+            <div>
+              <label style={{
+                display: "block", fontSize: "0.7rem", fontWeight: 700,
+                letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase",
+                marginBottom: "0.5rem", marginLeft: "0.25rem",
+              }}>Năm tra cứu</label>
+              <select className="field-select" name="year" value={form.year} onChange={handleChange}>
+                <option>2024 (Giáp Thìn)</option>
+                <option>2025 (Ất Tỵ)</option>
+                <option>2026 (Bính Ngọ)</option>
+              </select>
+            </div>
+
+            {/* Submit */}
+            <div style={{ display: "flex", alignItems: "flex-end" }}>
+              <button
+                className="btn-primary"
+                style={{ width: "100%", padding: "1rem", fontSize: "1rem",
+                         fontFamily: "'Manrope', sans-serif" }}
+                onClick={(e) => e.preventDefault()}
+              >
+                Giải Mã Lá Số
+              </button>
+            </div>
           </div>
-
-          <div style={styles.row}>
-            <select style={styles.inputHalf}>
-              <option>Giới tính (*)</option>
-              <option>Nam</option>
-              <option>Nữ</option>
-            </select>
-            <select style={styles.inputHalf}>
-              <option>Năm xem (*)</option>
-              <option>2024</option>
-              <option>2025</option>
-            </select>
-          </div>
-
-          <button style={styles.submitButton}onClick={() => navigate("/laso")}
-            >Lập lá số</button>
-          
-          <p style={styles.linkText}>Cách lấy lá số chuẩn xác nhất?</p>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+};
 
-      {/* 4. PHẦN TÍNH NĂNG */}
-      <section style={styles.featuresSection}>
-        <h2 style={{ color: "#051A30", fontSize: "20px", marginBottom: "20px" }}>
+/* ─────────────────────── Insights Grid ──────────────────────── */
+const insightItems = [
+  {
+    icon: "favorite",
+    title: "Tình duyên",
+    desc: "Luận giải về nhân duyên, tri kỷ và thời điểm rực rỡ nhất trong đời sống tình cảm.",
+  },
+  {
+    icon: "work",
+    title: "Sự nghiệp",
+    desc: "Định hướng công danh, xác định thiên hướng nghề nghiệp và các cột mốc thăng tiến.",
+  },
+  {
+    icon: "payments",
+    title: "Tài lộc",
+    desc: "Phân tích khả năng tích lũy, các cơ hội làm giàu và những lưu ý về tài chính cá nhân.",
+  },
+  {
+    icon: "health_and_safety",
+    title: "Sức khỏe",
+    desc: "Dự báo tình trạng thể chất và tinh thần, gợi ý các phương thức cân bằng cuộc sống.",
+  },
+];
+
+const InsightsSection = () => (
+  <section style={{ padding: "6rem 2rem", maxWidth: "80rem", margin: "0 auto" }}>
+    {/* Header */}
+    <div style={{ display: "flex", flexDirection: "column", marginBottom: "4rem", gap: "1rem" }}>
+      <div style={{ maxWidth: "38rem" }}>
+        <h2 className="font-headline" style={{
+          fontSize: "clamp(2rem, 4vw, 3.2rem)",
+          color: C.onSurface, marginBottom: "1rem", lineHeight: 1.2,
+        }}>
           Khám phá bản thân qua các khía cạnh
         </h2>
-        <div style={styles.featureGrid}>
-          <div style={styles.featureItem}>💞 Tình duyên</div>
-          <div style={styles.featureItem}>💼 Sự nghiệp</div>
-          <div style={styles.featureItem}>💰 Tài lộc</div>
-          <div style={styles.featureItem}>🏥 Sức khỏe</div>
-        </div>
-      </section>
-
-      {/* 5. PHẦN 12 CON GIÁP */}
-      <section style={styles.zodiacSection}>
-        <div style={styles.col}>
-          <img 
-          src={zodiacBanner} 
-          alt="12 Con Giáp Tử Vi" 
-          style={styles.zodiacImage} 
-        />
-        <button style={styles.zodiacButton}>Tìm hiểu thêm</button>
-        </div>
-      </section>
-
-      {/* 6. PHẦN CHÂN TRANG (FOOTER) */}
-      <footer style={styles.footer}>
-        <div style={styles.footerTop}>
-          <div style={styles.footerColInfo}>
-            <p style={styles.footerIntro}>
-              YinYang là nền tảng tử vi cho thế hệ mới, khám phá tử vi truyền thống chính tông qua lăng kính khoa học hiện đại.
-            </p>
-            <div style={styles.socialIcons}>
-              <span style={styles.iconCircle}>f</span>
-              <span style={styles.iconCircle}>ig</span>
-              <span style={styles.iconCircle}>t</span>
-              <span style={styles.iconCircle}>in</span>
-            </div>
-            <p style={styles.footerEmail}>contact@yinyang.vn</p>
-          </div>
-
-          <div style={styles.footerCol}>
-            <h4 style={styles.footerColTitle}>VỀ YIN♾️YANG</h4>
-            <p style={styles.footerLink}>Chúng tôi</p>
-            <p style={styles.footerLink}>Đối tác</p>
-            <p style={styles.footerLink}>Bảo mật</p>
-            <p style={styles.footerLink}>Điều khoản dịch vụ</p>
-          </div>
-
-          <div style={styles.footerCol}>
-            <h4 style={styles.footerColTitle}>NỘI DUNG</h4>
-            <p style={styles.footerLink}>Chat bot</p>
-            <p style={styles.footerLink}>Blog</p>
-            <p style={styles.footerLink}>12 Con giáp</p>
-            <p style={styles.footerLink}>14 Chính tinh</p>
-            <p style={styles.footerLink}>Đánh giá</p>
-          </div>
-
-          <div style={styles.footerCol}>
-            <h4 style={styles.footerColTitle}>TRA CỨU</h4>
-            <p style={styles.footerLink}>Tử vi cá nhân</p>
-            <p style={styles.footerLink}>Xem tử vi trọn đời</p>
-            <p style={styles.footerLink}>Tra cứu bản đồ sao</p>
-            <p style={styles.footerLink}>Tra cứu thần số học</p>
-          </div>
-
-          <div style={styles.footerColNewsletter}>
-            <h4 style={styles.footerColTitle}>Nhận tin tức tử vi từ YIN♾️YANG</h4>
-            <div style={styles.newsletterInputContainer}>
-              <input 
-                type="email" 
-                placeholder="email-cua-ban@gmail.com" 
-                style={styles.newsletterInput} 
-              />
-              <button style={styles.newsletterBtn}>➤</button>
-            </div>
-          </div>
-        </div>
-
-        <div style={styles.footerDivider}></div>
-
-        <div style={styles.footerBottom}>
-          <h2 style={styles.footerLogoBottom}>YIN♾️YANG</h2>
-        </div>
-      </footer>
+        <p style={{ color: C.onSurfaceVariant, fontWeight: 300, lineHeight: 1.8 }}>
+          Thấu hiểu các mảnh ghép cuộc đời thông qua lăng kính Tử Vi Đẩu Số. Mỗi lá số là một hành trình riêng biệt được khắc họa bởi các vì tinh tú.
+        </p>
+      </div>
     </div>
+
+    {/* Cards */}
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+      gap: "2rem",
+    }}>
+      {insightItems.map(({ icon, title, desc }) => (
+        <div key={title} className="insight-card">
+          <div className="glow-spot" />
+          {/* Icon badge */}
+          <div style={{
+            background: "rgba(88,61,95,0.3)",
+            width: "4rem", height: "4rem",
+            borderRadius: "1rem",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: C.primary, fontSize: "2rem",
+            marginBottom: "1.5rem",
+          }}>
+            <span className="material-symbols-outlined">{icon}</span>
+          </div>
+          <h3 className="font-headline" style={{ fontSize: "1.5rem", color: C.onSurface, marginBottom: "0.75rem" }}>
+            {title}
+          </h3>
+          <p style={{ color: C.onSurfaceVariant, fontSize: "0.875rem", lineHeight: 1.7 }}>{desc}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+);
+
+/* ─────────────────────── 12 Con Giáp ──────────────────────── */
+const zodiacData = [
+  { name: "Tý",  src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBiBbdK0GFybMBvvC7xljMxFgXIIPEzW9-5nkC2zwEsJzLUKYG-bZBiTdFugNZ0BIHL9VleTEvzefFDUP4v75CesO6nEgvl8nDMGfg0I7GRzEN7Y7guLdGiT2NPjqRGYjkMV2tCm-cukh7fQQYJWz7lGS3bvyzaDjgHj8Y7Ecr7A8hlD52EwqLgYFLrJsl80eJb1rAkKM2ZWrOaLwbkJN-N_uX4va8FEbnFXQqQMPdK4aHWrUfIZz_nmG9THxz7NGpMbGdVZSL1PVQ" },
+  { name: "Sửu", src: "https://lh3.googleusercontent.com/aida-public/AB6AXuCjG88jpcqvsSa8fLHkwUOn0Xf_k4I24vuu_0Xq38hWZnskg9y5TQEgSTIiTgjQiILUWbyni-5WecNJdFCtKt5wOfrjdWKQInV06MnAvBMqZY2UcbAfBEC8HrnJKXI60EQhww6XribVZuw0kRzQ4V2mDiBvl9_W0BPk7S53_NJ18MeYwJ5-e449TePK2AbC_CntQGsCiBD-8Maml_RJ3k1xzB0AdG-ckbhCUsMdIwy-agDPfrTA6ArAx6tRcRHbd3gcGqcP5oX_37A" },
+  { name: "Dần", src: "https://lh3.googleusercontent.com/aida-public/AB6AXuADY4ItE5M7WTc2oQC9vHff_JFWdCWB_iO2AAtFeg-dWTlqA6lYdr5m6WhticNQUzl5cWLaScJTAh8l2kbEduQaBZPaHaHTngmmr7x92FVzvkUxvQn8Ppkb02j8tPDh5wTHSkUQIIpP9lLaCPQ-QR8Yw1F2Gd3wdNbaeU49NxwCN094QiRhxe9j1vQ0imgFtj_Qu7JAK6nJ8VZEN1E3lkNxHiNcuc5rBvxJK12tZoflcJRKG64mzOHAK2gV9PqR_7V6yxF-i-GferQ" },
+  { name: "Mão", src: "https://lh3.googleusercontent.com/aida-public/AB6AXuCW9N6ws5NzhzlPs1h4ug9Z9IYCIMLXeqP6_Q9k164u39eW6tVWR_tT4x5879wpWgJPQcO8wzkxv7g0HzA83nOnrd1Gb2EQLrg5LUytpEXdP-RmmRqr-cJVF3lPye2yVDXqlGbGyRl-LehabvLPsb4-4dY1dxw1DXx5vg5aa59ozQJx1PyxzXGWJ-MGk7j-k5_YtIzb--brosVYaEEfbSE106PEyDz4pKsYnPASsr_O_7-UyECcOGb2HhTOc3mcSXRrtpmXWkeGk8c" },
+  { name: "Thìn", src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBwHRy8cSr3i3Wm7iFlpnSTL4ighVTCu3U3eqzCgBLdrHq73hlWkCRCyYMFYmStAFe0mcEQCRx8hF0YQ6zc6E6njT9nCcIlcwAT5dWwCtpbv7g0P_3ucqOGL5PfwO04qXoCZ0dwrQZi53qgbDIcxdxZHJNPbHzQcxqess1JPlrw-SEqFNbQtlhPScjcOJ9IfMy8X390Q2dLCejeGN7bTaxkq1cw_j7h2oNhf8P7j3lqigOhMvg878yAavvN5X4uIdbAdUAvlO5E4Z4" },
+  { name: "Tỵ",  src: "https://lh3.googleusercontent.com/aida-public/AB6AXuAn4AAnZTT-Kb--zyRUEs74fhQTPdmEF3tZX4B6D-ERlHMiXWmGV9sZuOeZGP3MVe7543VdgdpDes5K8tCWgA2gq7Yg5xabVnMt6tAC_5QFG2BWzwsWwloYFrhf3NKdNaCgv-ZFHjtvUDYY_qgNVuGZ5IGLoBE6EzvU7kYPe_-7KumqyUhRb6BlDtO2vehcIIiH5M4DD2xOM8pdrJB8cyMj5cP0ljVMi7svcZWxiH1k1ZOlrLNygTfOrPCcNrjuoMvkCWB7G3cnRrs" },
+  { name: "Ngọ", src: "https://lh3.googleusercontent.com/aida-public/AB6AXuCl9oVs38MgOYvRh0MlEu5r7TooUoJfDjPgJKrV4Oz2OJ8Y_1GKF8zkdMugv4P2HlN1sAXrMikaNH5J7LshWiKMBs4pFb6KjgWWT3Y8seJU8hWHxg1PpdyjRHQKoAPVLwjvzqJTBvC9s1aSBDnweIG8Ax95l3OoeBVEIjSZhVRJUSLuXrzH5Mens6n6uUzxaxp4FgdILUib2aawnnzV0N2WXWHU2cIwHkZLfduOft3eUrvavMWRkdNgoqEkQ0nVVtyuchJlfrycOTc" },
+  { name: "Mùi", src: "https://lh3.googleusercontent.com/aida-public/AB6AXuCFTRqd6-MNS1oxDjnd7ZB2tcGTLRdHAVneKQ13HdhukXtB4Gvd-8SAPhOZ1Fq6ENjNerZAmcYYUmAjcNXmH5wqKUANj4aAknOXoxnukuuBgtYiuMWMusWdXfuUi7ol8UM74jIfW2vyol0Q5P8sDIMJtGQnCES5pyCgyDX-7IPda0DwgYskqa5tRE41pTWuvV2ewMrBsccn0YDg7c3RL1mfmSPUtBc3H33H6blFXoIBUHFiklCzau_qDZ5-ToO9zCyGEXLyh4jLeLE" },
+  { name: "Thân", src: "https://lh3.googleusercontent.com/aida-public/AB6AXuC1aP2tGYrwUiL7KDCoHbBnowIvJYuucSjO-IOp1ZIWhIigCtLnZSHC0AtCKpDOkSLeitGnrdbJg1ZBkjDfdpT2Qm04TE40w4t78syut5t5u_4d6jAR2wQ5-tf_vp28LqFf5SZ7GX9wgk_wzzZ1sFCeu_gXD2aupRvvdlTf7SiD_1uAfiYMmRLrmoPwis5Jg4Etei3mxt_NJ4FLS67p6ybj27WKxW7GNnGaib3od7MCgtQZ4keG8rtHzgnwCEihr99g39FRLZn143c" },
+  { name: "Dậu", src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBNXhK7ivo5peXrna2Q2_fXqBVOJRU-uL78HGlYz0ykMM_zEYyehYUXTE1j7bykBdRQOjy3dRzs8YqR-FBZnEeheAhSXhQDR_32V-igqIIiOh_2i5xFwVFB8-bT3BTTu4SjhKKA3mgi-TdEHzpsWpX_ObbFX6SNeLJOrPMsDcYDZae1bX9ZhNLaott7MnYqIWnppSg3NTZS1SZGUSa7Ankb32XqIFn899ixr-CLN0drp_ynU0d1ZoSYEJjQwwuA4wc_EP7_zrTILio" },
+  { name: "Tuất", src: "https://lh3.googleusercontent.com/aida-public/AB6AXuBbsozK-p2KIXvoc2mOxxkUEIVJtgbRpG4Ap5GiVR3G3-0VsoNmXJRsS-4eMIeBLbr45_ihdmeZiaOaaEt1-XPvkj7wIfybzkkdVxNyc7jrQsMnbpdlhx3GomJ6VwFrOItsiJL6ieWNwzTbbWuUC40U3R1zARfni2KRvp44p5T-7FijyBaAyZfW87PhyFddMON840l9ceSXJftRSpnzn3Iy-KpKGzhe86YZ47IYLQ9MMbpS2QgNgRVfEhXxAlk5TZ1CgFK5zAFnRFk" },
+  { name: "Hợi", src: "https://lh3.googleusercontent.com/aida-public/AB6AXuCBZnrk1B1-gl3PR5DOAOTi97LQLDcPt6Y8js_J7fiP9FC8oWd3RIpZVNOporodYoKEAT9XlmDpqUzzqqOGE-NaZCsuFkvh06H12QtJc35eV4k_IvaVjvoKwE3mb_IbJEbCe5k-xtL0yCcjm9jXKkPPBK2jo4Ao5WC1g9BXTBvZwPCVx-yE5GchRpHy7LUKH7128mgaO161EPYbFBQbSxkStCnyR56GfJsEzMgHaFUFT2p-ObG2P0BdSfFqFQlWgpB-H8kwS7cOpAs" },
+];
+
+const ZodiacSection = () => (
+  <section style={{
+    padding: "6rem 0",
+    background: C.surfaceContainerLowest,
+    position: "relative", overflow: "hidden",
+  }}>
+    {/* Ambient glow */}
+    <div className="celestial-glow" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
+
+    <div style={{ maxWidth: "80rem", margin: "0 auto", padding: "0 2rem", position: "relative", zIndex: 10 }}>
+      {/* Heading */}
+      <div style={{ textAlign: "center", marginBottom: "5rem" }}>
+        <h2 className="font-headline" style={{
+          fontSize: "clamp(2.5rem, 4vw, 3.5rem)",
+          color: C.primary, marginBottom: "1.5rem",
+        }}>
+          12 Con Giáp
+        </h2>
+        <div style={{
+          width: "6rem", height: "4px",
+          background: C.primaryContainer,
+          borderRadius: "9999px", margin: "0 auto 1.5rem",
+        }} />
+        <p style={{ color: C.onSurfaceVariant, maxWidth: "30rem", margin: "0 auto", lineHeight: 1.8 }}>
+          Vòng quay 12 linh vật biểu tượng cho các tính cách và vận mệnh riêng biệt trong văn hóa Á Đông.
+        </p>
+      </div>
+
+      {/* Grid */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+        gap: "1.5rem",
+        marginBottom: "4rem",
+      }}>
+        {zodiacData.map(({ name, src }) => (
+          <div key={name} className="zodiac-card">
+            <img src={src} alt={name} />
+            <span className="font-headline" style={{ fontSize: "1.15rem", color: C.onSurface }}>
+              {name}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA */}
+      <div style={{ textAlign: "center" }}>
+        <button
+          className="btn-outline"
+          style={{ padding: "1rem 2.5rem", fontSize: "1rem",
+                   fontFamily: "'Manrope', sans-serif" }}
+        >
+          Tìm hiểu thêm
+        </button>
+      </div>
+    </div>
+  </section>
+);
+
+/* ─────────────────────── Footer ──────────────────────── */
+const Footer = () => (
+  <footer style={{
+    width: "100%", padding: "4rem 2rem",
+    background: C.surfaceContainerLowest,
+    fontFamily: "'Manrope', sans-serif",
+    color: C.onSurfaceVariant,
+    borderTop: `1px solid rgba(77,67,81,0.15)`,
+  }}>
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+      gap: "3rem", maxWidth: "80rem", margin: "0 auto",
+    }}>
+      {/* Brand */}
+      <div>
+        <div className="font-headline" style={{
+          fontSize: "2rem", fontWeight: 700, color: C.primary, marginBottom: "1rem",
+        }}>
+          YinYang
+        </div>
+        <p style={{ fontSize: "0.875rem", opacity: 0.6, lineHeight: 1.7 }}>
+          Kết nối trí tuệ cổ xưa với công nghệ hiện đại để soi sáng con đường của bạn.
+        </p>
+      </div>
+
+      {/* Dịch vụ */}
+      <div>
+        <h4 style={{ color: C.primary, fontWeight: 700, marginBottom: "1.5rem" }}>Dịch vụ</h4>
+        <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {["Tra cứu", "Chatbot", "14 Chính tinh"].map(l => (
+            <li key={l}><a href="#" className="footer-link">{l}</a></li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Thông tin */}
+      <div>
+        <h4 style={{ color: C.primary, fontWeight: 700, marginBottom: "1.5rem" }}>Thông tin</h4>
+        <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {["Blog", "Về YinYang", "Điều khoản"].map(l => (
+            <li key={l}><a href="#" className="footer-link">{l}</a></li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Liên hệ */}
+      <div>
+        <h4 style={{ color: C.primary, fontWeight: 700, marginBottom: "1.5rem" }}>Liên hệ</h4>
+        <div style={{ display: "flex", gap: "1rem" }}>
+          {["alternate_email", "share"].map(icon => (
+            <a key={icon} href="#" style={{
+              background: C.surfaceContainer,
+              width: "2.5rem", height: "2.5rem",
+              borderRadius: "50%",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: C.onSurfaceVariant,
+              fontSize: "1rem", textDecoration: "none",
+              transition: "background 0.2s",
+            }}
+              onMouseEnter={e => (e.currentTarget.style.background = C.primaryContainer)}
+              onMouseLeave={e => (e.currentTarget.style.background = C.surfaceContainer)}
+            >
+              <span className="material-symbols-outlined">{icon}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Copyright */}
+    <div style={{
+      maxWidth: "80rem", margin: "4rem auto 0",
+      paddingTop: "2rem",
+      borderTop: `1px solid rgba(77,67,81,0.1)`,
+      textAlign: "center", opacity: 0.4, fontSize: "0.75rem",
+    }}>
+      © 2024 YinYang Astrology. All rights reserved.
+    </div>
+  </footer>
+);
+
+/* ─────────────────────── HomePage (root) ──────────────────────── */
+export default function HomePage() {
+  return (
+    <>
+      <FontLoader />
+      <div style={{ background: C.background, minHeight: "100vh" }}>
+        <Header />
+        <main style={{ paddingTop: "4rem" }}>
+          <HeroSection />
+          <InsightsSection />
+          <ZodiacSection />
+        </main>
+        <Footer />
+      </div>
+    </>
   );
 }
-
-// BỘ CÔNG CỤ TRANG TRÍ MỚI NHẤT
-const styles = {
-  pageContainer: {
-    minHeight: "100vh",
-    fontFamily: "Arial, sans-serif",
-    backgroundColor: "#FDF9F1",
-    margin: 0,
-    padding: 0,
-    overflowX: "hidden",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "15px 30px",
-    backgroundColor: "#051A30",
-    color: "white",
-    flexWrap: "wrap",
-    gap: "15px",
-    position: "relative",
-    zIndex: 100,
-  },
-  logo: {
-    fontSize: "24px",
-    fontWeight: "bold",
-    letterSpacing: "2px",
-    cursor: "pointer",
-  },
-  navMenu: {
-    display: "flex",
-    gap: "25px",
-    alignItems: "center",
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
-  navLink: {
-    fontSize: "13px",
-    fontWeight: "600",
-    color: "#D0D9E0",
-    cursor: "pointer",
-    letterSpacing: "0.5px",
-    transition: "0.3s",
-  },
-  
-  /* --- CÁC STYLE CHO AVATAR VÀ TÊN --- */
-  authSection: {
-    position: "relative",
-  },
-  col: {
-    width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",   // căn giữa button
-  },
-  loginButton: {
-    backgroundColor: "transparent",
-    color: "white",
-    border: "1px solid white",
-    padding: "8px 20px",
-    borderRadius: "20px",
-    cursor: "pointer",
-    fontWeight: "bold",
-    whiteSpace: "nowrap",
-  },
-  userProfile: {
-    position: "relative",
-    display: "inline-block",
-  },
-  avatarWrapper: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px", // Tăng khoảng cách giữa ảnh, tên và mũi tên
-    cursor: "pointer",
-    padding: "5px 15px 5px 5px", // Đệm trái ít hơn vì có ảnh tròn
-    backgroundColor: "rgba(255, 255, 255, 0.1)", 
-    borderRadius: "25px",
-    border: "1px solid rgba(255, 255, 255, 0.2)",
-  },
-  avatarImage: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "50%", // 🔥 Bí quyết để bo tròn ảnh
-    objectFit: "cover", // Cắt ảnh không bị méo tỷ lệ
-  },
-  userName: {
-    fontSize: "14px",
-    fontWeight: "bold",
-    color: "white",
-  },
-  arrowDown: {
-    fontSize: "10px",
-    color: "#D0D9E0",
-  },
-  /* ----------------------------------- */
-
-  dropdownMenu: {
-    position: "absolute",
-    top: "130%", 
-    right: "0",  
-    backgroundColor: "white",
-    borderRadius: "10px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.15)", 
-    width: "200px",
-    overflow: "hidden",
-    zIndex: 999, 
-  },
-  dropdownItem: {
-    padding: "15px 20px",
-    fontSize: "14px",
-    color: "#333",
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-  dropdownDivider: {
-    height: "1px",
-    backgroundColor: "#eee",
-    margin: "0",
-  },
-  yinyangSection: {
-    background: "linear-gradient(180deg, #051A30 0%, #295985 100%)",
-    padding: "40px 20px 60px 20px",
-    textAlign: "center",
-    color: "white",
-  },
-  mainTitle: {
-    fontSize: "32px",
-    margin: "0 0 10px 0",
-    textTransform: "uppercase",
-  },
-  subTitle: {
-    fontSize: "14px",
-    marginBottom: "30px",
-    lineHeight: "1.5",
-    opacity: 0.9,
-  },
-  formCard: {
-    backgroundColor: "white",
-    borderRadius: "15px",
-    padding: "20px",
-    maxWidth: "400px",
-    margin: "0 auto",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-  },
-  inputFull: {
-    width: "100%",
-    padding: "12px",
-    marginBottom: "15px",
-    border: "1px solid #ccc",
-    borderRadius: "8px",
-    boxSizing: "border-box",
-  },
-  row: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginBottom: "15px",
-    gap: "10px",
-  },
-  inputHalf: {
-    width: "48%",
-    padding: "12px",
-    border: "1px solid #ccc",
-    borderRadius: "8px",
-    boxSizing: "border-box",
-  },
-  submitButton: {
-    width: "100%",
-    padding: "15px",
-    backgroundColor: "#051A30",
-    color: "white",
-    fontWeight: "bold",
-    fontSize: "16px",
-    border: "none",
-    borderRadius: "25px",
-    cursor: "pointer",
-    marginTop: "10px",
-  },
-  linkText: {
-    color: "#3879b5ff",
-    fontSize: "13px",
-    marginTop: "15px",
-    textDecoration: "underline",
-    cursor: "pointer",
-  },
-  featuresSection: {
-    padding: "40px 20px 60px 20px",
-    textAlign: "center",
-  },
-  featureGrid: {
-    display: "flex",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: "15px",
-    maxWidth: "500px",
-    margin: "0 auto",
-  },
-  featureItem: {
-    backgroundColor: "white",
-    padding: "15px 20px",
-    borderRadius: "10px",
-    boxShadow: "0 4px 6px rgba(0,0,0,0.05)",
-    width: "40%",
-    fontWeight: "bold",
-    color: "#333",
-  },
-  zodiacSection: { 
-    width: "100%",
-    margin: "0 auto",
-    padding: 30,
-    display: "flex",
-    flexDirection: "column",   // thêm dòng này
-    alignItems: "center",      // căn giữa theo chiều ngang
-    backgroundColor: "#d4bfef",
-  },
-
-  zodiacImage: {
-    width: "100%", 
-    height: "auto", 
-    objectFit: "cover", 
-    display: "block", 
-  },
-  zodiacButton: {
-    width: "20%",
-    padding: "15px",
-    backgroundColor: "#051A30",
-    color: "white",
-    fontWeight: "bold",
-    fontSize: "16px",
-    border: "none",
-    borderRadius: "25px",
-    cursor: "pointer",
-    marginTop: "10px",
-  },
-  footer: {
-    backgroundColor: "#051A30",
-    color: "white",
-    padding: "50px 30px 20px 30px",
-    fontSize: "14px",
-    marginTop: 0, 
-  },
-  footerTop: {
-    display: "flex",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    maxWidth: "1200px",
-    margin: "0 auto",
-    gap: "30px",
-  },
-  footerColInfo: {
-    flex: "2 1 250px",
-  },
-  footerIntro: {
-    lineHeight: "1.6",
-    color: "#D0D9E0",
-    marginBottom: "20px",
-  },
-  socialIcons: {
-    display: "flex",
-    gap: "10px",
-    marginBottom: "15px",
-  },
-  iconCircle: {
-    width: "35px",
-    height: "35px",
-    borderRadius: "50%",
-    backgroundColor: "#295985",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-  footerEmail: {
-    color: "white",
-    textDecoration: "underline",
-    cursor: "pointer",
-  },
-  footerCol: {
-    flex: "1 1 120px",
-  },
-  footerColTitle: {
-    color: "#D0D9E0",
-    fontSize: "13px",
-    marginBottom: "20px",
-    textTransform: "uppercase",
-  },
-  footerLink: {
-    color: "#D0D9E0",
-    marginBottom: "15px",
-    cursor: "pointer",
-  },
-  footerColNewsletter: {
-    flex: "1 1 250px",
-  },
-  newsletterInputContainer: {
-    display: "flex",
-    backgroundColor: "white",
-    borderRadius: "5px",
-    overflow: "hidden",
-    marginTop: "10px",
-  },
-  newsletterInput: {
-    flex: 1,
-    padding: "12px 15px",
-    border: "none",
-    outline: "none",
-    fontSize: "14px",
-  },
-  newsletterBtn: {
-    backgroundColor: "white",
-    border: "none",
-    padding: "0 15px",
-    cursor: "pointer",
-    fontSize: "18px",
-    color: "#051A30",
-  },
-  footerDivider: {
-    height: "1px",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    margin: "40px auto 30px auto",
-    maxWidth: "1200px",
-  },
-  footerBottom: {
-    textAlign: "center",
-  },
-  footerLogoBottom: {
-    fontSize: "28px",
-    fontWeight: "bold",
-    letterSpacing: "3px",
-    margin: 0,
-  }
-};
