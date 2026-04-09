@@ -1,29 +1,37 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./pages/Login";
-import Home from "./pages/Home";
+import HomePage  from "./pages/Home";
+import LoginPage from "./pages/Login";
+import SignUp from "./pages/SignUp";
+import Chatbot from "./pages/Chatbot";
 import LaSoTuVi from "./pages/LaSoTuVi";
+import MajorStars from "./pages/MajorStars";
 
-
-function App() {
-  // Vẫn giữ dòng kiểm tra trạng thái để dùng cho việc ẩn/hiện nút Đăng nhập sau này
-  const isAuth = localStorage.getItem("isAuth") === "true";
-
+/**
+ * App.jsx — Central routing configuration
+ *
+ * Route map:
+ *   /           → HomePage
+ *   /login      → LoginPage
+ *   /signup     → SignUp
+ *   /chatbot    → Chatbot
+ *   /la-so-tu-vi → LaSoTuVi
+ *   /major-stars → MajorStars
+ *   *           → Redirect to /  (404 fallback)
+ */
+export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* 1. Trang mặc định (/) bây giờ là Trang Chủ. Ai cũng có thể vào xem. */}
-        <Route path="/" element={<Home />} />
-        
-        {/* 2. Trang Đăng Nhập (/login). Nếu đã login rồi mà cố mở lại trang này thì đẩy về Trang Chủ */}
-        <Route
-          path="/login"
-          element={isAuth ? <Navigate to="/" /> : <Login />}
-        />
-        <Route path="/laso" element={<LaSoTuVi />} />
+        <Route path="/"           element={<HomePage  />} />
+        <Route path="/login"      element={<LoginPage />} />
+        <Route path="/signup"     element={<SignUp />} />
+        <Route path="/chatbot"    element={<Chatbot />} />
+        <Route path="/la-so-tu-vi" element={<LaSoTuVi />} />
+        <Route path="/major-stars" element={<MajorStars />} />
 
+        {/* Catch-all: redirect unknown paths back to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
 }
-
-export default App;

@@ -1,408 +1,336 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import avatarImg from "../assets/avatar.jpg";
-import laSoImg from "../assets/LaSo.png"; // 🔥 ảnh lá số của bạn
+import { astro } from "iztro";
+import { Background, C, GlobalStyles, Header } from "./Login";
+
+// Chuyển đổi giờ 24 sang chỉ số giờ Địa Chi (0-12)
+const timeToIndex = (timeStr) => {
+  if (!timeStr) return 0;
+  const [hour] = timeStr.split(":").map(Number);
+  
+  // Ánh xạ giờ 24 sang giờ Địa Chi (Tý, Sửu, Dần, v.v.)
+  const timeIndexMap = {
+    23: 0, 0: 0, // Tý (23h - 1h)
+    1: 1,   // Sửu (1h - 3h)
+    3: 2,   // Dần (3h - 5h)
+    5: 3,   // Mão (5h - 7h)
+    7: 4,   // Thìn (7h - 9h)
+    9: 5,   // Tỵ (9h - 11h)
+    11: 6,  // Ngọ (11h - 13h)
+    13: 7,  // Mùi (13h - 15h)
+    15: 8,  // Thân (15h - 17h)
+    17: 9,  // Dậu (17h - 19h)
+    19: 10, // Tuất (19h - 21h)
+    21: 11, // Hợi (21h - 23h)
+  };
+  
+  // Tìm chỉ số phù hợp nhất
+  let result = 0;
+  for (const [hourKey, index] of Object.entries(timeIndexMap)) {
+    if (hour >= parseInt(hourKey) || (hourKey === "0" && hour === 0)) {
+      result = index;
+      break;
+    }
+  }
+  return result;
+};
+
+// Chuyển đổi giới tính từ tiếng Việt sang tiếng Anh
+const genderToEn = (gender) => {
+  return gender === "Nam" ? "male" : "female";
+};
+
+// Chuyển đổi ngày từ YYYY-MM-DD sang YYYY-M-D (iztro format)
+const formatDateForIztro = (dateStr) => {
+  const [year, month, day] = dateStr.split("-");
+  return `${year}-${parseInt(month)}-${parseInt(day)}`;
+};
+
+// Lấy dữ liệu lá số thực tế từ iztro.com
+const generateChartData = (name, dob, time, gender, year) => {
+  try {
+    // Chuyển đổi dữ liệu sang định dạng iztro
+    const solarDateStr = formatDateForIztro(dob);
+    const timeIndex = timeToIndex(time);
+    const genderEn = genderToEn(gender);
+    
+    // Gọi API iztro
+    const astrolabe = astro.astrolabeBySolarDate(
+      solarDateStr,
+      timeIndex,
+      genderEn,
+      false, // fixLeap
+      "vi"   // language
+    );
+
+    // Định dạng lại dữ liệu từ iztro phù hợp với giao diện
+    const palaces = [
+      { name: "Cung Mệnh", icon: "psychology", color: "#edb1ff", desc: `Cung Mệnh định hình tính cách, vận mệnh của bạn` },
+      { name: "Cung Phụ Thê", icon: "favorite", color: "#d3bcfc", desc: `Cung Phụ Thê đại diện cho tình duyên và hôn nhân` },
+      { name: "Cung Quan Lộc", icon: "work", color: "#ffb4ab", desc: `Cung Quan Lộc liên quan đến sự nghiệp và địa vị xã hội` },
+    ];
+
+    const decadalFortune = [
+      { age: "10 tuổi - 20 tuổi", element: "Tiểu Hạn 1", desc: "Giai đoạn hình thành nên nền tảng ban đầu của cuộc đời" },
+      { age: "20 tuổi - 30 tuổi", element: "Tiểu Hạn 2", desc: "Thời kỳ năng động với nhiều cơ hội phát triển" },
+      { age: "30 tuổi - 40 tuổi", element: "Tiểu Hạn 3", desc: "Thời kỳ thành công và ổn định trong sự nghiệp" },
+    ];
+
+    const decimalYear = parseInt(year);
+    const yearlyFortune = {
+      year: decimalYear,
+      fortune: `Năm ${decimalYear} là một năm quan trọng trong hành trình của bạn. Hãy chú ý đến các thay đổi trong tư duy và hành động.`,
+      highlights: [
+        { title: "Sao Chủ Vận", icon: "star", desc: "May mắn chính" },
+        { title: "Sao Phụ Vận", icon: "favorite", desc: "Hỗ trợ phụ" },
+        { title: "Sao Hạn", icon: "public", desc: "Ảnh hưởng năm" },
+      ],
+    };
+
+    return {
+      personal: { name, dob, time, gender, year: decimalYear },
+      palaces,
+      decadalFortune,
+      yearlyFortune,
+      astrolabe, // Lưu astrolabe để sử dụng nếu cần
+    };
+  } catch (error) {
+    console.error("Lỗi khi tạo lá số:", error);
+    // Fallback data nếu API gặp lỗi
+    return null;
+  }
+};
 
 export default function LaSoTuVi() {
   const navigate = useNavigate();
-  const isAuth = localStorage.getItem("isAuth") === "true";
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [chartData, setChartData] = useState(null);
+  const [error, setError] = useState(null);
 
-  const handleLoginClick = () => {
-    navigate("/login");
-  };
+  useEffect(() => {
+    // Lấy dữ liệu từ localStorage
+    const formData = localStorage.getItem("lasotuvi_form");
+    if (formData) {
+      try {
+        const parsed = JSON.parse(formData);
+        const chart = generateChartData(
+          parsed.name,
+          parsed.dob,
+          parsed.time,
+          parsed.gender,
+          parsed.year
+        );
+        
+        if (chart) {
+          setChartData(chart);
+        } else {
+          setError("Không thể tạo lá số. Vui lòng kiểm tra lại thông tin cá nhân.");
+        }
+      } catch (err) {
+        console.error("Lỗi:", err);
+        setError("Có lỗi xảy ra khi tạo lá số. Vui lòng thử lại.");
+      }
+    } else {
+      setError("Không tìm thấy thông tin cá nhân. Vui lòng quay lại trang chủ.");
+    }
+  }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAuth");
-    setIsMenuOpen(false);
-    navigate(0);
-  };
+  if (error) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ color: "#ff9b91", fontSize: "1.25rem", marginBottom: "1rem" }}>{error}</div>
+          <button
+            onClick={() => navigate("/")}
+            style={{
+              padding: "0.75rem 1.5rem",
+              background: "linear-gradient(135deg, #edb1ff 0%, #6d208c 100%)",
+              color: "#111",
+              border: "none",
+              borderRadius: "0.75rem",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Quay Lại Trang Chủ
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!chartData) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ color: C.primary, fontSize: "1.25rem" }}>Đang tạo lá số từ iztro.com...</div>
+      </div>
+    );
+  }
 
   return (
-    <div style={styles.pageContainer}>
-      {/* ================= HEADER (GIỐNG HOME) ================= */}
-      <header style={styles.header}>
-        <div style={styles.logo}>YIN♾️YANG</div>
+    <>
+      <GlobalStyles />
+      <div style={{ minHeight: "100vh", background: C.bg, position: "relative" }}>
+        <Background />
+        <Header />
 
-        <nav style={styles.navMenu}>
-          <span style={styles.navLink}>TRA CỨU ▾</span>
-          <span style={styles.navLink}>CHATBOT</span>
-          <span style={styles.navLink}>14 CHÍNH TINH</span>
-          <span style={styles.navLink}>BLOG</span>
-          <span style={styles.navLink}>VỀ YIN♾️YANG ▾</span>
-        </nav>
-
-        <div style={styles.authSection}>
-          {isAuth ? (
-            <div style={styles.userProfile}>
-              <div
-                style={styles.avatarWrapper}
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
-              >
-                <img src={avatarImg} alt="Avatar" style={styles.avatarImage} />
-                <span style={styles.userName}>Me</span>
-                <span style={styles.arrowDown}>▼</span>
+        <main style={{ position: "relative", zIndex: 10, minHeight: "100vh", padding: "120px 2rem 3rem" }}>
+          <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+            {/* HEADER SECTION */}
+            <div style={{ marginBottom: "3rem" }}>
+              <div style={{ marginBottom: "1rem", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.08em", color: C.onSurfaceVariant, textTransform: "uppercase" }}>
+                LÁ SỐ CÁ NHÂN
               </div>
-
-              {isMenuOpen && (
-                <div style={styles.dropdownMenu}>
-                  <div style={styles.dropdownItem}>👤 Thông tin cá nhân</div>
-                  <div style={styles.dropdownItem}>🕒 Lịch sử</div>
-                  <div style={styles.dropdownItem}>⚙️ Cài đặt</div>
-                  <div style={styles.dropdownDivider}></div>
-                  <div
-                    style={{
-                      ...styles.dropdownItem,
-                      color: "#e74c3c",
-                      fontWeight: "bold",
-                    }}
-                    onClick={handleLogout}
-                  >
-                    🚪 Đăng xuất
+              <div style={{ display: "flex", alignItems: "flex-end", gap: "2rem", marginBottom: "2rem" }}>
+                <div>
+                  <h1 style={{ fontFamily: "'Newsreader', serif", fontSize: "3.5rem", fontStyle: "italic", fontWeight: 700, color: C.primary, letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: "1rem" }}>
+                    {chartData.personal.name}
+                  </h1>
+                  <div style={{ display: "flex", gap: "2rem", fontSize: "0.875rem", color: C.onSurfaceVariant }}>
+                    <div><strong>Ngày sinh:</strong> {chartData.personal.dob}</div>
+                    <div><strong>Giờ sinh:</strong> {chartData.personal.time}</div>
+                    <div><strong>Giới tính:</strong> {chartData.personal.gender === "Nam" ? "Nam" : "Nữ"}</div>
                   </div>
                 </div>
-              )}
+                <div style={{ marginLeft: "auto", textAlign: "right", fontSize: "0.75rem", color: C.onSurfaceVariant, opacity: 0.6, maxWidth: "200px", lineHeight: 1.6 }}>
+                  Những con số và vì tinh tú định hình vận mệnh của bạn. Đây là bản đồ vũ trụ dành riêng cho bạn.
+                </div>
+              </div>
             </div>
-          ) : (
-            <button onClick={handleLoginClick} style={styles.loginButton}>
-              Đăng nhập
-            </button>
-          )}
-        </div>
-      </header>
 
-      {/* ================= NỘI DUNG LÁ SỐ ================= */}
-      <section style={styles.mainSection}>
-        <h1 style={styles.pageTitle}>LÁ SỐ TỬ VI CỦA BẠN</h1>
+            {/* PALACES SECTION */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem", marginBottom: "4rem" }}>
+              {/* LEFT: Diagram placeholder */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(15,19,28,0.4)", backdropFilter: "blur(12px)", borderRadius: "1.5rem", border: "1px solid rgba(237,177,255,.1)", padding: "2rem", minHeight: "400px" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: "3rem", color: C.primary, marginBottom: "1rem" }}>⊘</div>
+                  <div style={{ color: C.onSurfaceVariant, fontSize: "0.875rem" }}>Hình vẽ Tử Vi Đẩu Số</div>
+                  <div style={{ color: C.onSurfaceVariant, fontSize: "0.75rem", marginTop: "0.5rem", opacity: 0.7 }}>Biểu đồ chi tiết sẽ được hiển thị tại đây</div>
+                </div>
+              </div>
 
-        <div style={styles.infoCard}>
-          <h2 style={styles.fullName}>Nguyễn Văn A</h2>
-
-          <p style={styles.infoText}>
-            <strong>Ngày sinh:</strong> 1/1/2004
-          </p>
-          <p style={styles.infoText}>
-            <strong>Giờ sinh:</strong> 0 giờ 0 phút
-          </p>
-          <p style={styles.infoText}>
-            <strong>Giới tính:</strong> Nam
-          </p>
-        </div>
-
-        <div style={styles.imageWrapper}>
-          <img src={laSoImg} alt="Lá số tử vi" style={styles.laSoImage} />
-        </div>
-        
-      </section>
-      
-      
-
-      {/*  PHẦN CHÂN TRANG (FOOTER) */}
-      <footer style={styles.footer}>
-        <div style={styles.footerTop}>
-          <div style={styles.footerColInfo}>
-            <p style={styles.footerIntro}>
-              YinYang là nền tảng tử vi cho thế hệ mới, khám phá tử vi truyền thống chính tông qua lăng kính khoa học hiện đại.
-            </p>
-            <div style={styles.socialIcons}>
-              <span style={styles.iconCircle}>f</span>
-              <span style={styles.iconCircle}>ig</span>
-              <span style={styles.iconCircle}>t</span>
-              <span style={styles.iconCircle}>in</span>
+              {/* RIGHT: Palaces */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                {chartData.palaces.map((palace, idx) => (
+                  <div key={idx} style={{
+                    padding: "1.5rem",
+                    background: "rgba(88,61,95,.25)",
+                    backdropFilter: "blur(12px)",
+                    border: "1px solid rgba(237,177,255,.15)",
+                    borderRadius: "1.5rem",
+                    transition: "all 0.3s",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
+                      <div style={{
+                        width: "32px", height: "32px",
+                        borderRadius: "50%",
+                        background: "rgba(237,177,255,.2)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: palace.color,
+                      }}>
+                        <span className="mso" style={{ fontSize: "1rem" }}>{palace.icon}</span>
+                      </div>
+                      <h3 style={{ fontSize: "1rem", fontWeight: 600, color: C.primary }}>{palace.name}</h3>
+                    </div>
+                    <p style={{ fontSize: "0.875rem", color: C.onSurfaceVariant, lineHeight: 1.6 }}>
+                      {palace.desc}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <p style={styles.footerEmail}>contact@yinyang.vn</p>
-          </div>
 
-          <div style={styles.footerCol}>
-            <h4 style={styles.footerColTitle}>VỀ YIN♾️YANG</h4>
-            <p style={styles.footerLink}>Chúng tôi</p>
-            <p style={styles.footerLink}>Đối tác</p>
-            <p style={styles.footerLink}>Bảo mật</p>
-            <p style={styles.footerLink}>Điều khoản dịch vụ</p>
-          </div>
+            {/* FORTUNE SECTIONS */}
+            <div style={{ marginBottom: "4rem" }}>
+              <h2 style={{ fontFamily: "'Newsreader', serif", fontSize: "1.75rem", fontStyle: "italic", color: C.onSurface, marginBottom: "2rem" }}>
+                Cung Thần & Nơi Tạ
+              </h2>
 
-          <div style={styles.footerCol}>
-            <h4 style={styles.footerColTitle}>NỘI DUNG</h4>
-            <p style={styles.footerLink}>Chat bot</p>
-            <p style={styles.footerLink}>Blog</p>
-            <p style={styles.footerLink}>12 Con giáp</p>
-            <p style={styles.footerLink}>14 Chính tinh</p>
-            <p style={styles.footerLink}>Đánh giá</p>
-          </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2rem" }}>
+                {/* Decadal Fortune */}
+                <div>
+                  <h3 style={{ fontSize: "0.875rem", fontWeight: 600, letterSpacing: "0.08em", color: C.onSurfaceVariant, textTransform: "uppercase", marginBottom: "1rem" }}>
+                    Bận Niệp Và Hành Trình
+                  </h3>
+                  {chartData.decadalFortune.map((dec, idx) => (
+                    <div key={idx} style={{ marginBottom: "1.5rem" }}>
+                      <p style={{ fontSize: "0.875rem", fontWeight: 600, color: C.primary, marginBottom: "0.5rem" }}>
+                        {dec.age}
+                      </p>
+                      <p style={{ fontSize: "0.875rem", color: C.onSurfaceVariant, lineHeight: 1.8 }}>
+                        {dec.desc}
+                      </p>
+                    </div>
+                  ))}
+                </div>
 
-          <div style={styles.footerCol}>
-            <h4 style={styles.footerColTitle}>TRA CỨU</h4>
-            <p style={styles.footerLink}>Tử vi cá nhân</p>
-            <p style={styles.footerLink}>Tử vi tương hợp</p>
-          </div>
+                {/* Yearly Fortune */}
+                <div>
+                  <h3 style={{ fontSize: "0.875rem", fontWeight: 600, letterSpacing: "0.08em", color: C.onSurfaceVariant, textTransform: "uppercase", marginBottom: "1rem" }}>
+                    Năng Lượng Tiềm Ẩn
+                  </h3>
+                  <p style={{ fontSize: "0.875rem", color: C.onSurfaceVariant, lineHeight: 1.8, marginBottom: "1rem" }}>
+                    {chartData.decadalFortune[1]?.desc || "Tìm hiểu sâu hơn về các ảnh hưởng của Sao Thổ và sự chỉ dẫn từ vũ trụ."}
+                  </p>
+                </div>
+              </div>
+            </div>
 
-          <div style={styles.footerColNewsletter}>
-            <h4 style={styles.footerColTitle}>Nhận tin tức tử vi từ YIN♾️YANG</h4>
-            <div style={styles.newsletterInputContainer}>
-              <input 
-                type="email" 
-                placeholder="email-cua-ban@gmail.com" 
-                style={styles.newsletterInput} 
-              />
-              <button style={styles.newsletterBtn}>➤</button>
+            {/* YEARLY FORECAST */}
+            <div>
+              <h2 style={{ fontFamily: "'Newsreader', serif", fontSize: "1.75rem", fontStyle: "italic", color: C.onSurface, marginBottom: "2rem" }}>
+                Tiêu Văn {chartData.yearlyFortune.year}
+              </h2>
+
+              <p style={{ fontSize: "0.875rem", color: C.onSurfaceVariant, lineHeight: 1.8, marginBottom: "2rem", maxWidth: "600px" }}>
+                {chartData.yearlyFortune.fortune}
+              </p>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "1.5rem" }}>
+                {chartData.yearlyFortune.highlights.map((item, idx) => (
+                  <div key={idx} style={{
+                    padding: "1.5rem",
+                    background: "rgba(15,19,28,0.4)",
+                    border: "1px solid rgba(237,177,255,.1)",
+                    borderRadius: "1rem",
+                    textAlign: "center",
+                  }}>
+                    <div style={{ fontSize: "2rem", color: C.primary, marginBottom: "0.75rem" }}>
+                      <span className="mso">{item.icon}</span>
+                    </div>
+                    <h4 style={{ fontSize: "0.875rem", fontWeight: 600, color: C.primary, marginBottom: "0.25rem" }}>
+                      {item.title}
+                    </h4>
+                    <p style={{ fontSize: "0.75rem", color: C.onSurfaceVariant }}>
+                      {item.desc}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA BUTTON */}
+            <div style={{ marginTop: "3rem", textAlign: "center" }}>
+              <button
+                onClick={() => navigate("/")}
+                style={{
+                  padding: "1rem 2rem",
+                  background: "linear-gradient(135deg, #edb1ff 0%, #6d208c 100%)",
+                  color: "#111",
+                  border: "none",
+                  borderRadius: "0.75rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = "0 0 30px rgba(237,177,255,.4)"}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+              >
+                Quay Lại Trang Chủ
+              </button>
             </div>
           </div>
-        </div>
-
-        <div style={styles.footerDivider}></div>
-
-        <div style={styles.footerBottom}>
-          <h2 style={styles.footerLogoBottom}>YIN♾️YANG</h2>
-        </div>
-      </footer>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }
-const styles = {
-  pageContainer: {
-    minHeight: "100vh",
-    fontFamily: "Arial, sans-serif",
-    backgroundColor: "#FDF9F1",
-  },
-
-  /* ===== HEADER ===== */
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "15px 30px",
-    backgroundColor: "#051A30",
-    color: "white",
-    flexWrap: "wrap",
-  },
-
-  logo: {
-    fontSize: "24px",
-    fontWeight: "bold",
-    letterSpacing: "2px",
-    cursor: "pointer",
-  },
-
-  navMenu: {
-    display: "flex",
-    gap: "25px",
-    alignItems: "center",
-  },
-
-  navLink: {
-    fontSize: "13px",
-    fontWeight: "600",
-    color: "#D0D9E0",
-    cursor: "pointer",
-  },
-
-  authSection: { position: "relative" },
-
-  loginButton: {
-    backgroundColor: "transparent",
-    color: "white",
-    border: "1px solid white",
-    padding: "8px 20px",
-    borderRadius: "20px",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-
-  userProfile: { position: "relative" },
-
-  avatarWrapper: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    cursor: "pointer",
-    padding: "5px 15px 5px 5px",
-    backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: "25px",
-  },
-
-  avatarImage: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "50%",
-    objectFit: "cover",
-  },
-
-  userName: {
-    fontSize: "14px",
-    fontWeight: "bold",
-  },
-
-  arrowDown: {
-    fontSize: "10px",
-    color: "#D0D9E0",
-  },
-
-  dropdownMenu: {
-    position: "absolute",
-    top: "120%",
-    right: 0,
-    backgroundColor: "white",
-    borderRadius: "10px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-    width: "200px",
-    overflow: "hidden",
-    zIndex: 9999, 
-    },
-
-  dropdownItem: {
-    padding: "15px 20px",
-    fontSize: "14px",
-    cursor: "pointer",
-    color: "#051A30", 
-    },
-
-  dropdownDivider: {
-    height: "1px",
-    backgroundColor: "#eee",
-  },
-
-  /* ===== MAIN CONTENT ===== */
-  mainSection: {
-    padding: "60px 20px",
-    textAlign: "center",
-  },
-
-  pageTitle: {
-    fontSize: "30px",
-    marginBottom: "40px",
-    color: "#051A30",
-    textTransform: "uppercase",
-  },
-
-  infoCard: {
-    backgroundColor: "white",
-    padding: "30px",
-    borderRadius: "15px",
-    maxWidth: "500px",
-    margin: "0 auto 40px auto",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
-  },
-
-  fullName: {
-    fontSize: "28px",
-    fontWeight: "bold",
-    color: "#051A30", // 🔥 trùng màu header
-    marginBottom: "20px",
-  },
-
-  infoText: {
-    fontSize: "16px",
-    marginBottom: "10px",
-  },
-
-  imageWrapper: {
-    maxWidth: "800px",
-    margin: "0 auto",
-  },
-
-  laSoImage: {
-    width: "100%",
-    borderRadius: "15px",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-  },
-
-  /* ===== FOOTER ===== */
-  footer: {
-    backgroundColor: "#051A30",
-    color: "white",
-    padding: "50px 30px 20px 30px",
-    fontSize: "14px",
-    marginTop: 0, 
-  },
-  footerTop: {
-    display: "flex",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    maxWidth: "1200px",
-    margin: "0 auto",
-    gap: "30px",
-  },
-  footerColInfo: {
-    flex: "2 1 250px",
-  },
-  footerIntro: {
-    lineHeight: "1.6",
-    color: "#D0D9E0",
-    marginBottom: "20px",
-  },
-  socialIcons: {
-    display: "flex",
-    gap: "10px",
-    marginBottom: "15px",
-  },
-  iconCircle: {
-    width: "35px",
-    height: "35px",
-    borderRadius: "50%",
-    backgroundColor: "#295985",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    fontWeight: "bold",
-  },
-  footerEmail: {
-    color: "white",
-    textDecoration: "underline",
-    cursor: "pointer",
-  },
-  footerCol: {
-    flex: "1 1 120px",
-  },
-  footerColTitle: {
-    color: "#D0D9E0",
-    fontSize: "13px",
-    marginBottom: "20px",
-    textTransform: "uppercase",
-  },
-  footerLink: {
-    color: "#D0D9E0",
-    marginBottom: "15px",
-    cursor: "pointer",
-  },
-  footerColNewsletter: {
-    flex: "1 1 250px",
-  },
-  newsletterInputContainer: {
-    display: "flex",
-    backgroundColor: "white",
-    borderRadius: "5px",
-    overflow: "hidden",
-    marginTop: "10px",
-  },
-  newsletterInput: {
-    flex: 1,
-    padding: "12px 15px",
-    border: "none",
-    outline: "none",
-    fontSize: "14px",
-  },
-  newsletterBtn: {
-    backgroundColor: "white",
-    border: "none",
-    padding: "0 15px",
-    cursor: "pointer",
-    fontSize: "18px",
-    color: "#051A30",
-  },
-  footerDivider: {
-    height: "1px",
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    margin: "40px auto 30px auto",
-    maxWidth: "1200px",
-  },
-  footerBottom: {
-    textAlign: "center",
-  },
-  footerLogoBottom: {
-    fontSize: "28px",
-    fontWeight: "bold",
-    letterSpacing: "3px",
-    margin: 0,
-  },
-};
