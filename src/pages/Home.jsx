@@ -122,7 +122,7 @@ const Header = ({ onLoginClick }) => {
     { label: "Chatbot", to: "/chatbot" },
     { label: "14 Chính tinh", to: "/major-stars" },
     { label: "Blog", to: "/" },
-    { label: "Về YinYang", to: "/" },
+    { label: "Liên hệ", to: "contact" },
   ];
 
   return (
@@ -137,7 +137,7 @@ const Header = ({ onLoginClick }) => {
         display: "flex", justifyContent: "space-between", alignItems: "center",
         padding: "1rem 2rem", maxWidth: "80rem", margin: "0 auto",
       }}>
-        <div 
+        <div  
           className="font-headline"
           style={{ fontFamily: "Cinzel, serif", fontSize: "2.5rem" }}
         >
@@ -150,7 +150,21 @@ const Header = ({ onLoginClick }) => {
               key={item.label}
               className="nav-link"
               style={{ cursor: "pointer" }}
-              onClick={() => navigate(item.to)}
+              onClick={() => 
+                {
+                  if (item.to === "contact") 
+                    {
+                      const el = document.getElementById("contact");
+                      window.scrollTo
+                      ({
+                        top: el.offsetTop - 80,
+                        behavior: "smooth"
+                      });
+                    } else 
+                      {
+                        navigate(item.to);
+                      }
+              }}
             >
               {item.label}
             </span>
@@ -352,7 +366,7 @@ const Footer = () => {
     <footer style={{ width: "100%", padding: "4rem 2rem", background: C.surfaceContainerLowest, fontFamily: "'Manrope', sans-serif", color: C.onSurfaceVariant, borderTop: `1px solid rgba(77,67,81,0.15)` }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "3rem", maxWidth: "80rem", margin: "0 auto" }}>
         <div>
-          <div className="font-headline" style={{ fontFamily: "Cinzel, serif",  fontSize: "2rem", fontWeight: 700, color: C.primary, marginBottom: "1rem" }}>YinYang</div>
+          <div id="contact"  className="font-headline" style={{ fontFamily: "Cinzel, serif",  fontSize: "2rem", fontWeight: 700, color: C.primary, marginBottom: "1rem" }}>YinYang</div>
           <p style={{ fontSize: "0.875rem", opacity: 0.6, lineHeight: 1.7 }}>Kết nối trí tuệ cổ xưa với công nghệ hiện đại để soi sáng con đường của bạn.</p>
         </div>
 
