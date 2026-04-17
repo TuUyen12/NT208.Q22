@@ -24,6 +24,9 @@ const C = {
 /* ─────────────── Google Fonts ──────────────── */
 const FontLoader = () => (
   <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Manrope:wght@200..800&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
@@ -134,7 +137,10 @@ const Header = ({ onLoginClick }) => {
         display: "flex", justifyContent: "space-between", alignItems: "center",
         padding: "1rem 2rem", maxWidth: "80rem", margin: "0 auto",
       }}>
-        <div className="font-headline" style={{ fontSize: "1.5rem", fontWeight: 700, color: C.primary }}>
+        <div 
+          className="font-headline"
+          style={{ fontFamily: "Cinzel, serif", fontSize: "2.5rem" }}
+        >
           YinYang
         </div>
 
@@ -188,8 +194,8 @@ const HeroSection = () => {
     }}>
       <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
         <img
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuAw8NoRR53N9kVzjPIXE5O763r_RODFkTje0VJ-pFHLXZFu750gjYin8lmfGchTK8f-UqaFxGKoZpokS5kee28ndaH0NZQMFcbXM3zvYeeFg_BUPh3BLjvj5PcdPS9oaq7HHBXJ0imlvFyBGzCHB6Ude7ACgx7kTSUx5d_nKWvTTKBI4N7VbU93AJDZ36v9sF5LqVW7sTJ7Rhhb1x0U44DGe2BKv_nP02Dchiniq-AQwgHnlovz99kGL2_bICYi0QKxN3v_Sjxw6xM"
-          alt="Cosmic nebula background"
+          src="/background2.png"
+          alt="dark background"
           style={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.3 }}
         />
         <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, ${C.background}, transparent, ${C.background})` }} />
@@ -198,6 +204,7 @@ const HeroSection = () => {
       <div style={{ position: "relative", zIndex: 10, maxWidth: "60rem", width: "100%" }}>
         <div style={{ textAlign: "center", marginBottom: "3rem" }}>
           <h1 className="font-headline hero-title" style={{
+            fontFamily: "Cormorant Garamond, serif",
             fontSize: "5.5rem", color: C.primary, letterSpacing: "-0.02em",
             marginBottom: "1rem", textShadow: "0 0 80px rgba(237,177,255,0.2)", lineHeight: 1.1,
           }}>
@@ -302,12 +309,13 @@ const ZodiacSection = () => (
     <div className="celestial-glow" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
     <div style={{ maxWidth: "80rem", margin: "0 auto", padding: "0 2rem", position: "relative", zIndex: 10 }}>
       <div style={{ textAlign: "center", marginBottom: "5rem" }}>
-        <h2 className="font-headline" style={{ fontSize: "clamp(2.5rem, 4vw, 3.5rem)", color: C.primary, marginBottom: "1.5rem" }}>12 Con Giáp</h2>
+        <h2 className="font-headline" style={{ fontFamily: "Cormorant Garamond, serif",fontSize: "clamp(2.5rem, 4vw, 3.5rem)", color: C.primary, marginBottom: "1.5rem" }}>12 con giáp</h2>
         <div style={{ width: "6rem", height: "4px", background: C.primaryContainer, borderRadius: "9999px", margin: "0 auto 1.5rem" }} />
         <p style={{ color: C.onSurfaceVariant, maxWidth: "30rem", margin: "0 auto", lineHeight: 1.8 }}>
           Vòng quay 12 linh vật biểu tượng cho các tính cách và vận mệnh riêng biệt trong văn hóa Á Đông.
         </p>
       </div>
+      
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "1.5rem", marginBottom: "4rem" }}>
         {zodiacData.map(({ name, src }) => (
           <div key={name} className="zodiac-card">
@@ -322,6 +330,7 @@ const ZodiacSection = () => (
         </button>
       </div>
     </div>
+
   </section>
 );
 
@@ -343,9 +352,10 @@ const Footer = () => {
     <footer style={{ width: "100%", padding: "4rem 2rem", background: C.surfaceContainerLowest, fontFamily: "'Manrope', sans-serif", color: C.onSurfaceVariant, borderTop: `1px solid rgba(77,67,81,0.15)` }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "3rem", maxWidth: "80rem", margin: "0 auto" }}>
         <div>
-          <div className="font-headline" style={{ fontSize: "2rem", fontWeight: 700, color: C.primary, marginBottom: "1rem" }}>YinYang</div>
+          <div className="font-headline" style={{ fontFamily: "Cinzel, serif",  fontSize: "2rem", fontWeight: 700, color: C.primary, marginBottom: "1rem" }}>YinYang</div>
           <p style={{ fontSize: "0.875rem", opacity: 0.6, lineHeight: 1.7 }}>Kết nối trí tuệ cổ xưa với công nghệ hiện đại để soi sáng con đường của bạn.</p>
         </div>
+
         <div>
           <h4 style={{ color: C.primary, fontWeight: 700, marginBottom: "1.5rem" }}>Dịch vụ</h4>
           <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -363,6 +373,7 @@ const Footer = () => {
             ))}
           </ul>
         </div>
+
         <div>
           <h4 style={{ color: C.primary, fontWeight: 700, marginBottom: "1.5rem" }}>Thông tin</h4>
           <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -380,6 +391,7 @@ const Footer = () => {
             ))}
           </ul>
         </div>
+
         <div>
           <h4 style={{ color: C.primary, fontWeight: 700, marginBottom: "1.5rem" }}>Liên hệ</h4>
           <div style={{ display: "flex", gap: "1rem" }}>
@@ -393,9 +405,11 @@ const Footer = () => {
           </div>
         </div>
       </div>
+
       <div style={{ maxWidth: "80rem", margin: "4rem auto 0", paddingTop: "2rem", borderTop: `1px solid rgba(77,67,81,0.1)`, textAlign: "center", opacity: 0.4, fontSize: "0.75rem" }}>
         © 2024 YinYang Astrology. All rights reserved.
       </div>
+
     </footer>
   );
 };

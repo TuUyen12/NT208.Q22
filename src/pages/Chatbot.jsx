@@ -57,7 +57,7 @@ export default function Chatbot() {
           <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "1.75rem" }}>
             <section className="glass" style={{ padding: "2rem", borderRadius: 28, border: "1px solid rgba(77,67,81,.18)" }}>
               <h2 style={{ color: C.primary, marginBottom: "1.25rem" }}>Chatbot AI</h2>
-              <p style={{ color: C.onSurfaceVariant, lineHeight: 1.8, marginBottom: "1.5rem" }}>
+              <p style={{ fontFamily: "Manrope, sans-serif", color: C.onSurfaceVariant, lineHeight: 1.8, marginBottom: "1.5rem" }}>
                 Đặt câu hỏi nhanh và nhận phản hồi tức thì. Sử dụng gợi ý bên dưới để bắt đầu hoặc xem lại lịch sử trò chuyện.
               </p>
 
@@ -90,7 +90,7 @@ export default function Chatbot() {
               <div style={{ padding: "1.5rem 1.75rem", borderBottom: "1px solid rgba(255,255,255,.08)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div>
                   <div style={{ fontSize: "1.15rem", fontWeight: 700, color: C.onSurface }}>Giao diện nhắn tin AI</div>
-                  <div style={{ color: C.onSurfaceVariant, fontSize: 13, marginTop: 6 }}>Trò chuyện nhanh, xem lịch sử và khám phá câu trả lời chuyên sâu.</div>
+                  <div style={{ fontFamily: "Manrope, sans-serif", color: C.onSurfaceVariant, fontSize: 13, marginTop: 6 }}>Trò chuyện nhanh, xem lịch sử và khám phá câu trả lời chuyên sâu.</div>
                 </div>
                 <span className="mso" style={{ fontSize: 22, color: C.primary }}>chat</span>
               </div>

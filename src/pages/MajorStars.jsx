@@ -158,10 +158,10 @@ const MajorStars = () => {
                 HỆ THỐNG SAO
               </div>
               <div style={{ marginBottom: "2rem" }}>
-                <h1 style={{ fontFamily: "'Newsreader', serif", fontSize: "3.5rem", fontStyle: "italic", fontWeight: 700, color: C.primary, letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: "1rem" }}>
+                <h1 style={{ fontFamily: "Playfair Display, serif", fontSize: "3.5rem", fontStyle: "italic", fontWeight: 500, color: C.primary, letterSpacing: "-0.02em", lineHeight: 1.1, marginBottom: "1rem" }}>
                   14 Chính Tinh
                 </h1>
-                <p style={{ fontSize: "1rem", color: C.onSurfaceVariant, maxWidth: "600px", lineHeight: 1.8 }}>
+                <p style={{fontFamily: "Manrope, sans-serif", fontSize: "1rem", color: C.onSurfaceVariant, maxWidth: "600px", lineHeight: 1.8 }}>
                   Tìm hiểu về 14 sao chính trong hệ thống Tử Vi Đẩu Số. Mỗi ngôi sao đại diện cho một khía cạnh khác nhau của tính cách, vận mệnh và con đường cuộc đời của bạn.
                 </p>
               </div>
