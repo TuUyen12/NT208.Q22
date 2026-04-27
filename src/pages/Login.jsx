@@ -450,15 +450,47 @@ const LoginCard = () => {
     return e;
   };
 
-  const handleLogin = async () => {
-    const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
-    setErrors({}); setLoading(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setLoading(false); setSuccess(true);
-    btnRef.current?.classList.add("pulse");
-    setTimeout(() => { setSuccess(false); btnRef.current?.classList.remove("pulse"); }, 2200);
-  };
+ const handleLogin = async () => {
+  const e = validate();
+  if (Object.keys(e).length) {
+    setErrors(e);
+    return;
+  }
+  try {
+    setLoading(true);
+    setErrors({});
+    const res = await fetch("http://localhost:3000/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        password: pw,
+      }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Login failed");
+    }
+    setSuccess(true);
+    localStorage.setItem("token", data.token);
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 1000);
+
+  } catch (err) {
+    setErrors({ general: err.message });
+  } finally {
+    setLoading(false);
+  }
+};
+   {errors.general && (
+  <div style={{ color: "red", marginBottom: 10 }}>
+    {errors.general}
+  </div>
+)}
 
   return (
     <div className="glass fade-up" style={{
