@@ -33,7 +33,7 @@ async def create_chart(
     warned = body.birth_hour is None  # Req 2: notify if defaulted
 
     lunar = ChartEngine.solar_to_lunar(body.dob_solar, body.timezone_offset)
-    matrix = ChartEngine.calculate(lunar, birth_hour, body.gender)
+    matrix = await ChartEngine.calculate(body.dob_solar, birth_hour, body.gender)
 
     chart = Chart(
         user_id=current_user.user_id,

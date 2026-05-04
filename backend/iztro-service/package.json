@@ -1,0 +1,13 @@
+{
+  "name": "iztro-service",
+  "version": "1.0.0",
+  "description": "HTTP wrapper around iztro for Tử Vi chart generation",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "iztro": "^2.5.8"
+  }
+}

@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # AES-256 encryption key for sensitive fields (32-byte hex)
     FIELD_ENCRYPTION_KEY: str = "change-me-32-byte-hex-key-000000"
 
+    # iztro chart generation service
+    IZTRO_SERVICE_URL: str = "http://iztro-service:3001"
+
     # AI service
     AI_SERVICE_URL: str = ""
     AI_SERVICE_API_KEY: str = ""

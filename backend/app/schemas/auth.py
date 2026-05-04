@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel, EmailStr, field_validator
 
 
@@ -29,7 +31,7 @@ class RefreshRequest(BaseModel):
 
 
 class UserResponse(BaseModel):
-    user_id: str
+    user_id: UUID
     email: str
     role: str
     streak_count: int
