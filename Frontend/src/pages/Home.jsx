@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // ✅ NEW IMPORT
+import { useNavigate } from "react-router-dom"; 
 
 /* ─────────────────────────────────────────────
    Design tokens
@@ -114,7 +114,6 @@ const FontLoader = () => (
 );
 
 /* ─────────────────────── Header ──────────────────────── */
-// ✅ CHANGED: Accepts onLoginClick prop — keeps UI unchanged, adds navigation behaviour
 const Header = ({ onLoginClick }) => {
   const navigate = useNavigate();
   const navItems = [
@@ -171,7 +170,6 @@ const Header = ({ onLoginClick }) => {
           ))}
         </div>
 
-        {/* ✅ CHANGED: onClick wired to onLoginClick prop */}
         <button
           className="btn-primary"
           style={{ padding: "0.5rem 1.5rem", fontSize: "0.95rem", borderRadius: "0.75rem", fontFamily: "'Manrope', sans-serif" }}
@@ -187,17 +185,50 @@ const Header = ({ onLoginClick }) => {
 /* ─────────────────────── Hero / Banner ──────────────────────── */
 const HeroSection = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", dob: "", time: "", gender: "Nam", year: "2024 (Giáp Thìn)" });
+
+  // Hàm tính Can Chi
+  const getCanChi = (year) => {
+    const can = ['Giáp', 'Ất', 'Bính', 'Đinh', 'Mậu', 'Kỷ', 'Canh', 'Tân', 'Nhâm', 'Quý'];
+    const chi = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
+    const canIndex = (year - 4) % 10;
+    const chiIndex = (year - 4) % 12;
+    return `${can[canIndex]} ${chi[chiIndex]}`;
+  };
+
+  const currentYear = new Date().getFullYear();
+  const [form, setForm] = useState({ 
+    name: "", 
+    dob: "", 
+    time: "", 
+    gender: "Nam", 
+    year: currentYear.toString()   // mặc định năm hiện tại
+  });
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
+  // Tạo danh sách năm từ hiện tại -10 đến +10
+  const startYear = currentYear - 10;
+  const endYear = currentYear + 10;
+  const yearOptions = [];
+  for (let y = startYear; y <= endYear; y++) {
+    const canChi = getCanChi(y);
+    yearOptions.push({ value: y, label: `${y} (${canChi})` });
+  }
 
   const handleGetChartClick = () => {
     if (!form.name || !form.dob || !form.time) {
       alert("Vui lòng nhập đầy đủ thông tin (Họ tên, Ngày sinh, Giờ sinh)");
       return;
     }
-    // Lưu dữ liệu vào localStorage
-    localStorage.setItem("lasotuvi_form", JSON.stringify(form));
-    navigate("/la-so-tu-vi");
+ 
+    const formData = {
+      name:       form.name,
+      birthDate:  form.dob,
+      birthHour:  form.time,
+      gender:     form.gender === "Nữ" ? "female" : "male",
+      targetYear: Number(form.year),
+    };
+ 
+    navigate("/la-so-tu-vi", { state: formData });
   };
 
   return (
@@ -233,7 +264,7 @@ const HeroSection = () => {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1.5rem" }}>
             {[
               { label: "Họ và Tên", name: "name", type: "text",  placeholder: "Nguyễn Văn A" },
-              { label: "Ngày sinh", name: "dob",  type: "date",  placeholder: "" },
+              { label: "Ngày sinh (Dương Lịch)", name: "dob",  type: "date",  placeholder: "" },
               { label: "Giờ sinh",  name: "time", type: "time",  placeholder: "" },
             ].map(({ label, name, type, placeholder }) => (
               <div key={name}>
@@ -250,9 +281,9 @@ const HeroSection = () => {
             <div>
               <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Năm tra cứu</label>
               <select className="field-select" name="year" value={form.year} onChange={handleChange}>
-                <option>2024 (Giáp Thìn)</option>
-                <option>2025 (Ất Tỵ)</option>
-                <option>2026 (Bính Ngọ)</option>
+                {yearOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
               </select>
             </div>
             <div style={{ display: "flex", alignItems: "flex-end" }}>
@@ -430,17 +461,13 @@ const Footer = () => {
 
 /* ─────────────────────── HomePage (root) ──────────────────────── */
 export default function HomePage() {
-  // ✅ NEW: useNavigate hook — must be used inside a <Router> context (provided by App.jsx)
   const navigate = useNavigate();
-
-  // ✅ NEW: navigation handler — passed as prop to Header
   const handleLoginClick = () => navigate("/login");
 
   return (
     <>
       <FontLoader />
       <div style={{ background: C.background, minHeight: "100vh" }}>
-        {/* ✅ CHANGED: onLoginClick prop added — all other UI is identical */}
         <Header onLoginClick={handleLoginClick} />
         <main style={{ paddingTop: "4rem" }}>
           <HeroSection />
