@@ -12,11 +12,6 @@ on:
 jobs:
   # ── Frontend lint & build ────────────────────────────────────────────────
   frontend:
-    name: Show runner user
-      run: |
-        whoami
-        id
-        groups
     name: Frontend (lint + build)
     runs-on: ubuntu-latest
     defaults:
@@ -35,6 +30,10 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      - run: |
+          whoami
+          id
+          groups
 
   # ── Backend lint ──────────────────────────────────────────────────────────
   backend:
