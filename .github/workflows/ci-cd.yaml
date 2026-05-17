@@ -68,7 +68,7 @@ jobs:
           clean: true
 
       - name: Inject .env
-        run: cp /etc/yinyang/.env .env
+        run: cp "$HOME/.env" .env
 
       - name: Rebuild and restart services
         run: |
