@@ -67,6 +67,9 @@ jobs:
           ref: prod
           clean: true
 
+      - name: Inject .env
+        run: cp /etc/yinyang/.env .env
+
       - name: Rebuild and restart services
         run: |
           set -e
