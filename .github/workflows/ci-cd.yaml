@@ -12,12 +12,18 @@ on:
 jobs:
   # ── Frontend lint & build ────────────────────────────────────────────────
   frontend:
+    - name: Show runner user
+      run: |
+        whoami
+        id
+        groups
     name: Frontend (lint + build)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: Frontend
     steps:
+      
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
