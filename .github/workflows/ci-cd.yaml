@@ -13,7 +13,7 @@ jobs:
   # ── Frontend lint & build ────────────────────────────────────────────────
   frontend:
     name: Frontend (lint + build)
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: Frontend
@@ -38,7 +38,7 @@ jobs:
   # ── Backend lint ──────────────────────────────────────────────────────────
   backend:
     name: Backend (lint)
-    runs-on: ubuntu-latest    
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: backend
@@ -59,7 +59,7 @@ jobs:
     name: Deploy to production
     needs: [frontend, backend]
     if: github.ref == 'refs/heads/prod' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    runs-on: runner
+    runs-on: self-hosted
     environment: production
     steps:
       - uses: actions/checkout@v4
