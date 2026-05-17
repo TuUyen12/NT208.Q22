@@ -68,14 +68,7 @@ jobs:
           clean: true
 
       - name: Inject .env
-        run: |
-          echo "whoami: $(whoami)"
-          echo "HOME override: $HOME"
-          REAL_HOME=$(getent passwd "$(whoami)" | cut -d: -f6)
-          echo "Real home from passwd: $REAL_HOME"
-          ls -la "$REAL_HOME/.env" 2>/dev/null || echo ".env not found at $REAL_HOME"
-          find /home -name ".env" 2>/dev/null || true
-          cp "$REAL_HOME/.env" .env
+        run: cp /etc/yinyang/.env .env
 
       - name: Rebuild and restart services
         run: |
