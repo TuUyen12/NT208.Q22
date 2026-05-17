@@ -46,14 +46,13 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
-      - run: pip install ruff
       - run: ruff check .
 
   # ── Deploy (prod branch only, runs ON the VM itself) ─────────────────────
   deploy:
     name: Deploy to production
     needs: [frontend, backend]
-    if: github.ref == 'refs/heads/prod' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/prod' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: self-hosted        # your VM is the runner
     environment: production
     steps:
