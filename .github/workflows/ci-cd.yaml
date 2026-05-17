@@ -51,6 +51,7 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
+      - run: pip install ruff
       - run: ruff check .
 
   # ── Deploy (prod branch only, runs ON the VM itself) ─────────────────────
