@@ -1,14 +1,29 @@
-import { useState } from "react"; 
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import zodiacBanner from "../assets/12ConGiap.png";
-//  1. IMPORT ẢNH 
-import avatarImg from "../assets/avatar.jpg"; 
+//  1. IMPORT ẢNH
+import avatarImg from "../assets/avatar.jpg";
 
 export default function Home() {
   const navigate = useNavigate();
 
   const isAuth = localStorage.getItem("isAuth") === "true";
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Form state
+  const [name, setName] = useState("");
+  const [date, setDate] = useState("");
+  const [timeIndex, setTimeIndex] = useState("");
+  const [gender, setGender] = useState("");
+  const [viewYear, setViewYear] = useState(new Date().getFullYear().toString());
+
+  const handleLapLaSo = () => {
+    if (!date || timeIndex === "" || !gender) {
+      alert("Vui lòng nhập đầy đủ ngày sinh, giờ sinh và giới tính.");
+      return;
+    }
+    navigate("/laso", { state: { name: name || "Ẩn danh", date, timeIndex: Number(timeIndex), gender, viewYear: Number(viewYear) } });
+  };
 
   const handleLoginClick = () => {
     navigate("/login");
@@ -80,33 +95,67 @@ export default function Home() {
 
         {/* 3. KHUNG FORM NHẬP LIỆU */}
         <div style={styles.formCard}>
-          <input type="text" placeholder="Họ và tên (*)" style={styles.inputFull} />
-          
+          <input
+            type="text"
+            placeholder="Họ và tên (*)"
+            style={styles.inputFull}
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+
           <div style={styles.row}>
-            <input type="date" style={styles.inputHalf} />
-            <select style={styles.inputHalf}>
-              <option>Giờ sinh</option>
-              <option>Tý (23h - 1h)</option>
-              <option>Sửu (1h - 3h)</option>
+            <input
+              type="date"
+              style={styles.inputHalf}
+              value={date}
+              onChange={e => setDate(e.target.value)}
+            />
+            <select
+              style={styles.inputHalf}
+              value={timeIndex}
+              onChange={e => setTimeIndex(e.target.value)}
+            >
+              <option value="">Giờ sinh (*)</option>
+              <option value="0">Tý (23h - 1h)</option>
+              <option value="1">Sửu (1h - 3h)</option>
+              <option value="2">Dần (3h - 5h)</option>
+              <option value="3">Mão (5h - 7h)</option>
+              <option value="4">Thìn (7h - 9h)</option>
+              <option value="5">Tỵ (9h - 11h)</option>
+              <option value="6">Ngọ (11h - 13h)</option>
+              <option value="7">Mùi (13h - 15h)</option>
+              <option value="8">Thân (15h - 17h)</option>
+              <option value="9">Dậu (17h - 19h)</option>
+              <option value="10">Tuất (19h - 21h)</option>
+              <option value="11">Hợi (21h - 23h)</option>
             </select>
           </div>
 
           <div style={styles.row}>
-            <select style={styles.inputHalf}>
-              <option>Giới tính (*)</option>
-              <option>Nam</option>
-              <option>Nữ</option>
+            <select
+              style={styles.inputHalf}
+              value={gender}
+              onChange={e => setGender(e.target.value)}
+            >
+              <option value="">Giới tính (*)</option>
+              <option value="male">Nam</option>
+              <option value="female">Nữ</option>
             </select>
-            <select style={styles.inputHalf}>
-              <option>Năm xem (*)</option>
-              <option>2024</option>
-              <option>2025</option>
+            <select
+              style={styles.inputHalf}
+              value={viewYear}
+              onChange={e => setViewYear(e.target.value)}
+            >
+              {Array.from({ length: 11 }, (_, i) => 2020 + i).map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
             </select>
           </div>
 
-          <button style={styles.submitButton}onClick={() => navigate("/laso")}
-            >Lập lá số</button>
-          
+          <button style={styles.submitButton} onClick={handleLapLaSo}>
+            Lập lá số
+          </button>
+
           <p style={styles.linkText}>Cách lấy lá số chuẩn xác nhất?</p>
         </div>
       </section>
