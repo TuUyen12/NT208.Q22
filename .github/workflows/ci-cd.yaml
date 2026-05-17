@@ -59,7 +59,7 @@ jobs:
     name: Deploy to production
     needs: [frontend, backend]
     if: github.ref == 'refs/heads/prod' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest     # your VM is the runner
+    runs-on: self-hosted
     environment: production
     steps:
       - uses: actions/checkout@v4
