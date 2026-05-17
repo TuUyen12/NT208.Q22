@@ -1,0 +1,76 @@
+name: CI/CD Pipeline
+run-name: Deploy (${{ github.ref_name }}) by @${{ github.actor }}
+
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, prod]
+  pull_request:
+    branches: [main, prod]
+
+jobs:
+  # ── Frontend lint & build ────────────────────────────────────────────────
+  frontend:
+    name: Frontend (lint + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  # ── Backend lint ──────────────────────────────────────────────────────────
+  backend:
+    name: Backend (lint)
+    runs-on: self-hosted        
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - run: pip install ruff
+      - run: ruff check .
+
+  # ── Deploy (prod branch only, runs ON the VM itself) ─────────────────────
+  deploy:
+    name: Deploy to production
+    needs: [frontend, backend]
+    if: github.ref == 'refs/heads/prod' && github.event_name == 'push'
+    runs-on: self-hosted        # your VM is the runner
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: prod
+          clean: true
+
+      - name: Rebuild and restart services
+        run: |
+          set -e
+          docker compose pull db redis
+          docker compose build --no-cache api worker beat
+          docker compose up -d --remove-orphans
+
+      - name: Wait for API health check
+        run: |
+          echo "Waiting for API to become healthy..."
+          timeout 60 sh -c 'until docker compose exec -T api python3 -c "import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")" 2>/dev/null; do sleep 3; done'
+          echo "Deploy complete"
