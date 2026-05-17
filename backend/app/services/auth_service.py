@@ -24,7 +24,6 @@ class AuthService:
     @staticmethod
     async def register(db: AsyncSession, email: str, password: str, full_name: str | None = None) -> User:
         user = User(email=email, hashed_password=hash_password(password), full_name=full_name)
-        role="user"
         db.add(user)
         await db.commit()
         await db.refresh(user)
@@ -61,7 +60,6 @@ class AuthService:
                 },
             )
             token_resp.raise_for_status()
-            id_token = token_resp.json().get("id_token")
 
             userinfo_resp = await client.get(
                 "https://www.googleapis.com/oauth2/v3/userinfo",

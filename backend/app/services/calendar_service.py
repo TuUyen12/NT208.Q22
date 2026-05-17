@@ -5,7 +5,7 @@ Algorithm: Vietnamese astronomical new-moon calculation.
 Round-trip property: solar_to_lunar(lunar_to_solar(L)) == L for all dates 1900–2100.
 """
 
-from datetime import date, timedelta
+from datetime import date
 import math
 
 
@@ -63,7 +63,6 @@ def _new_moon(k: int) -> float:
     T = k / 1236.85
     T2 = T * T
     T3 = T2 * T
-    T4 = T3 * T
     dr = math.pi / 180
     Jd1 = 2415020.75933 + 29.53058868 * k + 0.0001178 * T2 - 0.000000155 * T3
     Jd1 += 0.00033 * math.sin((166.56 + 132.87 * T - 0.009173 * T2) * dr)

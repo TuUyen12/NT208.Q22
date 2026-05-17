@@ -44,7 +44,7 @@ async def upload_attachment(
 
     max_size = settings.MAX_AUDIO_SIZE if is_audio else settings.MAX_PDF_SIZE
     if file_size > max_size:
-        raise HTTPException(status_code=413, detail=f"File exceeds maximum size")
+        raise HTTPException(status_code=413, detail="File exceeds maximum size")
 
     # TODO: persist to object storage (S3/GCS); store path
     storage_path = f"uploads/{current_user.user_id}/{client_id}/{file.filename}"

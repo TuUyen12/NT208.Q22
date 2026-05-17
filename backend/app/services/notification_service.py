@@ -32,8 +32,7 @@ class NotificationService:
         Schedule a reminder 15 minutes before the appointment (Req 18).
         In production: enqueue a delayed task in Celery/ARQ/APScheduler.
         """
-        remind_at = appointment.scheduled_at - timedelta(minutes=15)
-        # TODO: enqueue task — reminder_at=remind_at, appointment_id=appointment.appointment_id
+        # TODO: enqueue task — reminder_at=(appointment.scheduled_at - timedelta(minutes=15)), appointment_id=appointment.appointment_id
         pass
 
     @staticmethod
