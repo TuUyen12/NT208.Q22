@@ -36,3 +36,6 @@ backend/celerybeat-schedule
 *.njsproj
 *.sln
 *.sw?
+
+
+setup.sh
