@@ -68,7 +68,7 @@ jobs:
           clean: true
 
       - name: Inject .env
-        run: cp "$HOME/.env" .env
+        run: cp /home/azureuser/.env .env
 
       - name: Rebuild and restart services
         run: |
