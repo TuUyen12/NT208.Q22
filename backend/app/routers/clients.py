@@ -119,7 +119,8 @@ async def bulk_export(
     )
     clients = result.scalars().all()
 
-    import csv, io, json
+    import csv
+    import io
     if body.format == "csv":
         buf = io.StringIO()
         writer = csv.writer(buf)

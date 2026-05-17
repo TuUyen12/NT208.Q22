@@ -6,12 +6,11 @@ Flow:
   GET  /reports/download/{token} → verify token, stream PDF (valid 24 h)
 """
 
-import os
 import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -154,8 +154,7 @@ const Header = ({ onLoginClick }) => {
                   if (item.to === "contact") 
                     {
                       const el = document.getElementById("contact");
-                      window.scrollTo
-                      ({
+                      window.scrollTo({
                         top: el.offsetTop - 80,
                         behavior: "smooth"
                       });
