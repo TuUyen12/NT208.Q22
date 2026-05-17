@@ -12,7 +12,7 @@ on:
 jobs:
   # ── Frontend lint & build ────────────────────────────────────────────────
   frontend:
-    - name: Show runner user
+    name: Show runner user
       run: |
         whoami
         id
