@@ -38,7 +38,7 @@ jobs:
   # ── Backend lint ──────────────────────────────────────────────────────────
   backend:
     name: Backend (lint)
-    runs-on: self-hosted        
+    runs-on: ubuntu-latest    
     defaults:
       run:
         working-directory: backend
@@ -58,7 +58,7 @@ jobs:
     name: Deploy to production
     needs: [frontend, backend]
     if: github.ref == 'refs/heads/prod' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    runs-on: self-hosted        # your VM is the runner
+    runs-on: ubuntu-latest     # your VM is the runner
     environment: production
     steps:
       - uses: actions/checkout@v4
