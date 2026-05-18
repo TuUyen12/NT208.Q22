@@ -36,11 +36,11 @@ export default function Chatbot() {
     setLoading(true);
 
     try {
-      const { data } = await api.post("/api/v1/chat/", {
+      const result = await api.post("/api/v1/chat/", {
         message: text,
         history: buildHistory(nextMessages),
       });
-      setMessages([...nextMessages, { from: "ai", text: data.reply }]);
+      setMessages([...nextMessages, { from: "ai", text: result.reply }]);
     } catch {
       setMessages([...nextMessages, { from: "ai", text: "Xin lỗi, tôi đang gặp sự cố kết nối. Vui lòng thử lại." }]);
     } finally {
