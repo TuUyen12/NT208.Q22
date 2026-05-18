@@ -11,6 +11,7 @@ class ChartCreateRequest(BaseModel):
     dob_solar: date
     birth_hour: str | None = None  # HH:MM; defaults to 12:00
     timezone_offset: float = 7.0   # hours from UTC; default Vietnam (UTC+7)
+    chart_matrix: dict[str, Any]   # generated client-side by iztro
     configuration_id: uuid.UUID | None = None
 
     @field_validator("gender")
@@ -57,7 +58,8 @@ class ChartResponse(BaseModel):
     dob_solar: date
     birth_hour: str
     lunar_date: LunarDate
-    chart_matrix: dict[str, Any]   # house_number → list of star names
+    chart_matrix: dict[str, Any]
+    ai_interpretation: dict | None = None
     configuration_id: uuid.UUID | None
     created_at: datetime
 

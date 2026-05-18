@@ -1,12 +1,14 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, GlobalStyles, Background, Header, Field, StrengthMeter, LeftPanel } from "./Login";
+import { useAuth } from "../contexts/AuthContext";
 
 /* ════════════════════════════════════════════════
    SIGNUP CARD
 ════════════════════════════════════════════════ */
 const SignupCard = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -44,32 +46,12 @@ const SignupCard = () => {
 
   const handleSignup = async () => {
     const e = validate();
-    if (Object.keys(e).length) {
-      setErrors(e);
-      return;
-    }
+    if (Object.keys(e).length) { setErrors(e); return; }
 
     setErrors({});
     setLoading(true);
-
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password: pw,
-          full_name: name,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.detail || data.message || "Đăng ký thất bại.");
-      }
-
+      await register(email, pw, name);
       setSuccess(true);
       btnRef.current?.classList.add("pulse");
       setTimeout(() => {

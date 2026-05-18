@@ -1,5 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { authService } from "../services/authService";
 
 
 /* ════════════════════════════════════════════════
@@ -432,6 +434,7 @@ const Field = ({ label, icon, error, children }) => (
 ════════════════════════════════════════════════ */
 const LoginCard = () => {
   const navigate = useNavigate();
+  const { login, user } = useAuth();
   const [email,    setEmail]    = useState("");
   const [pw,       setPw]       = useState("");
   const [showPw,   setShowPw]   = useState(false);
@@ -440,6 +443,11 @@ const LoginCard = () => {
   const [success,  setSuccess]  = useState(false);
   const [errors,   setErrors]   = useState({});
   const btnRef = useRef(null);
+
+  // Redirect already-authenticated users
+  useEffect(() => {
+    if (user) navigate("/la-so-tu-vi", { replace: true });
+  }, [user, navigate]);
 
   const validate = () => {
     const e = {};
@@ -452,35 +460,14 @@ const LoginCard = () => {
 
   const handleLogin = async () => {
     const e = validate();
-    if (Object.keys(e).length) {
-      setErrors(e);
-      return;
-    }
+    if (Object.keys(e).length) { setErrors(e); return; }
 
+    setErrors({});
+    setLoading(true);
     try {
-      setLoading(true);
-      setErrors({});
-      const res = await fetch("http://localhost:8000/api/v1/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password: pw,
-        }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || data.message || "Login failed");
-      }
-
+      await login(email, pw, remember);
       setSuccess(true);
-      localStorage.setItem("token", data.access_token);
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 500);
+      setTimeout(() => navigate("/la-so-tu-vi"), 500);
     } catch (err) {
       setErrors({ general: err.message });
     } finally {
@@ -521,7 +508,10 @@ const LoginCard = () => {
 
         {/* ── Social login ── */}
         <div className="fade-up-1" style={{ marginBottom:"1.25rem" }}>
-          <button className="btn-soc">
+          <button
+            className="btn-soc"
+            onClick={() => { window.location.href = authService.googleLoginUrl(); }}
+          >
             <GoogleIcon/>
             Tiếp tục với Google
           </button>

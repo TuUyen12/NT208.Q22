@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     # PDF report download link TTL
     PDF_LINK_TTL_HOURS: int = 24
 
+    # Frontend URL (used for OAuth redirects)
+    FRONTEND_URL: str = "http://localhost:4173"
+
     # CORS
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173"]
 
