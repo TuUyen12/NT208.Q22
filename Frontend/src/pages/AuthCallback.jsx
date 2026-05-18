@@ -15,7 +15,7 @@ export default function AuthCallback() {
 
     if (accessToken && refreshToken) {
       loginWithTokens(accessToken, refreshToken)
-        .then(() => navigate("/la-so-tu-vi", { replace: true }))
+        .then(() => navigate("/", { replace: true }))
         .catch(() => navigate("/login?error=oauth_failed", { replace: true }));
     } else {
       navigate("/login?error=oauth_failed", { replace: true });

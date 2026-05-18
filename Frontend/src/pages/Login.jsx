@@ -446,7 +446,7 @@ const LoginCard = () => {
 
   // Redirect already-authenticated users
   useEffect(() => {
-    if (user) navigate("/la-so-tu-vi", { replace: true });
+    if (user) navigate("/", { replace: true });
   }, [user, navigate]);
 
   const validate = () => {
@@ -467,7 +467,7 @@ const LoginCard = () => {
     try {
       await login(email, pw, remember);
       setSuccess(true);
-      setTimeout(() => navigate("/la-so-tu-vi"), 500);
+      setTimeout(() => navigate("/"), 500);
     } catch (err) {
       setErrors({ general: err.message });
     } finally {
