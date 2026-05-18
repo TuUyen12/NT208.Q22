@@ -34,10 +34,6 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
-      - run: |
-          whoami
-          id
-          groups
 
   # ── Backend lint ──────────────────────────────────────────────────────────
   backend:
@@ -80,11 +76,15 @@ jobs:
       - name: Inject .env
         run: cp /etc/yinyang/.env .env
 
-      - name: Rebuild and restart services
+      - name: Build backend images
+        run: docker compose build --no-cache api worker beat
+
+      - name: Build frontend image
+        run: docker compose build --no-cache frontend
+
+      - name: Start all services
         run: |
-          set -e
           docker compose pull db redis
-          docker compose build --no-cache api worker beat frontend
           docker compose up -d --remove-orphans
 
       - name: Wait for API health check
