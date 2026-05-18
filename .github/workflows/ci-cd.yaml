@@ -74,7 +74,7 @@ jobs:
         run: |
           set -e
           docker compose pull db redis
-          docker compose build --no-cache api worker beat
+          docker compose build --no-cache api worker beat frontend
           docker compose up -d --remove-orphans
 
       - name: Wait for API health check

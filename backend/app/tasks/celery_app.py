@@ -23,6 +23,7 @@ celery_app = Celery(
 )
 
 celery_app.conf.timezone = "Asia/Ho_Chi_Minh"
+celery_app.conf.broker_connection_retry_on_startup = True
 
 celery_app.conf.beat_schedule = {
     # Daily Lưu_Sao recalculation at 00:05 ICT (Req 16)

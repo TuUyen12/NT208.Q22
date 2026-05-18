@@ -117,15 +117,11 @@ async def create_chart(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Calculate and store a new Lá_Số (Req 4, 5)."""
+    """Store a Lá_Số generated client-side by iztro (Req 4, 5)."""
     birth_hour = body.birth_hour or "12:00"
     warned = body.birth_hour is None  # Req 2: notify if defaulted
 
     lunar = ChartEngine.solar_to_lunar(body.dob_solar, body.timezone_offset)
-    try:
-        matrix = ChartEngine.calculate(lunar, birth_hour, body.gender)
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
 
     chart = Chart(
         user_id=current_user.user_id,
@@ -137,7 +133,7 @@ async def create_chart(
         dob_lunar_month=lunar["month"],
         dob_lunar_day=lunar["day"],
         dob_lunar_leap=lunar["is_leap_month"],
-        chart_matrix=matrix,
+        chart_matrix=body.chart_matrix,
         configuration_id=body.configuration_id,
     )
     db.add(chart)
@@ -213,6 +209,7 @@ def _build_chart_response(chart: Chart) -> dict:
             "is_leap_month": chart.dob_lunar_leap,
         },
         "chart_matrix": chart.chart_matrix,
+        "ai_interpretation": chart.ai_interpretation,
         "configuration_id": chart.configuration_id,
         "created_at": chart.created_at,
     }
