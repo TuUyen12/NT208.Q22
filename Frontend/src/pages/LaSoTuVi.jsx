@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { astro } from "iztro";
 import { Background, C, GlobalStyles, Header } from "./Login";
+import { chartService } from "../services/chartService";
 import {
   translateAstrolabe,
   EARTHLY_BRANCHES,
@@ -639,6 +640,14 @@ export default function LaSoTuVi() {
         setError("Không tạo được lá số. Vui lòng thử lại.");
       } else {
         setChartData(chart);
+        // Save to backend silently — don't block UI on failure
+        chartService.save({
+          name,
+          gender,
+          dob_solar: birthDate,
+          birth_hour: birthHour,
+          chart_matrix: JSON.parse(JSON.stringify(chart.raw)),
+        }).catch((err) => console.warn("Could not save chart:", err));
       }
     } catch (e) {
       console.error(e);
