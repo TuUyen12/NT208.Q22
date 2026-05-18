@@ -789,6 +789,46 @@ export default function LaSoTuVi() {
 
             <Legend />
 
+            {/* AI Interpretation */}
+            {interpreting && (
+              <div style={{ textAlign: "center", marginTop: "2rem", color: "#a78bfa", fontSize: "0.82rem", letterSpacing: "0.06em" }}>
+                ✦ Đang phân tích lá số...
+              </div>
+            )}
+
+            {interpretation && (
+              <div style={{
+                marginTop: "2rem",
+                background: "rgba(15,17,28,0.7)",
+                border: "1px solid rgba(100,80,130,0.25)",
+                borderRadius: 14,
+                padding: "1.5rem 2rem",
+                backdropFilter: "blur(12px)",
+              }}>
+                <h2 style={{ color: "#edb1ff", fontFamily: "'Newsreader', serif", fontSize: "1.2rem", marginBottom: "1.25rem", letterSpacing: "0.04em" }}>
+                  ✦ Luận Giải Tử Vi
+                </h2>
+                {[
+                  { key: "overall",        label: "Tổng quan" },
+                  { key: "cung_menh",      label: "Cung Mệnh" },
+                  { key: "cung_tai_bach",  label: "Tài Bạch" },
+                  { key: "cung_quan_loc",  label: "Quan Lộc" },
+                  { key: "cung_phu_the",   label: "Phu Thê" },
+                  { key: "dai_han",        label: "Đại Hạn" },
+                  { key: "luu_y",          label: "Lưu Ý" },
+                ].filter(({ key }) => interpretation[key]).map(({ key, label }) => (
+                  <div key={key} style={{ marginBottom: "1rem" }}>
+                    <div style={{ color: "#c4b5fd", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "0.35rem" }}>
+                      {label}
+                    </div>
+                    <div style={{ color: "#d0c2d3", fontSize: "0.85rem", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+                      {interpretation[key]}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div style={{ textAlign: "center", marginTop: "1rem" }}>
               <button
                 onClick={() => navigate("/")}
