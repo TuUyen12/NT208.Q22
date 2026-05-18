@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 /* ─────────────────────────────────────────────
    Design tokens
@@ -114,8 +115,9 @@ const FontLoader = () => (
 );
 
 /* ─────────────────────── Header ──────────────────────── */
-const Header = ({ onLoginClick }) => {
+const Header = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const navItems = [
     { label: "Tra cứu", to: "/" },
     { label: "Chatbot", to: "/chatbot" },
@@ -136,7 +138,7 @@ const Header = ({ onLoginClick }) => {
         display: "flex", justifyContent: "space-between", alignItems: "center",
         padding: "1rem 2rem", maxWidth: "80rem", margin: "0 auto",
       }}>
-        <div  
+        <div
           className="font-headline"
           style={{ fontFamily: "Cinzel, serif", fontSize: "2.5rem" }}
         >
@@ -149,19 +151,13 @@ const Header = ({ onLoginClick }) => {
               key={item.label}
               className="nav-link"
               style={{ cursor: "pointer" }}
-              onClick={() => 
-                {
-                  if (item.to === "contact") 
-                    {
-                      const el = document.getElementById("contact");
-                      window.scrollTo({
-                        top: el.offsetTop - 80,
-                        behavior: "smooth"
-                      });
-                    } else 
-                      {
-                        navigate(item.to);
-                      }
+              onClick={() => {
+                if (item.to === "contact") {
+                  const el = document.getElementById("contact");
+                  if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
+                } else {
+                  navigate(item.to);
+                }
               }}
             >
               {item.label}
@@ -169,13 +165,36 @@ const Header = ({ onLoginClick }) => {
           ))}
         </div>
 
-        <button
-          className="btn-primary"
-          style={{ padding: "0.5rem 1.5rem", fontSize: "0.95rem", borderRadius: "0.75rem", fontFamily: "'Manrope', sans-serif" }}
-          onClick={onLoginClick}
-        >
-          Login
-        </button>
+        {user ? (
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <span style={{
+              fontSize: "0.85rem",
+              color: "#d0c2d3",
+              fontFamily: "'Manrope', sans-serif",
+              maxWidth: "160px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}>
+              {user.full_name || user.email}
+            </span>
+            <button
+              className="btn-primary"
+              style={{ padding: "0.5rem 1.25rem", fontSize: "0.85rem", borderRadius: "0.75rem", fontFamily: "'Manrope', sans-serif" }}
+              onClick={logout}
+            >
+              Đăng xuất
+            </button>
+          </div>
+        ) : (
+          <button
+            className="btn-primary"
+            style={{ padding: "0.5rem 1.5rem", fontSize: "0.95rem", borderRadius: "0.75rem", fontFamily: "'Manrope', sans-serif" }}
+            onClick={() => navigate("/login")}
+          >
+            Login
+          </button>
+        )}
       </div>
     </nav>
   );
@@ -460,14 +479,11 @@ const Footer = () => {
 
 /* ─────────────────────── HomePage (root) ──────────────────────── */
 export default function HomePage() {
-  const navigate = useNavigate();
-  const handleLoginClick = () => navigate("/login");
-
   return (
     <>
       <FontLoader />
       <div style={{ background: C.background, minHeight: "100vh" }}>
-        <Header onLoginClick={handleLoginClick} />
+        <Header />
         <main style={{ paddingTop: "4rem" }}>
           <HeroSection />
           <InsightsSection />

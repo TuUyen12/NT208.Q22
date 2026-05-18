@@ -288,6 +288,7 @@ const Background = () => (
 ════════════════════════════════════════════════ */
 const Header = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   return (
     <nav style={{
@@ -300,21 +301,8 @@ const Header = () => {
         display:"flex", justifyContent:"space-between", alignItems:"center",
         padding:"14px 32px", maxWidth:"1200px", margin:"0 auto",
       }}>
-        
-        {/* LOGO */}
-        <span
-          onClick={() => navigate("/")}
-          style={{
-            textDecoration:"none",
-            cursor:"pointer"
-          }}
-        >
-          <span className="hn" style={{
-            fontSize:"1.5rem",
-            fontWeight:700,
-            color:C.primary,
-            letterSpacing:"-.01em"
-          }}>
+        <span onClick={() => navigate("/")} style={{ textDecoration:"none", cursor:"pointer" }}>
+          <span className="hn" style={{ fontSize:"1.5rem", fontWeight:700, color:C.primary, letterSpacing:"-.01em" }}>
             YinYang
           </span>
         </span>
@@ -323,33 +311,35 @@ const Header = () => {
           {[
             { label: "Tra cứu", to: "/" },
             { label: "Chatbot", to: "/chatbot" },
-            { label: "14 Chính tinh", to: "/" },
+            { label: "14 Chính tinh", to: "/major-stars" },
           ].map(item => (
-            <span
-              key={item.label}
-              className="nl hide-sm"
-              style={{ cursor:"pointer" }}
-              onClick={() => navigate(item.to)}
-            >
+            <span key={item.label} className="nl hide-sm" style={{ cursor:"pointer" }} onClick={() => navigate(item.to)}>
               {item.label}
             </span>
           ))}
 
-          {/* TRANG CHỦ */}
-          <span
-            onClick={() => navigate("/")}
-            className="nl"
-            style={{
-              display:"flex",
-              alignItems:"center",
-              gap:4,
-              color:C.onSurfaceVariant,
-              cursor:"pointer"
-            }}
-          >
-            <span className="mso" style={{ fontSize:16 }}>arrow_back</span>
-            <span style={{ fontSize:13 }}>Trang chủ</span>
-          </span>
+          {user ? (
+            <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+              <span style={{
+                fontSize:"0.82rem", color:C.onSurfaceVariant,
+                maxWidth:"160px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+              }}>
+                {user.full_name || user.email}
+              </span>
+              <button
+                className="btn-primary"
+                style={{ padding:"6px 16px", fontSize:"0.82rem", borderRadius:"8px" }}
+                onClick={logout}
+              >
+                Đăng xuất
+              </button>
+            </div>
+          ) : (
+            <span onClick={() => navigate("/")} className="nl" style={{ display:"flex", alignItems:"center", gap:4, color:C.onSurfaceVariant, cursor:"pointer" }}>
+              <span className="mso" style={{ fontSize:16 }}>arrow_back</span>
+              <span style={{ fontSize:13 }}>Trang chủ</span>
+            </span>
+          )}
         </div>
       </div>
     </nav>
