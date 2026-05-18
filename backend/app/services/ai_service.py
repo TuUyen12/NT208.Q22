@@ -1,10 +1,11 @@
 """
-AI Interpretation service (Req 7).
+AI Interpretation service — Gemini 1.5 Flash backend.
 
-Sends Ma_Trận_Lá_Số to an external AI endpoint (configurable; defaults to Claude).
-Validates response is non-empty Vietnamese text with at least one Cung_Mệnh interpretation.
-Graceful degradation: if AI is unavailable, returns cached result or raises a soft error.
+Sends the lá số (chart_matrix from iztro) to Gemini and returns a structured
+Vietnamese interpretation cached on the Chart record.
 """
+
+import json
 
 import httpx
 
@@ -12,74 +13,116 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-_CUNG_MENH_MARKER = "★ Cung Mệnh"
+_GEMINI_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    "gemini-2.5-flash-lite"
+)
 
-# Vietnamese character check — presence of diacritical vowels
-_VI_CHARS = set("àáâãèéêìíòóôõùúýăđơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỷỹỵ")
+# Chinese → Vietnamese palace name map (iztro zh-CN output)
+_PALACE_VI = {
+    "命宫": "Mệnh", "兄弟": "Huynh Đệ", "夫妻": "Phu Thê",
+    "子女": "Tử Tức", "财帛": "Tài Bạch", "疾厄": "Tật Ách",
+    "迁移": "Thiên Di", "仆役": "Nô Bộc", "官禄": "Quan Lộc",
+    "田宅": "Điền Trạch", "福德": "Phúc Đức", "父母": "Phụ Mẫu",
+}
 
 
-def _is_vietnamese(text: str) -> bool:
-    return any(c in _VI_CHARS for c in text.lower())
+def _summarise_matrix(matrix: dict) -> str:
+    """Convert raw iztro chart_matrix into a compact Vietnamese-readable summary."""
+    palaces = matrix.get("palaces", [])
+    lines = []
+    for p in palaces:
+        name_cn = p.get("name", "")
+        name_vi = _PALACE_VI.get(name_cn, name_cn)
+        branch = p.get("earthlyBranch", "")
+        major = [s.get("name", "") for s in p.get("majorStars", [])]
+        minor = [s.get("name", "") for s in (p.get("minorStars", []) + p.get("adjectiveStars", []))]
+        decadal = p.get("decadal", {})
+        age_range = decadal.get("range", [])
+        line = f"  [{name_vi} / {branch}]"
+        if major:
+            line += f"  Chính tinh: {', '.join(major)}"
+        if minor:
+            line += f"  |  Phụ tinh: {', '.join(minor[:6])}"
+        if age_range:
+            line += f"  |  Đại hạn: {age_range[0]}–{age_range[1]}"
+        lines.append(line)
+
+    soul = matrix.get("soul", "")
+    body = matrix.get("body", "")
+    element = matrix.get("fiveElementsClass", "")
+    header = f"Mệnh chủ: {soul}  |  Thân chủ: {body}  |  Cục: {element}\n"
+    return header + "\n".join(lines)
 
 
-def _find_menh_house(matrix: dict) -> str | None:
-    for house, stars in matrix.items():
-        if _CUNG_MENH_MARKER in stars:
-            return house
-    return None
+def _build_prompt(matrix: dict) -> str:
+    summary = _summarise_matrix(matrix)
+    return f"""Bạn là chuyên gia Tử Vi Đẩu Số với nhiều năm kinh nghiệm luận giải lá số. \
+Hãy phân tích lá số Tử Vi sau và trả lời HOÀN TOÀN bằng tiếng Việt.
+
+=== LÁ SỐ ===
+{summary}
+=============
+
+Trả về một JSON object hợp lệ (không thêm markdown hay text khác) theo cấu trúc:
+{{
+  "overall": "Luận giải tổng quát 3-4 đoạn về tính cách, vận mệnh tổng thể và những điểm nổi bật.",
+  "cung_menh": "Phân tích sâu cung Mệnh: chính tinh, phụ tinh và ý nghĩa.",
+  "cung_tai_bach": "Phân tích cung Tài Bạch: tài vận, cách kiếm tiền.",
+  "cung_quan_loc": "Phân tích cung Quan Lộc: sự nghiệp, thăng tiến.",
+  "cung_phu_the": "Phân tích cung Phu Thê: hôn nhân, tình duyên.",
+  "dai_han": "Luận giải các đại hạn quan trọng trong cuộc đời.",
+  "luu_y": "Những điểm cần lưu ý và lời khuyên cho chủ nhân lá số."
+}}"""
 
 
 class AIService:
 
     @staticmethod
     async def interpret(chart_matrix: dict) -> dict:
-        """
-        Request interpretation from external AI.
-        Returns structured dict: {"overall": str, "houses": {house: str}, "cung_menh": str}
-        Falls back gracefully if service is unavailable.
-        """
-        menh_house = _find_menh_house(chart_matrix)
+        if not settings.GEMINI_API_KEY:
+            return _fallback()
 
-        payload = {
-            "chart_matrix": chart_matrix,
-            "cung_menh_house": menh_house,
-            "language": "vi",
-        }
+        prompt = _build_prompt(chart_matrix)
 
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 resp = await client.post(
-                    settings.AI_SERVICE_URL,
-                    json=payload,
-                    headers={"Authorization": f"Bearer {settings.AI_SERVICE_API_KEY}"},
+                    f"{_GEMINI_URL}?key={settings.GEMINI_API_KEY}",
+                    json={
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {
+                            "temperature": 0.7,
+                            "maxOutputTokens": 2048,
+                        },
+                    },
                 )
                 resp.raise_for_status()
-                result = resp.json()
-        except (httpx.HTTPError, Exception):
-            # Graceful degradation — return a stub so callers can serve cache (Req 7)
-            return _fallback_interpretation(chart_matrix, menh_house)
+                data = resp.json()
+        except httpx.HTTPError:
+            return _fallback()
 
-        _validate_response(result, menh_house)
-        return result
-
-
-def _validate_response(result: dict, menh_house: str | None) -> None:
-    if not result:
-        raise ValueError("AI response is empty")
-
-    overall = result.get("overall", "")
-    if not overall or not _is_vietnamese(overall):
-        raise ValueError("AI response must be non-empty Vietnamese text")
-
-    if menh_house and not result.get("cung_menh"):
-        raise ValueError("AI response must include Cung_Mệnh interpretation")
+        try:
+            text = data["candidates"][0]["content"]["parts"][0]["text"]
+            # Strip markdown code fences if Gemini wraps the JSON
+            text = text.strip()
+            if text.startswith("```"):
+                text = text.split("```")[1]
+                if text.startswith("json"):
+                    text = text[4:]
+            return json.loads(text.strip())
+        except (KeyError, IndexError, json.JSONDecodeError):
+            return _fallback()
 
 
-def _fallback_interpretation(matrix: dict, menh_house: str | None) -> dict:
-    """Minimal stub returned when AI service is unavailable."""
+def _fallback() -> dict:
     return {
         "overall": "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau.",
-        "houses": {},
-        "cung_menh": f"Cung Mệnh tại nhà {menh_house}." if menh_house else "",
+        "cung_menh": "",
+        "cung_tai_bach": "",
+        "cung_quan_loc": "",
+        "cung_phu_the": "",
+        "dai_han": "",
+        "luu_y": "",
         "_fallback": True,
     }
