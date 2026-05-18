@@ -1,5 +1,6 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -9,14 +10,14 @@ class Settings(BaseSettings):
     APP_NAME: str = "Tử Vi API"
     DEBUG: bool = False
 
-    # Database
-    DATABASE_URL: str = "postgresql+asyncpg://tuvi:tuvi@localhost:5432/tuvi"
+    # Database — required
+    DATABASE_URL: str
 
-    # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
+    # Redis — required
+    REDIS_URL: str
 
-    # JWT
-    SECRET_KEY: str = "change-me-in-production"
+    # JWT — SECRET_KEY required; no default so startup fails if unset
+    SECRET_KEY: str
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
@@ -26,8 +27,8 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
 
-    # AES-256 encryption key for sensitive fields (32-byte hex)
-    FIELD_ENCRYPTION_KEY: str = "change-me-32-byte-hex-key-000000"
+    # AES-256 encryption key — required; no default so startup fails if unset
+    FIELD_ENCRYPTION_KEY: str
 
     # AI service
     AI_SERVICE_URL: str = ""
@@ -38,8 +39,8 @@ class Settings(BaseSettings):
     RATE_LIMIT_WINDOW_SECONDS: int = 60
 
     # File upload limits (bytes)
-    MAX_AUDIO_SIZE: int = 50 * 1024 * 1024   # 50 MB
-    MAX_PDF_SIZE: int = 10 * 1024 * 1024      # 10 MB
+    MAX_AUDIO_SIZE: int = 50 * 1024 * 1024
+    MAX_PDF_SIZE: int = 10 * 1024 * 1024
 
     # PDF report download link TTL
     PDF_LINK_TTL_HOURS: int = 24
