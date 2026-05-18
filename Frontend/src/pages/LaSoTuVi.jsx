@@ -625,6 +625,8 @@ export default function LaSoTuVi() {
   const location = useLocation();
   const [chartData, setChartData] = useState(null);
   const [error, setError] = useState(null);
+  const [interpretation, setInterpretation] = useState(null);
+  const [interpreting, setInterpreting] = useState(false);
 
   useEffect(() => {
     const formData = location.state;
@@ -640,14 +642,22 @@ export default function LaSoTuVi() {
         setError("Không tạo được lá số. Vui lòng thử lại.");
       } else {
         setChartData(chart);
-        // Save to backend silently — don't block UI on failure
+        // Save chart then fetch AI interpretation
+        setInterpreting(true);
         chartService.save({
           name,
           gender,
           dob_solar: birthDate,
           birth_hour: birthHour,
           chart_matrix: JSON.parse(JSON.stringify(chart.raw)),
-        }).catch((err) => console.warn("Could not save chart:", err));
+        }).then((saved) => {
+          return chartService.interpret(saved.chart_id);
+        }).then((res) => {
+          if (!res.interpretation?._fallback) {
+            setInterpretation(res.interpretation);
+          }
+        }).catch((err) => console.warn("AI interpretation unavailable:", err))
+          .finally(() => setInterpreting(false));
       }
     } catch (e) {
       console.error(e);

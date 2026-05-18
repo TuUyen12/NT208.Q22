@@ -30,9 +30,8 @@ class Settings(BaseSettings):
     # AES-256 encryption key — required; no default so startup fails if unset
     FIELD_ENCRYPTION_KEY: str
 
-    # AI service
-    AI_SERVICE_URL: str = ""
-    AI_SERVICE_API_KEY: str = ""
+    # Gemini AI
+    GEMINI_API_KEY: str = ""
 
     # Rate limiting
     RATE_LIMIT_REQUESTS: int = 100
