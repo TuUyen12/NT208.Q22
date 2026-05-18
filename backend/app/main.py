@@ -15,6 +15,7 @@ from app.routers import (
     auth,
     calendar,
     charts,
+    chat,
     clients,
     journal,
     notifications,
@@ -70,6 +71,7 @@ app.include_router(appointments.router,      prefix=f"{API_PREFIX}/appointments"
 app.include_router(attachments.router,       prefix=f"{API_PREFIX}/attachments",   tags=["CRM — Attachments"],   dependencies=_rate_limited)
 app.include_router(reports.router,           prefix=f"{API_PREFIX}/reports",       tags=["CRM — Reports"],       dependencies=_rate_limited)
 app.include_router(notifications.router,     prefix=f"{API_PREFIX}/notifications", tags=["Notifications"],       dependencies=_rate_limited)
+app.include_router(chat.router,              prefix=f"{API_PREFIX}/chat",          tags=["Chat"],                dependencies=_rate_limited)
 
 
 @app.get("/health", tags=["Health"])
