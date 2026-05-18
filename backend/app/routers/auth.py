@@ -48,26 +48,10 @@ async def google_callback(code: str, db: AsyncSession = Depends(get_db)):
     tokens = AuthService.create_tokens(str(user.user_id))
     return RedirectResponse(
         f"{settings.FRONTEND_URL}/auth/callback"
-        f"?access_token={tokens['access_token']}"
-        f"&refresh_token={tokens['refresh_token']}"
+        f"?access_token={tokens.access_token}"
+        f"&refresh_token={tokens.refresh_token}"
     )
 
-
-@router.get("/facebook/login")
-async def facebook_login():
-    url = AuthService.facebook_auth_url()
-    return RedirectResponse(url)
-
-
-@router.get("/facebook/callback")
-async def facebook_callback(code: str, db: AsyncSession = Depends(get_db)):
-    user = await AuthService.facebook_callback(db, code)
-    tokens = AuthService.create_tokens(str(user.user_id))
-    return RedirectResponse(
-        f"{settings.FRONTEND_URL}/auth/callback"
-        f"?access_token={tokens['access_token']}"
-        f"&refresh_token={tokens['refresh_token']}"
-    )
 
 
 @router.get("/me", response_model=UserResponse)

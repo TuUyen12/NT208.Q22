@@ -11,6 +11,5 @@ export const authService = {
 
   deleteMe: () => api.delete("/api/v1/auth/me"),
 
-  googleLoginUrl:   () => `${API_BASE}/api/v1/auth/google/login`,
-  facebookLoginUrl: () => `${API_BASE}/api/v1/auth/facebook/login`,
+  googleLoginUrl: () => `${API_BASE}/api/v1/auth/google/login`,
 };

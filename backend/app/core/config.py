@@ -26,11 +26,6 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/google/callback"
 
-    # OAuth2 — Facebook
-    FACEBOOK_CLIENT_ID: str = ""
-    FACEBOOK_CLIENT_SECRET: str = ""
-    FACEBOOK_REDIRECT_URI: str = "http://localhost:8000/api/v1/auth/facebook/callback"
-
     # AES-256 encryption key for sensitive fields (32-byte hex)
     FIELD_ENCRYPTION_KEY: str = "change-me-32-byte-hex-key-000000"
 

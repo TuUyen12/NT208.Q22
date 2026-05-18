@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-// Landing page after Google / Facebook OAuth redirect.
+// Landing page after Google OAuth redirect.
 // Backend sends: /auth/callback?access_token=...&refresh_token=...
 export default function AuthCallback() {
   const { loginWithTokens } = useAuth();
