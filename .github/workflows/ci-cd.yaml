@@ -19,6 +19,8 @@ jobs:
         working-directory: Frontend
     steps:
       - name: Remove root-owned build artifacts
+        shell: bash
+        working-directory: /
         run: sudo find "$GITHUB_WORKSPACE" -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
       - uses: actions/checkout@v4
