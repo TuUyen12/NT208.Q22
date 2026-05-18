@@ -18,7 +18,9 @@ jobs:
       run:
         working-directory: Frontend
     steps:
-      
+      - name: Remove root-owned build artifacts
+        run: sudo find "$GITHUB_WORKSPACE" -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -43,6 +45,9 @@ jobs:
       run:
         working-directory: backend
     steps:
+      - name: Remove root-owned build artifacts
+        run: sudo find "$GITHUB_WORKSPACE" -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
@@ -62,6 +67,9 @@ jobs:
     runs-on: self-hosted
     environment: production
     steps:
+      - name: Remove root-owned build artifacts
+        run: sudo find "$GITHUB_WORKSPACE" -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
       - uses: actions/checkout@v4
         with:
           ref: prod
