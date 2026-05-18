@@ -89,57 +89,6 @@ class AuthService:
         return user
 
     @staticmethod
-    def facebook_auth_url() -> str:
-        params = (
-            f"client_id={settings.FACEBOOK_CLIENT_ID}"
-            f"&redirect_uri={settings.FACEBOOK_REDIRECT_URI}"
-            "&scope=email"
-        )
-        return f"https://www.facebook.com/v18.0/dialog/oauth?{params}"
-
-    @staticmethod
-    async def facebook_callback(db: AsyncSession, code: str) -> User:
-        async with httpx.AsyncClient() as client:
-            token_resp = await client.get(
-                "https://graph.facebook.com/v18.0/oauth/access_token",
-                params={
-                    "client_id": settings.FACEBOOK_CLIENT_ID,
-                    "client_secret": settings.FACEBOOK_CLIENT_SECRET,
-                    "redirect_uri": settings.FACEBOOK_REDIRECT_URI,
-                    "code": code,
-                },
-            )
-            token_resp.raise_for_status()
-            access_token = token_resp.json()["access_token"]
-
-            me_resp = await client.get(
-                "https://graph.facebook.com/me",
-                params={"fields": "id,email", "access_token": access_token},
-            )
-            me_resp.raise_for_status()
-            info = me_resp.json()
-
-        from sqlalchemy import select
-        result = await db.execute(select(User).where(User.facebook_id == info["id"]))
-        user = result.scalar_one_or_none()
-
-        if not user and "email" in info:
-            result2 = await db.execute(select(User).where(User.email == info["email"]))
-            user = result2.scalar_one_or_none()
-
-        if user:
-            user.facebook_id = info["id"]
-        else:
-            user = User(email=info.get("email", f"{info['id']}@facebook.invalid"), facebook_id=info["id"])
-            db.add(user)
-
-        from datetime import datetime
-        user.last_login = datetime.utcnow()
-        await db.commit()
-        await db.refresh(user)
-        return user
-
-    @staticmethod
     async def queue_deletion(db: AsyncSession, user: User) -> None:
         # In production: write a deletion_requests record; a background job handles it within 30d
         user.is_active = False
