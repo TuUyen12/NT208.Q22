@@ -15,7 +15,7 @@ settings = get_settings()
 
 _GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-2.5-flash-lite"
+    "gemini-2.5-flash-lite:generateContent"
 )
 
 # Chinese → Vietnamese palace name map (iztro zh-CN output)
