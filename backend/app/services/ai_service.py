@@ -90,7 +90,7 @@ class AIService:
                 resp = await client.post(
                     f"{_GEMINI_URL}?key={settings.GEMINI_API_KEY}",
                     json={
-                        "contents": [{"parts": [{"text": prompt}]}],
+                        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
                         "generationConfig": {
                             "temperature": 0.7,
                             "maxOutputTokens": 2048,
