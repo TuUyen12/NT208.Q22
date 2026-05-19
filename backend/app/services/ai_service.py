@@ -6,19 +6,16 @@ Vietnamese interpretation cached on the Chart record.
 """
 
 import json
-import logging
 
 import httpx
 
 from app.core.config import get_settings
 
-logger = logging.getLogger(__name__)
-
 settings = get_settings()
 
 _GEMINI_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/"
-    "gemini-2.5-flash-lite:generateContent"
+    "gemini-2.5-flash-lite"
 )
 
 # Chinese → Vietnamese palace name map (iztro zh-CN output)
@@ -93,17 +90,16 @@ class AIService:
                 resp = await client.post(
                     f"{_GEMINI_URL}?key={settings.GEMINI_API_KEY}",
                     json={
-                        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                        "contents": [{"parts": [{"text": prompt}]}],
                         "generationConfig": {
                             "temperature": 0.7,
-                            "maxOutputTokens": 8192,
+                            "maxOutputTokens": 2048,
                         },
                     },
                 )
                 resp.raise_for_status()
                 data = resp.json()
-        except httpx.HTTPError as e:
-            logger.error("Gemini HTTP error: %s — response: %s", e, getattr(e, "response", None) and e.response.text)
+        except httpx.HTTPError:
             return _fallback()
 
         try:
@@ -115,8 +111,7 @@ class AIService:
                 if text.startswith("json"):
                     text = text[4:]
             return json.loads(text.strip())
-        except (KeyError, IndexError, json.JSONDecodeError) as e:
-            logger.error("Gemini parse error: %s — raw data: %s", e, data)
+        except (KeyError, IndexError, json.JSONDecodeError):
             return _fallback()
 
 
