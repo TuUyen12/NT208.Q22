@@ -39,4 +39,4 @@ backend/celerybeat-schedule
 *.sw?
 
 nginx/
-setup.sh.env.local
+setup.sh
