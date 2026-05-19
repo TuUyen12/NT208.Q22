@@ -6,10 +6,13 @@ Vietnamese interpretation cached on the Chart record.
 """
 
 import json
+import logging
 
 import httpx
 
 from app.core.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -99,7 +102,8 @@ class AIService:
                 )
                 resp.raise_for_status()
                 data = resp.json()
-        except httpx.HTTPError:
+        except httpx.HTTPError as e:
+            logger.error("Gemini HTTP error: %s — response: %s", e, getattr(e, "response", None) and e.response.text)
             return _fallback()
 
         try:
@@ -111,7 +115,8 @@ class AIService:
                 if text.startswith("json"):
                     text = text[4:]
             return json.loads(text.strip())
-        except (KeyError, IndexError, json.JSONDecodeError):
+        except (KeyError, IndexError, json.JSONDecodeError) as e:
+            logger.error("Gemini parse error: %s — raw data: %s", e, data)
             return _fallback()
 
 
