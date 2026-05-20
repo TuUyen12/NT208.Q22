@@ -144,6 +144,7 @@ const Header = () => {
         >
           YinYang
         </div>
+        
 
         <div className="nav-links" style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
           {navItems.map(item => (
