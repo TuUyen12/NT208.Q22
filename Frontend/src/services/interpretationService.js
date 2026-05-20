@@ -10,7 +10,7 @@ function getStarName(star) {
 const specialRules = [
   {
     // Cung Mệnh an tại Dần có sao Lộc Tồn
-    condition: (palace, palaceName, major, minor, adj) => {
+    condition: (palace, palaceName, major, minor) => {
       if (palaceName !== 'Mệnh') return false;
       // Kiểm tra cung an tại Dần: cần palace.earthlyBranch? Thực tế trong palaceData có StemBranch là "Giáp Dần" chẳng hạn.
       // Ta lấy từ palace.StemBranch đã translate: ví dụ "Giáp Dần". Cần kiểm tra chi là Dần.
@@ -24,7 +24,7 @@ const specialRules = [
   },
   {
     // Cung Tài Bạch có Lộc Tồn
-    condition: (palace, palaceName, major, minor, adj) => {
+    condition: (palace, palaceName, major, minor) => {
       if (palaceName !== 'Tài Bạch') return false;
       return minor.some(s => getStarName(s) === 'Lộc Tồn');
     },

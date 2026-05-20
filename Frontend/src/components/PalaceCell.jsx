@@ -2,7 +2,6 @@
 import {
   translateStar,
   translateBrightness,
-  translateMutagen,
 } from "../utils/translateData";
 
 export default function PalaceCell({

@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
@@ -12,6 +13,7 @@ from app.schemas.auth import LoginRequest, RegisterRequest, RegisterResponse, To
 from app.services.auth_service import AuthService
 
 router = APIRouter()
+settings = get_settings()
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
@@ -40,22 +42,16 @@ async def google_login():
     return RedirectResponse(url)
 
 
-@router.get("/google/callback", response_model=TokenResponse)
+@router.get("/google/callback")
 async def google_callback(code: str, db: AsyncSession = Depends(get_db)):
     user = await AuthService.google_callback(db, code)
-    return AuthService.create_tokens(str(user.user_id))
+    tokens = AuthService.create_tokens(str(user.user_id))
+    return RedirectResponse(
+        f"{settings.FRONTEND_URL}/auth/callback"
+        f"?access_token={tokens.access_token}"
+        f"&refresh_token={tokens.refresh_token}"
+    )
 
-
-@router.get("/facebook/login")
-async def facebook_login():
-    url = AuthService.facebook_auth_url()
-    return RedirectResponse(url)
-
-
-@router.get("/facebook/callback", response_model=TokenResponse)
-async def facebook_callback(code: str, db: AsyncSession = Depends(get_db)):
-    user = await AuthService.facebook_callback(db, code)
-    return AuthService.create_tokens(str(user.user_id))
 
 
 @router.get("/me", response_model=UserResponse)

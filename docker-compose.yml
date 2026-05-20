@@ -30,6 +30,8 @@ services:
     ports:
       - "8000:8000"
     env_file: .env
+    environment:
+      PYTHONDONTWRITEBYTECODE: "1"
     depends_on:
       db:
         condition: service_healthy
@@ -51,18 +53,33 @@ services:
   worker:
     build: ./backend
     env_file: .env
+    environment:
+      PYTHONPATH: /app/backend
+      PYTHONDONTWRITEBYTECODE: "1"
     depends_on:
       api:
         condition: service_healthy
     volumes:
       - .:/app
       - reports_tmp:/tmp/tuvi_reports
-    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2 --uid=nobody --gid=nogroup
+
+  frontend:
+    build: ./Frontend
+    ports:
+      - "4173:4173"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
 
   # Celery beat — waits for API (= migrations done) before starting
   beat:
     build: ./backend
     env_file: .env
+    environment:
+      PYTHONPATH: /app/backend
+      PYTHONDONTWRITEBYTECODE: "1"
     depends_on:
       api:
         condition: service_healthy

@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { authService } from "../services/authService";
 
 
 /* ════════════════════════════════════════════════
@@ -286,6 +288,7 @@ const Background = () => (
 ════════════════════════════════════════════════ */
 const Header = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   return (
     <nav style={{
@@ -298,21 +301,8 @@ const Header = () => {
         display:"flex", justifyContent:"space-between", alignItems:"center",
         padding:"14px 32px", maxWidth:"1200px", margin:"0 auto",
       }}>
-        
-        {/* LOGO */}
-        <span
-          onClick={() => navigate("/")}
-          style={{
-            textDecoration:"none",
-            cursor:"pointer"
-          }}
-        >
-          <span className="hn" style={{
-            fontSize:"1.5rem",
-            fontWeight:700,
-            color:C.primary,
-            letterSpacing:"-.01em"
-          }}>
+        <span onClick={() => navigate("/")} style={{ textDecoration:"none", cursor:"pointer" }}>
+          <span className="hn" style={{ fontSize:"1.5rem", fontWeight:700, color:C.primary, letterSpacing:"-.01em" }}>
             YinYang
           </span>
         </span>
@@ -321,33 +311,35 @@ const Header = () => {
           {[
             { label: "Tra cứu", to: "/" },
             { label: "Chatbot", to: "/chatbot" },
-            { label: "14 Chính tinh", to: "/" },
+            { label: "14 Chính tinh", to: "/major-stars" },
           ].map(item => (
-            <span
-              key={item.label}
-              className="nl hide-sm"
-              style={{ cursor:"pointer" }}
-              onClick={() => navigate(item.to)}
-            >
+            <span key={item.label} className="nl hide-sm" style={{ cursor:"pointer" }} onClick={() => navigate(item.to)}>
               {item.label}
             </span>
           ))}
 
-          {/* TRANG CHỦ */}
-          <span
-            onClick={() => navigate("/")}
-            className="nl"
-            style={{
-              display:"flex",
-              alignItems:"center",
-              gap:4,
-              color:C.onSurfaceVariant,
-              cursor:"pointer"
-            }}
-          >
-            <span className="mso" style={{ fontSize:16 }}>arrow_back</span>
-            <span style={{ fontSize:13 }}>Trang chủ</span>
-          </span>
+          {user ? (
+            <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+              <span style={{
+                fontSize:"0.82rem", color:C.onSurfaceVariant,
+                maxWidth:"160px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+              }}>
+                {user.full_name || user.email}
+              </span>
+              <button
+                className="btn-primary"
+                style={{ padding:"6px 16px", fontSize:"0.82rem", borderRadius:"8px" }}
+                onClick={logout}
+              >
+                Đăng xuất
+              </button>
+            </div>
+          ) : (
+            <span onClick={() => navigate("/")} className="nl" style={{ display:"flex", alignItems:"center", gap:4, color:C.onSurfaceVariant, cursor:"pointer" }}>
+              <span className="mso" style={{ fontSize:16 }}>arrow_back</span>
+              <span style={{ fontSize:13 }}>Trang chủ</span>
+            </span>
+          )}
         </div>
       </div>
     </nav>
@@ -432,6 +424,7 @@ const Field = ({ label, icon, error, children }) => (
 ════════════════════════════════════════════════ */
 const LoginCard = () => {
   const navigate = useNavigate();
+  const { login, user } = useAuth();
   const [email,    setEmail]    = useState("");
   const [pw,       setPw]       = useState("");
   const [showPw,   setShowPw]   = useState(false);
@@ -440,6 +433,11 @@ const LoginCard = () => {
   const [success,  setSuccess]  = useState(false);
   const [errors,   setErrors]   = useState({});
   const btnRef = useRef(null);
+
+  // Redirect already-authenticated users
+  useEffect(() => {
+    if (user) navigate("/", { replace: true });
+  }, [user, navigate]);
 
   const validate = () => {
     const e = {};
@@ -452,35 +450,14 @@ const LoginCard = () => {
 
   const handleLogin = async () => {
     const e = validate();
-    if (Object.keys(e).length) {
-      setErrors(e);
-      return;
-    }
+    if (Object.keys(e).length) { setErrors(e); return; }
 
+    setErrors({});
+    setLoading(true);
     try {
-      setLoading(true);
-      setErrors({});
-      const res = await fetch("http://localhost:8000/api/v1/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password: pw,
-        }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.detail || data.message || "Login failed");
-      }
-
+      await login(email, pw, remember);
       setSuccess(true);
-      localStorage.setItem("token", data.access_token);
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 500);
+      setTimeout(() => navigate("/"), 500);
     } catch (err) {
       setErrors({ general: err.message });
     } finally {
@@ -521,7 +498,10 @@ const LoginCard = () => {
 
         {/* ── Social login ── */}
         <div className="fade-up-1" style={{ marginBottom:"1.25rem" }}>
-          <button className="btn-soc">
+          <button
+            className="btn-soc"
+            onClick={() => { window.location.href = authService.googleLoginUrl(); }}
+          >
             <GoogleIcon/>
             Tiếp tục với Google
           </button>

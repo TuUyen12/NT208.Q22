@@ -54,7 +54,6 @@ def send_appointment_reminders(self):
         from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
         from app.core.config import get_settings
         from app.models.appointment import Appointment
-        from app.models.client import Client
         from app.models.user import User
         from app.services.notification_service import NotificationService
 

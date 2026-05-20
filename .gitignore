@@ -13,6 +13,7 @@ venv/
 
 # Environment
 .env
+.env.prod
 *.local
 
 # Python cache
@@ -36,3 +37,11 @@ backend/celerybeat-schedule
 *.njsproj
 *.sln
 *.sw?
+
+nginx/
+<<<<<<< HEAD
+setup.sh.env.local
+celerybeat-schedule
+=======
+setup.sh
+>>>>>>> a3d5a13fbfb28d8f98b7969d01e7cd8ac6d8e75a

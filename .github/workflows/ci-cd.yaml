@@ -13,11 +13,16 @@ jobs:
   # ── Frontend lint & build ────────────────────────────────────────────────
   frontend:
     name: Frontend (lint + build)
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: Frontend
     steps:
+      - name: Remove root-owned build artifacts
+        shell: bash
+        working-directory: /
+        run: sudo find "$GITHUB_WORKSPACE" -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -33,11 +38,14 @@ jobs:
   # ── Backend lint ──────────────────────────────────────────────────────────
   backend:
     name: Backend (lint)
-    runs-on: self-hosted        
+    runs-on: self-hosted
     defaults:
       run:
         working-directory: backend
     steps:
+      - name: Remove root-owned build artifacts
+        run: sudo find "$GITHUB_WORKSPACE" -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
@@ -53,20 +61,30 @@ jobs:
   deploy:
     name: Deploy to production
     needs: [frontend, backend]
-    if: github.ref == 'refs/heads/prod' && github.event_name == 'push'
-    runs-on: self-hosted        # your VM is the runner
+    if: github.ref == 'refs/heads/prod' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: self-hosted
     environment: production
     steps:
+      - name: Remove root-owned build artifacts
+        run: sudo find "$GITHUB_WORKSPACE" -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
       - uses: actions/checkout@v4
         with:
           ref: prod
           clean: true
 
-      - name: Rebuild and restart services
+      - name: Inject .env
+        run: cp /etc/yinyang/.env .env
+
+      - name: Build backend images
+        run: docker compose build --no-cache api worker beat
+
+      - name: Build frontend image
+        run: docker compose build --no-cache frontend
+
+      - name: Start all services
         run: |
-          set -e
           docker compose pull db redis
-          docker compose build --no-cache api worker beat
           docker compose up -d --remove-orphans
 
       - name: Wait for API health check
