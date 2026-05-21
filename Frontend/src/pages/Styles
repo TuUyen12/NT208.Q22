@@ -1,0 +1,148 @@
+// ============================================================
+// STYLES CHO LÁ SỐ TỬ VI
+// ============================================================
+
+export const CURRENT_YEAR = new Date().getFullYear();
+
+export const styles = {
+  gridWrapper: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 228px)",
+    gap: 0,
+    width: "fit-content",
+    margin: "0 auto",
+  },
+
+  centerCell: {
+    gridColumn: "2 / 4",
+    gridRow: "2 / 4",
+    borderRadius: 14,
+    padding: "1.5rem",
+    background: "rgba(15,17,28,0.85)",
+    backdropFilter: "blur(20px)",
+    border: "1px solid rgba(100,80,130,0.25)",
+    boxShadow: "0 0 60px rgba(120,80,200,0.08), inset 0 1px 0 rgba(255,255,255,0.06)",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  center: {
+    badge: (color, bg) => ({
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 2,
+      padding: "6px 14px",
+      borderRadius: 8,
+      background: `${bg}55`,
+      border: `1px solid ${color}30`,
+      color: color,
+      flex: 1,
+    }),
+  },
+};
+
+export const newPaletteStyles = {
+  cell: {
+    width: "228px",
+    height: "319px",
+    background: "#FEFBFF",
+    border: "1.5px solid #9C46BE",
+    borderRadius: "10px",
+    padding: "6px",
+    display: "flex",
+    flexDirection: "column",
+  },
+
+  content: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+  },
+
+  Header: {
+    position: "relative",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    height: 22,
+  },
+
+  StemBranch: {
+    width: "60px",
+    fontSize: "11px",
+    color: "#ED9B59",
+    fontWeight: 700,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+
+  PalaceName: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    fontSize: "18px",
+    fontWeight: 700,
+    color: "#111",
+    display: "flex",
+    alignItems: "center",
+    gap: 2,
+    whiteSpace: "nowrap",
+  },
+
+  Age: {
+    width: "50px",
+    textAlign: "right",
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#111",
+  },
+
+  MainStars: {
+    marginTop: "10px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "2px",
+    color: "#47A0A5",
+    fontSize: "16px",
+    lineHeight: 1.15,
+    fontWeight: 500,
+    fontFamily: "Montserrat, serif",
+    minHeight: "48px",
+  },
+
+  sideContainer: {
+    flex: 1,
+    display: "flex",
+    justifyContent: "space-between",
+    marginTop: "10px",
+    overflow: "hidden",
+  },
+
+  LeftStars: {
+    width: "48%",
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    fontSize: "12px",
+    lineHeight: 1.2,
+    fontFamily: "Montserrat, serif",
+    fontWeight: 700,
+  },
+
+  RightStars: {
+    width: "48%",
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+    fontSize: "12px",
+    lineHeight: 1.2,
+    fontFamily: "Montserrat, serif",
+    fontWeight: 700,
+  },
+};
