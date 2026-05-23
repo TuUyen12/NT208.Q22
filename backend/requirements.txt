@@ -25,6 +25,7 @@ cryptography==43.0.1
 
 # Redis (rate limiting + cache)
 redis[asyncio]==5.1.1
+prometheus-fastapi-instrumentator==6.0.0
 
 # PDF generation (Req 15)
 reportlab==4.2.2
