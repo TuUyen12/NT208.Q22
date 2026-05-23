@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 import redis.asyncio as aioredis
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 
 import app.models  # noqa: F401 — registers all ORM models before routers import them
 from app.core.config import get_settings
@@ -46,6 +47,7 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
     lifespan=lifespan,
 )
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 app.include_router(
     daily_horoscope.router,
