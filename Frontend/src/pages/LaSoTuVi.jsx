@@ -1276,7 +1276,9 @@ export default function LaSoTuVi() {
         branchIdx
       );
     }
-  } catch {}
+  } catch (e) {
+    console.error(e);
+  }
 
   const renderGrid = () => {
     const cells = [];
