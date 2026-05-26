@@ -1,616 +1,797 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { astro } from "iztro";
-import { Background, C, GlobalStyles, Header } from "./Login";
+import { GlobalStyles } from "./Login";
 import { chartService } from "../services/chartService";
+
 import {
   translateAstrolabe,
   EARTHLY_BRANCHES,
-  HEAVENLY_STEMS,
   translateNayin,
+  translateStarName,
+  timeToIndex,
+  TIME_RANGES,
+  translateStemBranch,
+  translateChineseDate,
+  MAJOR_BRIGHTNESS_COLOR,
+  getMinorStarColor,
+  calcTuanKhong,
+  BRANCH_MONTH,
+  translateStem,
+  translateBranch,
+  translateTruongSinh,
+  translateThanSat,
 } from "./translations";
 
+import { styles, newPaletteStyles, CURRENT_YEAR } from "./Styles";
+
 // ============================================================
-// VỊ TRÍ 12 ĐỊA CHI TRÊN BẢNG 4×4
+// POSITION
 // ============================================================
+
 const BRANCH_POSITION = {
-  巳: [0, 0], 午: [0, 1], 未: [0, 2], 申: [0, 3],
-  酉: [1, 3], 戌: [2, 3], 亥: [3, 3], 子: [3, 2],
-  丑: [3, 1], 寅: [3, 0], 卯: [2, 0], 辰: [1, 0],
-};
-const BRANCH_ORDER = ["巳","午","未","申","酉","戌","亥","子","丑","寅","卯","辰"];
+  巳: [0, 0],
+  午: [0, 1],
+  未: [0, 2],
+  申: [0, 3],
 
-const BRANCH_MONTH = {
-  寅: 1, 卯: 2, 辰: 3, 巳: 4, 午: 5, 未: 6,
-  申: 7, 酉: 8, 戌: 9, 亥: 10, 子: 11, 丑: 12,
-};
+  酉: [1, 3],
+  戌: [2, 3],
+  亥: [3, 3],
+  子: [3, 2],
 
-// ============================================================
-// TUẦN KHÔNG
-// ============================================================
-const calcTuanKhong = (stemIdx, branchIdx) => {
-  const tuanStart = ((branchIdx - stemIdx % 10) + 12 * 2) % 12;
-  const empty1 = (tuanStart + 10) % 12;
-  const empty2 = (tuanStart + 11) % 12;
-  const branches = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
-  return new Set([branches[empty1], branches[empty2]]);
+  丑: [3, 1],
+  寅: [3, 0],
+  卯: [2, 0],
+  辰: [1, 0],
 };
 
+const BRANCH_ORDER = [
+  "巳",
+  "午",
+  "未",
+  "申",
+  "酉",
+  "戌",
+  "亥",
+  "子",
+  "丑",
+  "寅",
+  "卯",
+  "辰",
+];
+
 // ============================================================
-// TIỆN ÍCH
+// UTIL
 // ============================================================
-const timeToIndex = (t) => {
-  if (!t) return 0;
-  const h = parseInt(t.split(":")[0]);
-  if (h >= 23 || h < 1) return 0;
-  if (h < 3) return 1; if (h < 5) return 2; if (h < 7) return 3;
-  if (h < 9) return 4; if (h < 11) return 5; if (h < 13) return 6;
-  if (h < 15) return 7; if (h < 17) return 8; if (h < 19) return 9;
-  if (h < 21) return 10; return 11;
-};
+
 const formatDate = (s) => {
   const [y, m, d] = s.split("-");
   return `${y}-${parseInt(m)}-${parseInt(d)}`;
 };
 
 // ============================================================
-// PHÂN LOẠI SAO
+// GENERATE CHART
 // ============================================================
-const GOOD_MINOR = new Set([
-  "Văn Xương","Văn Khúc","Tả Phụ","Hữu Bật","Thiên Khôi","Thiên Việt",
-  "Lộc Tồn","Thiên Mã","Hóa Lộc","Hóa Quyền","Hóa Khoa",
-  "Thiên Hỷ","Hồng Loan","Long Trì","Phụng Các","Thiên Quan","Thiên Phúc",
-  "Ân Quang","Thiên Quý","Tam Thai","Bát Tọa","Đài Phụ","Phong Cáo",
-  "Thanh Long","Long Đức","Thiên Đức","Nguyệt Đức","Hỷ Thần",
-  "Thiên Diêu","Thiên Vu","Giải Thần","Niên Giải",
-]);
-const BAD_MINOR = new Set([
-  "Hóa Kỵ","Kình Dương","Đà La","Hỏa Tinh","Linh Tinh","Địa Không","Địa Kiếp",
-  "Thiên Hình","Âm Sát","Cô Thần","Quả Tú","Phá Toái","Đại Hao","Tiểu Hao",
-  "Phi Liêm","Kiếp Sát","Tai Sát","Thiên Sát","Bệnh Phù","Bạch Hổ",
-  "Tang Môn","Điếu Khách","Tuế Phá","Quán Sách","Hối Khí","Hàm Trì",
-]);
 
-const minorColor = (name, isMutagen) => {
-  if (isMutagen) return "#f0abfc";
-  if (BAD_MINOR.has(name)) return "#f87171";
-  if (GOOD_MINOR.has(name)) return "#4ade80";
-  return "#60a5fa";
-};
-
-const MAJOR_BRIGHTNESS_COLOR = {
-  "M": "#f9e4ff",
-  "V": "#d8b4fe",
-  "Đ": "#e9d5ff",
-  "B": "#c4b5fd",
-  "H": "#9c86e3",
-  "R": "#7c6dba",
-};
-
-// ============================================================
-// GENERATE + TRANSLATE CHART
-// ============================================================
 const generateChartData = (name, dob, time, gender) => {
   try {
     const raw = astro.astrolabeBySolarDate(
-      formatDate(dob), timeToIndex(time), gender === "Nam" ? "male" : "female", false, "zh-CN"
+      formatDate(dob),
+      timeToIndex(time),
+      gender === "Nam" ? "male" : "female",
+      false,
+      "zh-CN"
     );
+
     const translated = translateAstrolabe(raw);
-    return { raw, astrolabe: translated, personal: { name, dob, time, gender } };
+
+    translated.palaces = translated.palaces.map((p, i) => {
+      const rawPalace = raw?.palaces?.[i] || {};
+
+      return {
+        ...p,
+
+        rawEarthlyBranch: rawPalace.earthlyBranch,
+
+        heavenlyStem: rawPalace.heavenlyStem,
+
+        heavenlyStemVi: translateStem(rawPalace.heavenlyStem),
+
+        earthlyBranchVi: translateBranch(rawPalace.earthlyBranch),
+
+        changsheng12Vi: translateTruongSinh(rawPalace.changsheng12),
+
+        boshi12Vi: translateStarName(rawPalace.boshi12),
+
+        jiangqian12Vi: translateThanSat(rawPalace.jiangqian12),
+      };
+    });
+
+    return {
+      raw,
+      astrolabe: translated,
+      personal: { name, dob, time, gender },
+    };
   } catch (err) {
     console.error(err);
     return null;
   }
 };
 
-const translateChineseDate = (str) => {
-  if (!str) return "";
-  const NUMS = {
-    "〇":"0","一":"1","二":"2","三":"3","四":"4","五":"5",
-    "六":"6","七":"7","八":"8","九":"9","十":"10",
-    "十一":"11","十二":"12","十三":"13","十四":"14","十五":"15",
-    "十六":"16","十七":"17","十八":"18","十九":"19","二十":"20",
-    "二十一":"21","二十二":"22","二十三":"23","二十四":"24","二十五":"25",
-    "二十六":"26","二十七":"27","二十八":"28","二十九":"29","三十":"30",
-  };
-  let result = str
-    .replace(/年/g, " Năm ")
-    .replace(/月/g, " Tháng ")
-    .replace(/日/g, " Ngày ");
-  Object.entries(HEAVENLY_STEMS).forEach(([k, v]) => { result = result.replace(new RegExp(k, "g"), v); });
-  Object.entries(EARTHLY_BRANCHES).forEach(([k, v]) => { result = result.replace(new RegExp(k, "g"), v); });
-  ["三十","二十九","二十八","二十七","二十六","二十五","二十四","二十三","二十二","二十一","二十",
-   "十九","十八","十七","十六","十五","十四","十三","十二","十一","十",
-   "九","八","七","六","五","四","三","二","一"].forEach((k) => {
-    if (NUMS[k]) result = result.replace(new RegExp(k, "g"), NUMS[k]);
-  });
-  return result.trim();
-};
+// ============================================================
+// COMPONENTS
+// ============================================================
 
-const CURRENT_YEAR = new Date().getFullYear();
-
-const TIME_RANGES = [
-  "Tý (23–01h)","Sửu (01–03h)","Dần (03–05h)","Mão (05–07h)",
-  "Thìn (07–09h)","Tỵ (09–11h)","Ngọ (11–13h)","Mùi (13–15h)",
-  "Thân (15–17h)","Dậu (17–19h)","Tuất (19–21h)","Hợi (21–23h)",
-];
-
-// ============================================================
-// COMPONENT: MinorStarPill
-// ============================================================
-const MinorStarPill = ({ star }) => {
-  const isMutagen = !!star.mutagen;
-  const col = minorColor(star.name, isMutagen);
-  return (
-    <span style={{
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 2,
-      padding: "1px 5px",
-      borderRadius: 4,
-      background: `${col}14`,
-      border: `1px solid ${col}40`,
-      fontSize: "0.6rem",
-      color: col,
-      lineHeight: 1.6,
-      whiteSpace: "nowrap",
-    }}>
-      {star.name}
-      {star.brightnessAbbr && (
-        <span style={{ opacity: 0.7, fontSize: "0.5rem" }}>
-          {star.brightnessAbbr}
-        </span>
-      )}
-    </span>
-  );
-};
-
-// ============================================================
-// COMPONENT: MajorStarRow
-// ============================================================
-const MajorStarRow = ({ star }) => {
-  const color = MAJOR_BRIGHTNESS_COLOR[star.brightnessAbbr] || "#e2e8f0";
-  const isMutagen = !!star.mutagen;
-  return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-      <span style={{
-        fontSize: "0.82rem",
-        fontWeight: 700,
-        color: color,
-        fontFamily: "'Newsreader', serif",
-        letterSpacing: "0.01em",
-      }}>
-        {star.name}
-      </span>
-      {star.brightnessAbbr && (
-        <span style={{
-          fontSize: "0.52rem",
-          color: color,
-          opacity: 0.75,
-          background: `${color}20`,
-          padding: "0 3px",
-          borderRadius: 3,
-          border: `1px solid ${color}30`,
-        }}>
-          {star.brightnessAbbr}
-        </span>
-      )}
-      {isMutagen && (
-        <span style={{
-          fontSize: "0.5rem",
-          color: "#f0abfc",
-          background: "#f0abfc18",
-          border: "1px solid #f0abfc40",
-          padding: "0 3px",
-          borderRadius: 3,
-        }}>
-          {star.mutagen}
-        </span>
-      )}
-    </div>
-  );
-};
-
-// ============================================================
-// STYLES
-// ============================================================
-const styles = {
-  gridWrapper: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: 8,
-    width: "100%",
-    maxWidth: 1200,
-    margin: "0 auto",
-  },
-  cell: {
-    minHeight: 200,
-    display: "flex",
-    flexDirection: "column",
-    padding: "10px",
-    borderRadius: 10,
-    background: "rgba(20,22,32,0.7)",
-    backdropFilter: "blur(12px)",
-    border: "1px solid rgba(255,255,255,0.06)",
-    transition: "transform 0.2s ease, box-shadow 0.2s ease",
-  },
-  cellHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-    minHeight: 18,
-  },
-  earthlyBranch: {
-    fontSize: "0.65rem",
-    color: "#5a5a7a",
-    fontFamily: "'Courier New', monospace",
-  },
-  badge: {
-    menh: {
-      fontSize: "0.52rem",
-      padding: "1px 5px",
-      borderRadius: 4,
-      background: "rgba(237,177,255,0.15)",
-      border: "1px solid rgba(237,177,255,0.4)",
-      color: "#e9d5ff",
-      fontWeight: 700,
-      letterSpacing: "0.05em",
-    },
-    body: {
-      fontSize: "0.52rem",
-      padding: "1px 5px",
-      borderRadius: 4,
-      background: "rgba(103,232,249,0.12)",
-      border: "1px solid rgba(103,232,249,0.35)",
-      color: "#a5f3fc",
-      fontWeight: 700,
-    },
-    tuan: {
-      fontSize: "0.52rem",
-      padding: "1px 4px",
-      borderRadius: 4,
-      background: "rgba(110,231,183,0.1)",
-      border: "1px solid rgba(110,231,183,0.3)",
-      color: "#6ee7b7",
-      fontWeight: 700,
-    },
-  },
-  decadalBar: {
-    display: "flex",
-    alignItems: "center",
-    gap: 4,
-    marginBottom: 5,
-    padding: "2px 6px",
-    borderRadius: 5,
-    background: "rgba(237,177,255,0.06)",
-    border: "1px solid rgba(237,177,255,0.12)",
-    width: "fit-content",
-  },
-  decadalStem: {
-    fontSize: "0.65rem",
-    color: "#edb1ff",
-    fontWeight: 600,
-  },
-  decadalRange: {
-    fontSize: "0.55rem",
-    color: "#a78bfa",
-    fontFamily: "'Courier New', monospace",
-  },
-  majorSection: {
-    marginBottom: 4,
-    minHeight: 22,
-  },
-  divider: {
-    height: 1,
-    background: "rgba(255,255,255,0.06)",
-    margin: "5px 0",
-  },
-  monthTag: {
-    fontSize: "0.55rem",
-    color: "#4a4a6a",
-    fontFamily: "'Courier New', monospace",
-  },
-  centerCell: {
-    gridColumn: "2 / 4",
-    gridRow: "2 / 4",
-    borderRadius: 14,
-    padding: "1.5rem",
-    background: "rgba(15,17,28,0.85)",
-    backdropFilter: "blur(20px)",
-    border: "1px solid rgba(100,80,130,0.25)",
-    boxShadow: "0 0 60px rgba(120,80,200,0.08), inset 0 1px 0 rgba(255,255,255,0.06)",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    textAlign: "center",
-  },
-  center: {
-    badge: (color, bg) => ({
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: 2,
-      padding: "6px 14px",
-      borderRadius: 8,
-      background: `${bg}55`,
-      border: `1px solid ${color}30`,
-      color: color,
-      flex: 1,
-    }),
-  },
-};
-
-// ============================================================
-// COMPONENT: PalaceCell
-// ============================================================
-const PalaceCell = ({ palace, isMenh, isBody, tuanKhong, rawBranch, isCurrentYear }) => {
-  if (!palace) return <div style={styles.cell} />;
+const PalaceCell = ({
+  palace,
+  isMenh,
+  isBody,
+  tuanKhong,
+  rawBranch,
+  isCurrentYear,
+  rawPalace,
+}) => {
+  if (!palace) {
+    return <div style={newPaletteStyles.cell} />;
+  }
 
   const isTuan = tuanKhong?.has(rawBranch);
-  const decRange = palace.decadal?.range;
-  const decStem = palace.decadal?.heavenlyStem || "";
+
   const month = BRANCH_MONTH[rawBranch];
+
   const majorStars = palace.majorStars || [];
-  const minorStars = palace.minorStars || [];
-  const adjStars = palace.adjectiveStar || [];
-  const allMinor = [...minorStars, ...adjStars];
 
-  let borderStyle = "1px solid rgba(255,255,255,0.06)";
-  if (isMenh) borderStyle = "2px solid rgba(237,177,255,0.55)";
-  else if (isBody) borderStyle = "2px solid rgba(103,232,249,0.45)";
-  else if (isCurrentYear) borderStyle = "2px solid rgba(251,191,36,0.4)";
+  const allMinor = [
+    ...(palace.minorStars || []),
+    ...(palace.adjectiveStars || []),
+  ];
 
-  let cellBg = "rgba(20,22,32,0.7)";
-  if (isMenh) cellBg = "rgba(60,30,80,0.55)";
-  else if (isBody) cellBg = "rgba(20,50,65,0.55)";
+  const half = Math.ceil(allMinor.length / 2);
+
+  const leftMinor = allMinor.slice(0, half);
+
+  const rightMinor = allMinor.slice(half);
+
+  const firstLineParts = [
+    EARTHLY_BRANCHES[rawBranch] || rawBranch,
+    palace.changsheng12Vi,
+    month ? `Tháng ${month}` : null,
+  ].filter(Boolean);
+
+  const firstLine = firstLineParts.join(" - ");
 
   return (
-    <div style={{
-      ...styles.cell,
-      border: borderStyle,
-      background: cellBg,
-      position: "relative",
-      overflow: "hidden",
-    }}>
-      {(isMenh || isBody) && (
-        <div style={{
-          position: "absolute", top: 0, left: 0, right: 0,
-          height: "40%", pointerEvents: "none",
-          background: isMenh
-            ? "linear-gradient(180deg,rgba(237,177,255,0.06) 0%,transparent 100%)"
-            : "linear-gradient(180deg,rgba(103,232,249,0.05) 0%,transparent 100%)",
-        }} />
-      )}
+    <div
+      style={{
+        ...newPaletteStyles.cell,
 
-      <div style={styles.cellHeader}>
-        <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
-          {isMenh && <span style={styles.badge.menh}>Mệnh</span>}
-          {isBody && <span style={styles.badge.body}>Thân</span>}
-          {isTuan && <span style={styles.badge.tuan}>旬</span>}
-        </div>
-        <span style={{ ...styles.earthlyBranch }}>
-          {palace.earthlyBranch}
-        </span>
-      </div>
+        boxShadow: isMenh
+          ? "0 0 0 1px rgba(237,177,255,0.4)"
+          : isBody
+          ? "0 0 0 1px rgba(103,232,249,0.3)"
+          : "none",
+      }}
+    >
+      <div style={newPaletteStyles.content}>
+        <div style={newPaletteStyles.Header}>
+          <span style={newPaletteStyles.StemBranch}>
+            {translateStemBranch(
+              rawPalace?.heavenlyStem,
+              rawBranch
+            )}
+          </span>
 
-      <div style={{
-        fontSize: "0.78rem",
-        fontWeight: 700,
-        fontFamily: "'Newsreader', serif",
-        color: isMenh ? "#e9d5ff" : isBody ? "#a5f3fc" : "#c4b5fd",
-        marginBottom: 3,
-        letterSpacing: "0.02em",
-      }}>
-        {palace.name}
-      </div>
+          <span style={newPaletteStyles.PalaceName}>
+            {isMenh && (
+              <span
+                style={{
+                  fontSize: "10px",
+                  background: "#edb1ff",
+                  color: "#4c1d95",
+                  borderRadius: 4,
+                  padding: "0 3px",
+                  marginRight: 3,
+                }}
+              >
+                M
+              </span>
+            )}
 
-      {decStem && decRange && (
-        <div style={styles.decadalBar}>
-          <span style={styles.decadalStem}>{decStem}</span>
-          <span style={styles.decadalRange}>
-            {decRange[0]}–{decRange[1]}
+            {isBody && (
+              <span
+                style={{
+                  fontSize: "10px",
+                  background: "#a5f3fc",
+                  color: "#0c4a6e",
+                  borderRadius: 4,
+                  padding: "0 3px",
+                  marginRight: 3,
+                }}
+              >
+                T
+              </span>
+            )}
+
+            {isTuan && (
+              <span
+                style={{
+                  fontSize: "10px",
+                  background: "#6ee7b7",
+                  color: "#064e3b",
+                  borderRadius: 4,
+                  padding: "0 3px",
+                  marginRight: 3,
+                }}
+              >
+                Tuần
+              </span>
+            )}
+
+            {palace.name}
+          </span>
+
+          <span style={newPaletteStyles.Age}>
+            {palace.decadal?.range
+              ? `${palace.decadal.range[0]}-${palace.decadal.range[1]}`
+              : palace.ageRange || ""}
           </span>
         </div>
-      )}
 
-      <div style={styles.majorSection}>
-        {majorStars.length > 0 ? (
-          majorStars.map((s, i) => <MajorStarRow key={i} star={s} />)
-        ) : (
-          <span style={{ fontSize: "0.6rem", color: "#4a4a5a", fontStyle: "italic" }}>
-            — không chính tinh —
-          </span>
+        <div style={newPaletteStyles.MainStars}>
+          {majorStars.length > 0 ? (
+            majorStars.map((star, i) => (
+              <div key={i}>
+                <span
+                  style={{
+                    color:
+                      MAJOR_BRIGHTNESS_COLOR[
+                        star.brightnessAbbr
+                      ] || "#47A0A5",
+
+                    fontWeight: 700,
+                  }}
+                >
+                  {star.name}
+                </span>
+
+                {star.brightnessAbbr && (
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      opacity: 0.7,
+                      marginLeft: 3,
+
+                      color:
+                        MAJOR_BRIGHTNESS_COLOR[
+                          star.brightnessAbbr
+                        ] || "#888",
+                    }}
+                  >
+                    ({star.brightnessAbbr})
+                  </span>
+                )}
+
+                {star.mutagen && (
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      color: "#f0abfc",
+                      background: "#f0abfc18",
+                      padding: "0 3px",
+                      borderRadius: 3,
+                      marginLeft: 3,
+                    }}
+                  >
+                    {star.mutagen}
+                  </span>
+                )}
+              </div>
+            ))
+          ) : (
+            <div
+              style={{
+                fontSize: "14px",
+                color: "#aaa",
+                fontStyle: "italic",
+              }}
+            >
+              — không chính tinh —
+            </div>
+          )}
+        </div>
+
+        {allMinor.length > 0 && (
+          <div style={newPaletteStyles.sideContainer}>
+            <div style={newPaletteStyles.LeftStars}>
+              {leftMinor.map((star, i) => (
+                <div
+                  key={i}
+                  style={{
+                    color: getMinorStarColor(star.name),
+                  }}
+                >
+                  {star.name}
+
+                  {star.brightnessAbbr && (
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        opacity: 0.6,
+                        marginLeft: 2,
+                      }}
+                    >
+                      ({star.brightnessAbbr})
+                    </span>
+                  )}
+
+                  {star.mutagen && (
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        color: "#f0abfc",
+                        marginLeft: 2,
+                      }}
+                    >
+                      {star.mutagen}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div style={newPaletteStyles.RightStars}>
+              {rightMinor.map((star, i) => (
+                <div
+                  key={i}
+                  style={{
+                    color: getMinorStarColor(star.name),
+                  }}
+                >
+                  {star.name}
+
+                  {star.brightnessAbbr && (
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        opacity: 0.6,
+                        marginLeft: 2,
+                      }}
+                    >
+                      ({star.brightnessAbbr})
+                    </span>
+                  )}
+
+                  {star.mutagen && (
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        color: "#f0abfc",
+                        marginLeft: 2,
+                      }}
+                    >
+                      {star.mutagen}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         )}
-      </div>
 
-      {allMinor.length > 0 && <div style={styles.divider} />}
+        <div
+          style={{
+            marginTop: "auto",
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            fontSize: "10px",
+            color: "#5D277B",
+            fontFamily: "Manrope, sans-serif",
+            paddingTop: 4,
+          }}
+        >
+          {firstLine && <div>{firstLine}</div>}
 
-      {allMinor.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 2, rowGap: 2 }}>
-          {allMinor.map((s, i) => <MinorStarPill key={i} star={s} />)}
+          {palace.boshi12Vi && (
+            <div>{palace.boshi12Vi}</div>
+          )}
+
+          {palace.jiangqian12Vi && (
+            <div>{palace.jiangqian12Vi}</div>
+          )}
+
+          {isCurrentYear && (
+            <div
+              style={{
+                background: "#fbbf2420",
+                border: "1px solid #fbbf2460",
+                borderRadius: 4,
+                padding: "1px 5px",
+                width: "fit-content",
+                color: "#b45309",
+                fontWeight: 700,
+              }}
+            >
+              TH {CURRENT_YEAR}
+            </div>
+          )}
         </div>
-      )}
-
-      <div style={{
-        marginTop: "auto",
-        paddingTop: 4,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-end",
-      }}>
-        {month && <span style={styles.monthTag}>T.{month}</span>}
-        {isCurrentYear && (
-          <span style={{
-            fontSize: "0.55rem",
-            color: "#fbbf24",
-            background: "#fbbf2418",
-            border: "1px solid #fbbf2440",
-            padding: "1px 4px",
-            borderRadius: 3,
-          }}>
-            Tiểu hạn {CURRENT_YEAR}
-          </span>
-        )}
       </div>
     </div>
   );
 };
 
-// ============================================================
-// COMPONENT: CRow
-// ============================================================
 const CRow = ({ label, value, highlight }) => (
-  <div style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "baseline",
-    gap: 8,
-    padding: "2px 0",
-    borderBottom: "1px solid rgba(255,255,255,0.04)",
-  }}>
-    <span style={{ color: "#5a5a7a", fontSize: "0.6rem", flexShrink: 0 }}>{label}</span>
-    <span style={{
-      color: highlight ? "#d8b4fe" : "#c4c4d4",
-      fontSize: "0.63rem",
-      fontWeight: highlight ? 600 : 400,
-      textAlign: "right",
-    }}>
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      gap: 8,
+      padding: "2px 0",
+      borderBottom: "1px solid rgba(255,255,255,0.04)",
+    }}
+  >
+    <span
+      style={{
+        color: "#5a5a7a",
+        fontSize: "0.6rem",
+        flexShrink: 0,
+      }}
+    >
+      {label}
+    </span>
+
+    <span
+      style={{
+        color: highlight ? "#d8b4fe" : "#c4c4d4",
+        fontSize: "0.63rem",
+        fontWeight: highlight ? 600 : 400,
+        textAlign: "right",
+      }}
+    >
       {value}
     </span>
   </div>
 );
 
-// ============================================================
-// COMPONENT: CenterCell
-// ============================================================
 const CenterCell = ({ personal, astrolabe, raw }) => {
-  const { soul, body, fiveElementsClass, chineseDate } = astrolabe;
-  const nayin = raw?.chineseDateName || raw?.nayin || "";
-  const nayinVi = translateNayin(nayin) || nayin;
-  const lunarDate = chineseDate ? translateChineseDate(chineseDate) : "";
+  const {
+    soul,
+    body,
+    fiveElementsClass,
+    chineseDate,
+  } = astrolabe;
+
+  const nayin =
+    raw?.chineseDateName || raw?.nayin || "";
+
+  const nayinVi =
+    translateNayin(nayin) || nayin;
+
+  const lunarDate = chineseDate
+    ? translateChineseDate(chineseDate)
+    : "";
+
   const timeIdx = timeToIndex(personal.time);
+
   const timeName = TIME_RANGES[timeIdx];
+
   const nguHanh = fiveElementsClass || "";
 
   const formatDob = (dob) => {
     const [y, m, d] = dob.split("-");
-    return `${d.padStart(2,"0")}/${m.padStart(2,"0")}/${y}`;
+
+    return `${d.padStart(2, "0")}/${m.padStart(
+      2,
+      "0"
+    )}/${y}`;
   };
 
   return (
-    <div style={styles.centerCell}>
-      <div style={{ fontSize: "0.58rem", letterSpacing: "0.2em", color: "#7c6dba", marginBottom: 4, textTransform: "uppercase" }}>
+    <div
+      style={{
+        ...styles.centerCell,
+
+        background: "#FEFBFF",
+
+        border: "1.5px solid #9C46BE",
+
+        borderRadius: "10px",
+
+        boxShadow: "none",
+
+        backdropFilter: "none",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "0.58rem",
+          letterSpacing: "0.2em",
+          color: "#9C46BE",
+          marginBottom: 4,
+          textTransform: "uppercase",
+          fontWeight: 700,
+        }}
+      >
         Tử Vi Đẩu Số
       </div>
 
-      <div style={{
-        fontFamily: "'Newsreader', serif",
-        fontSize: "1.6rem",
-        fontWeight: 700,
-        color: "#fff",
-        letterSpacing: "0.02em",
-        lineHeight: 1.2,
-        marginBottom: 10,
-      }}>
+      <div
+        style={{
+          fontFamily: "'Newsreader', serif",
+          fontSize: "1.6rem",
+          fontWeight: 700,
+          color: "#5D277B",
+          letterSpacing: "0.02em",
+          lineHeight: 1.2,
+          marginBottom: 10,
+          textAlign: "center",
+        }}
+      >
         {personal.name}
       </div>
 
-      <div style={{
-        width: "100%",
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.06)",
-        borderRadius: 10,
-        padding: "10px 12px",
-        marginBottom: 10,
-        fontSize: "0.65rem",
-      }}>
-        <CRow label="Dương lịch" value={formatDob(personal.dob)} />
-        <CRow label="Âm lịch" value={lunarDate || "—"} />
-        <CRow label="Giờ sinh" value={`${personal.time} · ${timeName}`} />
-        <CRow label="Giới tính" value={personal.gender} />
-      </div>
-
-      {(nguHanh || nayinVi) && (
-        <div style={{
+      <div
+        style={{
           width: "100%",
-          background: "rgba(255,255,255,0.03)",
-          border: "1px solid rgba(255,255,255,0.06)",
+          background: "#FFF8FD",
+          border: "1px solid #E7C7F3",
           borderRadius: 10,
           padding: "10px 12px",
           marginBottom: 10,
           fontSize: "0.65rem",
-        }}>
-          {nguHanh && <CRow label="Ngũ hành cục" value={nguHanh} highlight />}
-          {nayinVi && <CRow label="Nạp âm mệnh" value={nayinVi} />}
+        }}
+      >
+        <CRow
+          label="Dương lịch"
+          value={formatDob(personal.dob)}
+        />
+
+        <CRow
+          label="Âm lịch"
+          value={lunarDate || "—"}
+        />
+
+        <CRow
+          label="Giờ sinh"
+          value={`${personal.time} · ${timeName}`}
+        />
+
+        <CRow
+          label="Giới tính"
+          value={personal.gender}
+        />
+      </div>
+
+      {(nguHanh || nayinVi) && (
+        <div
+          style={{
+            width: "100%",
+            background: "#FFF8FD",
+            border: "1px solid #E7C7F3",
+            borderRadius: 10,
+            padding: "10px 12px",
+            marginBottom: 10,
+            fontSize: "0.65rem",
+          }}
+        >
+          {nguHanh && (
+            <CRow
+              label="Ngũ hành cục"
+              value={nguHanh}
+              highlight
+            />
+          )}
+
+          {nayinVi && (
+            <CRow
+              label="Nạp âm mệnh"
+              value={nayinVi}
+            />
+          )}
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          marginBottom: 12,
+          width: "100%",
+        }}
+      >
         {soul && (
-          <div style={styles.center.badge("#d8b4fe", "#4c1d95")}>
-            <span style={{ opacity: 0.65, fontSize: "0.55rem" }}>Mệnh chủ</span>
-            <span style={{ fontSize: "0.78rem", fontWeight: 700 }}>{soul}</span>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 2,
+              padding: "8px 12px",
+              borderRadius: 8,
+
+              background: "#F7E8FF",
+
+              border: "1px solid #EDB1FF",
+
+              color: "#6D208C",
+            }}
+          >
+            <span
+              style={{
+                opacity: 0.7,
+                fontSize: "0.55rem",
+              }}
+            >
+              Mệnh chủ
+            </span>
+
+            <span
+              style={{
+                fontSize: "0.78rem",
+                fontWeight: 700,
+              }}
+            >
+              {soul}
+            </span>
           </div>
         )}
+
         {body && (
-          <div style={styles.center.badge("#a5f3fc", "#0c4a6e")}>
-            <span style={{ opacity: 0.65, fontSize: "0.55rem" }}>Thân chủ</span>
-            <span style={{ fontSize: "0.78rem", fontWeight: 700 }}>{body}</span>
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 2,
+              padding: "8px 12px",
+              borderRadius: 8,
+
+              background: "#ECFEFF",
+
+              border: "1px solid #A5F3FC",
+
+              color: "#0C4A6E",
+            }}
+          >
+            <span
+              style={{
+                opacity: 0.7,
+                fontSize: "0.55rem",
+              }}
+            >
+              Thân chủ
+            </span>
+
+            <span
+              style={{
+                fontSize: "0.78rem",
+                fontWeight: 700,
+              }}
+            >
+              {body}
+            </span>
           </div>
         )}
       </div>
 
-      <div style={{
-        padding: "5px 16px",
-        borderRadius: 999,
-        border: "1px solid rgba(251,191,36,0.3)",
-        color: "#fbbf24",
-        fontSize: "0.65rem",
-        letterSpacing: "0.12em",
-      }}>
+      <div
+        style={{
+          padding: "5px 16px",
+          borderRadius: 999,
+
+          border: "1px solid #FBBF24",
+
+          background: "#FFF8E6",
+
+          color: "#B45309",
+
+          fontSize: "0.65rem",
+          fontWeight: 700,
+          letterSpacing: "0.12em",
+        }}
+      >
         NĂM {CURRENT_YEAR}
       </div>
     </div>
   );
 };
 
-// ============================================================
-// COMPONENT: Legend
-// ============================================================
 const Legend = () => (
-  <div style={{
-    marginTop: 12,
-    display: "flex",
-    gap: "0.75rem",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    fontSize: "0.6rem",
-    color: "rgba(255,255,255,0.35)",
-    padding: "8px 16px",
-    background: "rgba(255,255,255,0.02)",
-    borderRadius: 8,
-    border: "1px solid rgba(255,255,255,0.05)",
-  }}>
+  <div
+    style={{
+      marginTop: 12,
+      display: "flex",
+      gap: "0.75rem",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      fontSize: "0.6rem",
+      color: "rgba(255,255,255,0.35)",
+      padding: "8px 16px",
+      background: "rgba(255,255,255,0.02)",
+      borderRadius: 8,
+      border: "1px solid rgba(255,255,255,0.05)",
+    }}
+  >
     {[
-      { color: "#f9e4ff", label: "Chính tinh Miếu (M)" },
-      { color: "#c4b5fd", label: "Vượng (V) / Đắc (Đ)" },
-      { color: "#9c86e3", label: "Bình (B) / Hãm (H)" },
-      { color: "#4ade80", label: "Cát tinh" },
-      { color: "#f87171", label: "Hung tinh" },
-      { color: "#60a5fa", label: "Trung tính" },
-      { color: "#f0abfc", label: "Tứ hóa" },
-      { color: "#edb1ff", label: "Cung Mệnh" },
-      { color: "#a5f3fc", label: "Thân cung" },
-      { color: "#6ee7b7", label: "旬 Tuần không" },
-      { color: "#fbbf24", label: "Tiểu hạn" },
+      {
+        color: "#f9e4ff",
+        label: "Chính tinh Miếu (M)",
+      },
+
+      {
+        color: "#c4b5fd",
+        label: "Vượng (V) / Đắc (Đ)",
+      },
+
+      {
+        color: "#9c86e3",
+        label: "Bình (B) / Hãm (H)",
+      },
+
+      {
+        color: "#4ade80",
+        label: "Cát tinh",
+      },
+
+      {
+        color: "#f87171",
+        label: "Hung tinh",
+      },
+
+      {
+        color: "#93c5fd",
+        label: "Trung tính",
+      },
+
+      {
+        color: "#f0abfc",
+        label: "Tứ hóa",
+      },
+
+      {
+        color: "#edb1ff",
+        label: "Cung Mệnh",
+      },
+
+      {
+        color: "#a5f3fc",
+        label: "Thân cung",
+      },
+
+      {
+        color: "#6ee7b7",
+        label: "Tuần không",
+      },
+
+      {
+        color: "#fbbf24",
+        label: "Tiểu hạn",
+      },
     ].map(({ color, label }) => (
-      <span key={label} style={{ display: "flex", alignItems: "center", gap: 3 }}>
-        <span style={{
-          width: 8, height: 8, borderRadius: 2,
-          background: color, display: "inline-block", flexShrink: 0,
-        }} />
+      <span
+        key={label}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 3,
+        }}
+      >
+        <span
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 2,
+            background: color,
+            display: "inline-block",
+            flexShrink: 0,
+          }}
+        />
+
         {label}
       </span>
     ))}
@@ -618,243 +799,810 @@ const Legend = () => (
 );
 
 // ============================================================
-// MAIN EXPORT
+// FONT LOADER
 // ============================================================
+
+function FontLoader() {
+  return (
+    <style>{`
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+      *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: #0f131c;
+        color: #dfe2ef;
+        font-family: 'Manrope', sans-serif;
+      }
+
+      .font-headline {
+        font-family: 'Cormorant Garamond', serif;
+      }
+
+      .nav-link {
+        color: #d0c2d3;
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.9rem;
+        text-decoration: none;
+        transition: color 0.3s;
+      }
+
+      .nav-link:hover {
+        color: #edb1ff;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #edb1ff, #6d208c);
+        color: white;
+        border: none;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: box-shadow 0.3s, transform 0.15s;
+      }
+
+      .btn-primary:hover {
+        box-shadow: 0 0 30px -5px rgba(237,177,255,0.4);
+      }
+
+      .btn-primary:active {
+        transform: scale(0.98);
+      }
+
+      @media (max-width: 768px) {
+        .nav-links {
+          display: none;
+        }
+      }
+    `}</style>
+  );
+}
+
+// ============================================================
+// HEADER
+// ============================================================
+
+function NewHeader({ onLoginClick }) {
+  const navigate = useNavigate();
+
+  const navItems = [
+    { label: "Tra cứu", to: "/" },
+    { label: "Chatbot", to: "/chatbot" },
+    { label: "14 Chính tinh", to: "/major-stars" },
+    { label: "Blog", to: "/" },
+    { label: "Liên hệ", to: "contact" },
+  ];
+
+  return (
+    <nav
+      style={{
+        position: "fixed",
+        top: 0,
+        width: "100%",
+        zIndex: 50,
+        background: "rgba(15,19,28,0.8)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderBottom: "1px solid rgba(255,255,255,0.05)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "1rem 2rem",
+          maxWidth: "1400px",
+          margin: "0 auto",
+        }}
+      >
+        <div
+          className="font-headline"
+          style={{
+            fontFamily: "Cinzel, serif",
+            fontSize: "2.5rem",
+            color: "#FFFFFF",
+            cursor: "pointer",
+          }}
+          onClick={() => navigate("/")}
+        >
+          YinYang
+        </div>
+
+        <div
+          className="nav-links"
+          style={{
+            display: "flex",
+            gap: "2rem",
+            alignItems: "center",
+          }}
+        >
+          {navItems.map((item) => (
+            <span
+              key={item.label}
+              className="nav-link"
+              style={{ cursor: "pointer" }}
+              onClick={() => {
+                if (item.to === "contact") {
+                  const el =
+                    document.getElementById("contact");
+
+                  if (el) {
+                    window.scrollTo({
+                      top: el.offsetTop - 80,
+                      behavior: "smooth",
+                    });
+                  }
+                } else {
+                  navigate(item.to);
+                }
+              }}
+            >
+              {item.label}
+            </span>
+          ))}
+        </div>
+
+        <button
+          className="btn-primary"
+          style={{
+            padding: "0.55rem 1.5rem",
+            fontSize: "0.95rem",
+            borderRadius: "0.75rem",
+            fontFamily: "'Manrope', sans-serif",
+          }}
+          onClick={onLoginClick}
+        >
+          Login
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+// ============================================================
+// AI INTERPRETATION
+// ============================================================
+
+function AIInterpretation({ data }) {
+  if (!data) return null;
+
+  const sections = [
+    { key: "overall", label: "Tổng quan" },
+
+    { key: "cung_menh", label: "Cung Mệnh" },
+
+    { key: "cung_tai_bach", label: "Tài Bạch" },
+
+    { key: "cung_quan_loc", label: "Quan Lộc" },
+
+    { key: "cung_phu_the", label: "Phu Thê" },
+
+    { key: "dai_han", label: "Đại Hạn" },
+
+    { key: "luu_y", label: "Lưu Ý" },
+  ].filter((s) => data[s.key]);
+
+  if (sections.length === 0) return null;
+
+  return (
+    <div
+      style={{
+        marginTop: "3rem",
+        background: "rgba(15,17,28,0.7)",
+        border:
+          "1px solid rgba(100,80,130,0.25)",
+        borderRadius: 14,
+        padding: "1.5rem 2rem",
+        backdropFilter: "blur(12px)",
+        color: "#d0c2d3",
+        maxWidth: "800px",
+        marginInline: "auto",
+      }}
+    >
+      <h2
+        style={{
+          color: "#edb1ff",
+          fontFamily: "'Newsreader', serif",
+          fontSize: "1.4rem",
+          marginBottom: "1.5rem",
+          letterSpacing: "0.04em",
+          textAlign: "center",
+        }}
+      >
+        ✦ Luận Giải Tử Vi
+      </h2>
+
+      {sections.map(({ key, label }) => (
+        <div
+          key={key}
+          style={{ marginBottom: "1.4rem" }}
+        >
+          <div
+            style={{
+              color: "#c4b5fd",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              marginBottom: "0.4rem",
+            }}
+          >
+            {label}
+          </div>
+
+          <div
+            style={{
+              fontSize: "0.9rem",
+              lineHeight: 1.75,
+              whiteSpace: "pre-wrap",
+              opacity: 0.9,
+            }}
+          >
+            {data[key]}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// MAIN
+// ============================================================
+
 export default function LaSoTuVi() {
   const navigate = useNavigate();
+
   const location = useLocation();
-  const [chartData, setChartData] = useState(null);
+
+  const [chartData, setChartData] =
+    useState(null);
+
   const [error, setError] = useState(null);
-  const [interpretation, setInterpretation] = useState(null);
-  const [interpreting, setInterpreting] = useState(false);
+
+  const [interpretation, setInterpretation] =
+    useState(null);
+
+  const [interpreting, setInterpreting] =
+    useState(false);
 
   useEffect(() => {
     const formData = location.state;
+
     if (!formData) {
-      setError("Không có dữ liệu.");
+      setError("Không có dữ liệu");
       return;
     }
+
     try {
-      const { name, birthDate, birthHour, gender } = formData;
-      const genderVi = gender === "male" ? "Nam" : "Nữ";
-      const chart = generateChartData(name, birthDate, birthHour, genderVi);
+      const {
+        name,
+        birthDate,
+        birthHour,
+        gender,
+      } = formData;
+
+      const genderVi =
+        gender === "male" ? "Nam" : "Nữ";
+
+      const chart = generateChartData(
+        name,
+        birthDate,
+        birthHour,
+        genderVi
+      );
+
       if (!chart?.astrolabe?.palaces?.length) {
-        setError("Không tạo được lá số. Vui lòng thử lại.");
+        setError("Không tạo được lá số");
       } else {
         setChartData(chart);
-        // Save chart then fetch AI interpretation
+
         setInterpreting(true);
-        chartService.save({
-          name,
-          gender,
-          dob_solar: birthDate,
-          birth_hour: birthHour,
-          chart_matrix: JSON.parse(JSON.stringify(chart.raw)),
-        }).then((saved) => {
-          return chartService.interpret(saved.chart_id);
-        }).then((res) => {
-          if (!res.interpretation?._fallback) {
-            setInterpretation(res.interpretation);
-          }
-        }).catch((err) => console.warn("AI interpretation unavailable:", err))
-          .finally(() => setInterpreting(false));
+
+        chartService
+          .save({
+            name,
+            gender: genderVi,
+            dob_solar: birthDate,
+            birth_hour: birthHour,
+            chart_matrix: JSON.parse(
+              JSON.stringify(chart.raw)
+            ),
+          })
+          .then((saved) => {
+            return chartService.interpret(
+              saved.chart_id
+            );
+          })
+          .then((res) => {
+            if (
+              !res.interpretation?._fallback
+            ) {
+              setInterpretation(
+                res.interpretation
+              );
+            }
+          })
+          .catch((err) =>
+            console.warn(
+              "AI interpretation unavailable:",
+              err
+            )
+          )
+          .finally(() =>
+            setInterpreting(false)
+          );
       }
     } catch (e) {
       console.error(e);
-      setError("Lỗi dữ liệu.");
+      setError("Lỗi dữ liệu");
     }
   }, [location.state]);
 
-  if (error) return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ textAlign: "center", color: "#fff" }}>
-        <p style={{ color: "#fca5a5", marginBottom: "1rem" }}>{error}</p>
-        <button
-          onClick={() => navigate("/")}
+  if (error) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#10131B",
+        }}
+      >
+        <div
           style={{
-            padding: "8px 20px", borderRadius: 99,
-            border: "1px solid rgba(167,139,250,0.4)",
-            background: "transparent", color: "#c4b5fd", cursor: "pointer",
+            textAlign: "center",
+            color: "#fff",
           }}
         >
-          ← Quay lại
-        </button>
-      </div>
-    </div>
-  );
+          <p
+            style={{
+              color: "#fca5a5",
+              marginBottom: "1rem",
+            }}
+          >
+            {error}
+          </p>
 
-  if (!chartData) return (
-    <div style={{
-      minHeight: "100vh", display: "flex",
-      alignItems: "center", justifyContent: "center", color: "#c4b5fd",
-    }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: "1.2rem", marginBottom: 8 }}>✦</div>
-        Đang tạo lá số...
+          <button
+            onClick={() => navigate("/")}
+            style={{
+              padding: "8px 20px",
+              borderRadius: 99,
+              border:
+                "1px solid rgba(167,139,250,0.4)",
+              background: "transparent",
+              color: "#c4b5fd",
+              cursor: "pointer",
+            }}
+          >
+            ← Quay lại
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  const { astrolabe, personal, raw } = chartData;
+  if (!chartData) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "#c4b5fd",
+          background: "#10131B",
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: "1.2rem",
+              marginBottom: 8,
+            }}
+          >
+            ✦
+          </div>
+
+          Đang tạo lá số...
+        </div>
+      </div>
+    );
+  }
+
+  const { astrolabe, personal, raw } =
+    chartData;
 
   const palaceByBranch = {};
-  astrolabe.palaces.forEach((p, i) => {
-    const rb = raw.palaces[i]?.earthlyBranch;
-    if (rb) palaceByBranch[rb] = p;
+
+  const rawPalaceByBranch = {};
+
+  raw.palaces.forEach((rp, i) => {
+    const translatedPalace =
+      astrolabe.palaces[i];
+
+    palaceByBranch[rp.earthlyBranch] =
+      translatedPalace;
+
+    rawPalaceByBranch[rp.earthlyBranch] = rp;
   });
 
-  const menhBranch = raw.palaces.find(p => p.name === "命宫")?.earthlyBranch;
-  const bodyBranch = raw.earthlyBranchOfBodyPalace;
+  const menhBranch = raw.palaces.find(
+    (p) => p.name === "命宫"
+  )?.earthlyBranch;
 
-  const birthYear = parseInt(personal.dob.split("-")[0]);
-  const currentAge = CURRENT_YEAR - birthYear;
-  const tieuHanMonth = ((currentAge - 1) % 12) + 1;
-  const tieuHanBranch = Object.entries(BRANCH_MONTH).find(([, m]) => m === tieuHanMonth)?.[0];
+  const bodyBranch =
+    raw.earthlyBranchOfBodyPalace;
+
+  const birthYear = parseInt(
+    personal.dob.split("-")[0]
+  );
+
+  const currentAge =
+    CURRENT_YEAR - birthYear;
+
+  const tieuHanMonth =
+    ((currentAge - 1) % 12) + 1;
+
+  const tieuHanBranch = Object.entries(
+    BRANCH_MONTH
+  ).find(([, m]) => m === tieuHanMonth)?.[0];
 
   let tuanKhong = null;
+
   try {
-    if (raw.rawDaysStemBranchIndex !== undefined) {
-      const stemIdx = raw.rawDaysStemBranchIndex % 10;
-      const branchIdx = raw.rawDaysStemBranchIndex % 12;
-      tuanKhong = calcTuanKhong(stemIdx, branchIdx);
+    if (
+      raw.rawDaysStemBranchIndex !==
+      undefined
+    ) {
+      const stemIdx =
+        raw.rawDaysStemBranchIndex % 10;
+
+      const branchIdx =
+        raw.rawDaysStemBranchIndex % 12;
+
+      tuanKhong = calcTuanKhong(
+        stemIdx,
+        branchIdx
+      );
     }
-  } catch { /* tuanKhong unavailable */ }
+  } catch (e) {
+    console.error(e);
+  }
 
   const renderGrid = () => {
     const cells = [];
+
     for (let row = 0; row < 4; row++) {
       for (let col = 0; col < 4; col++) {
-        const isCenter = (row === 1 || row === 2) && (col === 1 || col === 2);
+        const isCenter =
+          (row === 1 || row === 2) &&
+          (col === 1 || col === 2);
+
         if (isCenter) {
           if (row === 1 && col === 1) {
             cells.push(
-              <CenterCell key="center" personal={personal} astrolabe={astrolabe} raw={raw} />
+              <CenterCell
+                key="center"
+                personal={personal}
+                astrolabe={astrolabe}
+                raw={raw}
+              />
             );
           }
+
           continue;
         }
-        const rawBranch = BRANCH_ORDER.find(
-          (b) => BRANCH_POSITION[b][0] === row && BRANCH_POSITION[b][1] === col
-        );
-        const palace = rawBranch ? palaceByBranch[rawBranch] : null;
+
+        const rawBranch =
+          BRANCH_ORDER.find(
+            (b) =>
+              BRANCH_POSITION[b][0] === row &&
+              BRANCH_POSITION[b][1] === col
+          );
+
+        const palace =
+          palaceByBranch[rawBranch];
+
+        const rawPalace =
+          rawPalaceByBranch[rawBranch];
+
         cells.push(
           <PalaceCell
             key={`${row}-${col}`}
             palace={palace}
-            isMenh={rawBranch === menhBranch}
-            isBody={rawBranch === bodyBranch}
-            tuanKhong={tuanKhong}
+            rawPalace={rawPalace}
             rawBranch={rawBranch}
-            isCurrentYear={rawBranch === tieuHanBranch}
+            tuanKhong={tuanKhong}
+            isMenh={
+              rawBranch === menhBranch
+            }
+            isBody={
+              rawBranch === bodyBranch
+            }
+            isCurrentYear={
+              rawBranch === tieuHanBranch
+            }
           />
         );
       }
     }
+
     return cells;
   };
 
   return (
     <>
       <GlobalStyles />
-      <div style={{ minHeight: "100vh", background: C.bg }}>
-        <Background />
-        <Header />
 
-        <main style={{ padding: "130px 1rem 4rem", maxWidth: 1300, margin: "0 auto" }}>
-          <div style={{ maxWidth: 1160, margin: "0 auto" }}>
+      <FontLoader />
 
-            <div style={{ textAlign: "center", marginBottom: "1rem" }}>
-              <h1 style={{
-                fontSize: "1.5rem",
-                color: C.primary,
-                margin: 0,
-                fontFamily: "'Newsreader', serif",
-                letterSpacing: "0.04em",
-              }}>
-                Lá Số Tử Vi
+      <div
+        style={{
+          position: "relative",
+          minHeight: "100vh",
+          overflow: "hidden",
+          paddingTop: "120px",
+          paddingBottom: "80px",
+
+          background:
+            "linear-gradient(to bottom, #10131B 0%, #3D2352 45%, #5D277B 100%)",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: "-200px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "700px",
+            height: "700px",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(237,177,255,0.12) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        <div
+          style={{
+            position: "absolute",
+            bottom: "-300px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "900px",
+            height: "900px",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(237,177,255,0.10) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        <NewHeader
+          onLoginClick={() =>
+            navigate("/login")
+          }
+        />
+
+        <main
+          style={{
+            padding: "0 1rem 4rem",
+            maxWidth: 1300,
+            margin: "0 auto",
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 1160,
+              margin: "0 auto",
+            }}
+          >
+            <div
+              style={{
+                textAlign: "center",
+                marginBottom: "1rem",
+              }}
+            >
+              <h1
+                style={{
+                  fontSize: "72px",
+                  fontWeight: 700,
+                  letterSpacing: "4px",
+                  color: "#FFFFFF",
+                  fontFamily:
+                    "Cormorant Garamond, serif",
+                  textShadow:
+                    "0 0 40px rgba(237,177,255,0.25)",
+                  marginBottom: "8px",
+                }}
+              >
+                LÁ SỐ TỬ VI
               </h1>
-              <p style={{
-                color: "rgba(255,255,255,0.3)",
-                marginTop: 4,
-                fontSize: "0.72rem",
-                letterSpacing: "0.06em",
-              }}>
-                {personal.name} · {personal.dob} · {personal.time} · {personal.gender}
-              </p>
+
+              <h3
+                style={{
+                  fontSize: "16px",
+                  lineHeight: 1.5,
+                  color: "#E6D8F0",
+                  maxWidth: "560px",
+                  marginInline: "auto",
+                  marginBottom: "32px",
+                }}
+              >
+                Khám phá bản đồ định mệnh của bạn
+                qua hệ thống Tử Vi Đông Phương cổ
+                xưa, được giải mã dưới lăng kính
+                của YinYang.
+              </h3>
             </div>
 
-            <div style={styles.gridWrapper}>
-              {renderGrid()}
+            <div
+              style={{
+                textAlign: "center",
+                marginBottom: "16px",
+              }}
+            >
+              <button
+                onClick={async () => {
+                  const element =
+                    document.querySelector(
+                      "#chart-wrapper"
+                    );
+
+                  if (!element) return;
+
+                  const html2canvas = (
+                    await import("html2canvas")
+                  ).default;
+
+                  const canvas =
+                    await html2canvas(element, {
+                      scale: 2,
+                      useCORS: true,
+                      backgroundColor: null,
+                    });
+
+                  const image =
+                    canvas.toDataURL("image/png");
+
+                  const link =
+                    document.createElement("a");
+
+                  link.href = image;
+
+                  link.download =
+                    "la-so-tu-vi.png";
+
+                  link.click();
+                }}
+                style={{
+                  border: "none",
+                  outline: "none",
+                  cursor: "pointer",
+                  padding: "12px 20px",
+                  borderRadius: "12px",
+
+                  background:
+                    "linear-gradient(135deg, #EDB1FF 0%, #9C46BE 100%)",
+
+                  color: "#FFFFFF",
+
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  fontFamily:
+                    "Manrope, sans-serif",
+
+                  boxShadow:
+                    "0 8px 24px rgba(156,70,190,0.35)",
+                }}
+              >
+                ⬇ Tải Lá Số
+              </button>
+            </div>
+
+            <div
+              id="chart-wrapper"
+              style={{
+                padding: "5px",
+                background: "#FFFBF5",
+                borderRadius: "14px",
+                overflow: "hidden",
+
+                boxShadow:
+                  "0 0 40px rgba(237,177,255,0.12)",
+
+                border:
+                  "1px solid rgba(255,255,255,0.08)",
+
+                width: "fit-content",
+
+                margin: "0 auto",
+              }}
+            >
+              <div style={styles.gridWrapper}>
+                {renderGrid()}
+              </div>
             </div>
 
             <Legend />
 
-            {/* AI Interpretation */}
             {interpreting && (
-              <div style={{ textAlign: "center", marginTop: "2rem", color: "#a78bfa", fontSize: "0.82rem", letterSpacing: "0.06em" }}>
+              <div
+                style={{
+                  textAlign: "center",
+                  marginTop: "2rem",
+                  color: "#a78bfa",
+                  fontSize: "0.82rem",
+                  letterSpacing: "0.06em",
+                }}
+              >
                 ✦ Đang phân tích lá số...
               </div>
             )}
 
             {interpretation && (
-              <div style={{
-                marginTop: "2rem",
-                background: "rgba(15,17,28,0.7)",
-                border: "1px solid rgba(100,80,130,0.25)",
-                borderRadius: 14,
-                padding: "1.5rem 2rem",
-                backdropFilter: "blur(12px)",
-              }}>
-                <h2 style={{ color: "#edb1ff", fontFamily: "'Newsreader', serif", fontSize: "1.2rem", marginBottom: "1.25rem", letterSpacing: "0.04em" }}>
-                  ✦ Luận Giải Tử Vi
-                </h2>
-                {[
-                  { key: "overall",        label: "Tổng quan" },
-                  { key: "cung_menh",      label: "Cung Mệnh" },
-                  { key: "cung_tai_bach",  label: "Tài Bạch" },
-                  { key: "cung_quan_loc",  label: "Quan Lộc" },
-                  { key: "cung_phu_the",   label: "Phu Thê" },
-                  { key: "dai_han",        label: "Đại Hạn" },
-                  { key: "luu_y",          label: "Lưu Ý" },
-                ].filter(({ key }) => interpretation[key]).map(({ key, label }) => (
-                  <div key={key} style={{ marginBottom: "1rem" }}>
-                    <div style={{ color: "#c4b5fd", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "0.35rem" }}>
-                      {label}
-                    </div>
-                    <div style={{ color: "#d0c2d3", fontSize: "0.85rem", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
-                      {interpretation[key]}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <AIInterpretation
+                data={interpretation}
+              />
             )}
 
-            <div style={{ textAlign: "center", marginTop: "1rem" }}>
+            <div
+              style={{
+                textAlign: "center",
+                marginTop: "1rem",
+              }}
+            >
               <button
                 onClick={() => navigate("/")}
                 style={{
                   padding: "8px 24px",
                   borderRadius: 99,
-                  border: "1px solid rgba(167,139,250,0.35)",
+
+                  border:
+                    "1px solid rgba(167,139,250,0.35)",
+
                   background: "transparent",
+
                   color: "#c4b5fd",
+
                   cursor: "pointer",
+
                   fontSize: "0.78rem",
-                  transition: "all 0.2s ease",
+
+                  transition:
+                    "all 0.2s ease",
                 }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = "rgba(167,139,250,0.1)";
-                  e.currentTarget.style.borderColor = "rgba(167,139,250,0.6)";
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background =
+                    "rgba(167,139,250,0.1)";
+
+                  e.currentTarget.style.borderColor =
+                    "rgba(167,139,250,0.6)";
                 }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.borderColor = "rgba(167,139,250,0.35)";
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background =
+                    "transparent";
+
+                  e.currentTarget.style.borderColor =
+                    "rgba(167,139,250,0.35)";
                 }}
               >
                 ← Nhập lại
               </button>
             </div>
-
           </div>
         </main>
       </div>
