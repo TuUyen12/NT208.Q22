@@ -1110,7 +1110,7 @@ export default function LaSoTuVi() {
         chartService
           .save({
             name,
-            gender: genderVi,
+            gender: gender,
             dob_solar: birthDate,
             birth_hour: birthHour,
             chart_matrix: JSON.parse(
