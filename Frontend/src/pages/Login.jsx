@@ -4,9 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { authService } from "../services/authService";
 
 
-/* ════════════════════════════════════════════════
-   DESIGN TOKENS  — mirrors HomePage.jsx exactly
-════════════════════════════════════════════════ */
+/* ═══════════ DESIGN TOKENS  — mirrors HomePage.jsx exactly ═══════════ */
 const C = {
   bg:                     "#0f131c",
   surface:                "#0f131c",
@@ -27,9 +25,7 @@ const C = {
   tertiary:               "#d3bcfc",
 };
 
-/* ════════════════════════════════════════════════
-   GLOBAL STYLES
-════════════════════════════════════════════════ */
+/* GLOBAL STYLES */
 const GlobalStyles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Manrope:wght@200..800&display=swap');
@@ -247,9 +243,7 @@ const GlobalStyles = () => (
   `}</style>
 );
 
-/* ════════════════════════════════════════════════
-   PARTICLES / BACKGROUND
-════════════════════════════════════════════════ */
+/*PARTICLES / BACKGROUND*/
 const STARS = Array.from({ length: 30 }, (_, i) => ({
   id: i,
   s:  Math.random() * 2.5 + 1,
@@ -283,9 +277,7 @@ const Background = () => (
   </div>
 );
 
-/* ════════════════════════════════════════════════
-   HEADER  — shared design language with HomePage
-════════════════════════════════════════════════ */
+/* =========== HEADER  — shared design language with HomePage ========= */
 const Header = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -345,9 +337,7 @@ const Header = () => {
     </nav>
   );
 };
-/* ════════════════════════════════════════════════
-   PASSWORD STRENGTH METER
-════════════════════════════════════════════════ */
+/* PASSWORD STRENGTH METER */
 const getStrength = pw => {
   if (!pw) return { score: 0, label: "", color: "transparent" };
   let s = 0;
@@ -380,9 +370,7 @@ const StrengthMeter = ({ password }) => {
   );
 };
 
-/* ════════════════════════════════════════════════
-   GOOGLE ICON
-════════════════════════════════════════════════ */
+/* ══════════════ GOOGLE ICON ═════════════════ */
 const GoogleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 48 48" style={{ flexShrink:0 }}>
     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -392,9 +380,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-/* ════════════════════════════════════════════════
-   FIELD — reusable labeled input wrapper
-════════════════════════════════════════════════ */
+/* ══════════  FIELD — reusable labeled input wrapper ═════════════════ */
 const Field = ({ label, icon, error, children }) => (
   <div>
     <label style={{
@@ -419,9 +405,7 @@ const Field = ({ label, icon, error, children }) => (
   </div>
 );
 
-/* ════════════════════════════════════════════════
-   LOGIN CARD
-════════════════════════════════════════════════ */
+/* ════════════  LOGIN CARD ══════════════ */
 const LoginCard = () => {
   const navigate = useNavigate();
   const { login, user } = useAuth();
