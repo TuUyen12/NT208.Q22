@@ -71,8 +71,8 @@ const FontLoader = () => (
     .field-input, .field-select {
       width: 100%; background: ${C.surfaceContainerLowest};
       border: none; border-radius: 0.75rem;
-      padding: 1rem 1.25rem; color: ${C.onSurface};
-      font-family: 'Manrope', sans-serif; font-size: 0.95rem;
+      padding: 1rem 1.2rem; color: ${C.onSurface};
+      font-family: 'Manrope', sans-serif; font-size: 1.1rem;
       outline: none; transition: box-shadow 0.2s;
     }
     .field-input:focus, .field-select:focus { box-shadow: 0 0 0 2px rgba(237,177,255,0.4); }
@@ -179,7 +179,6 @@ const Header = () => {
               className="nav-link"
               style={{ cursor: "pointer" }}
               onClick={() => {
-                // ĐẦ VÀO LOGIC: Bổ sung "zodiac" vào danh sách cuộn mượt
                 if (item.to === "contact" || item.to === "services" || item.to === "zodiac") {
                   const el = document.getElementById(item.to);
                   if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
@@ -305,12 +304,12 @@ const HeroSection = () => {
           <div style={{ textAlign: "left", flex: "1 1 400px" }}>
             <h1 className="font-headline hero-title" style={{
               fontFamily: "Cormorant Garamond, serif",
-              fontSize: "5.5rem", color: C.primary, letterSpacing: "-0.02em",
+              fontSize: "7.5rem", color: C.primary, letterSpacing: "-0.02em",
               marginBottom: "1.5rem", textShadow: "0 0 80px rgba(237,177,255,0.2)", lineHeight: 1.1,
             }}>
               LÁ SỐ TỬ VI
             </h1>
-            <p style={{ color: C.onSurfaceVariant, fontSize: "1.1rem", maxWidth: "40rem", fontWeight: 300, letterSpacing: "0.02em", lineHeight: 1.8 }}>
+            <p style={{ color: C.onSurfaceVariant, fontSize: "1.5rem", maxWidth: "40rem", fontWeight: 300, letterSpacing: "0.02em", lineHeight: 1.8 }}>
               Mỗi vì sao khi bạn chào đời đều mang một thông điệp riêng. Hãy để YinYang giúp bạn giải mã bản đồ sao phương Đông, thấu hiểu bản thân để nắm bắt cơ hội và sống trọn vẹn từng khoảnh khắc.
             </p>
           </div>
@@ -330,8 +329,8 @@ const HeroSection = () => {
           </div>
         </div>
 
-        <div className="glass-panel" style={{ maxWidth: "60rem", margin: "0 auto", padding: "3rem", borderRadius: "2rem", border: `1px solid rgba(77,67,81,0.1)`, boxShadow: "0 32px 80px rgba(0,0,0,0.4)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1.5rem" }}>
+        <div className="glass-panel" style={{ maxWidth: "70rem", margin: "0 auto", padding: "3rem", borderRadius: "2rem", border: `1px solid rgba(77, 67, 81, 0.12)`, boxShadow: "0 32px 80px rgba(0,0,0,0.4)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "2.5rem" }}>
             {[
               { label: "Họ và Tên", name: "name", type: "text",  placeholder: "Nguyễn Văn A" },
               { label: "Ngày sinh (Dương Lịch)", name: "dob",  type: "date",  placeholder: "" },
@@ -357,7 +356,7 @@ const HeroSection = () => {
               </select>
             </div>
             <div style={{ display: "flex", alignItems: "flex-end" }}>
-              <button className="btn-outline" style={{ width: "100%", padding: "1rem", fontSize: "1rem", fontFamily: "'Manrope', sans-serif" }} onClick={handleGetChartClick}>
+              <button className="btn-outline" style={{ width: "100%", padding: "1rem", fontSize: "1.3rem", fontFamily: "'Manrope', sans-serif" }} onClick={handleGetChartClick}>
                 Giải Mã Lá Số
               </button>
             </div>
