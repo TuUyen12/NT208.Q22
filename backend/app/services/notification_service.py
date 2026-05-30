@@ -1,39 +1,17 @@
 """
-Notification & Scheduling service (Req 16, 18).
+Notification service (Req 16).
 
 - Lưu_Sao daily recalculation for active users
 - Push/email dispatch based on notify_channel preference
-- Appointment 15-minute reminder scheduling
-- Meeting link generation
 """
 
-import secrets
 import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import get_settings
-
-settings = get_settings()
-
-
 class NotificationService:
-
-    @staticmethod
-    def generate_meeting_link() -> str:
-        token = secrets.token_urlsafe(16)
-        return f"https://meet.tuvi.app/{token}"
-
-    @staticmethod
-    async def schedule_reminder(appointment) -> None:
-        """
-        Schedule a reminder 15 minutes before the appointment (Req 18).
-        In production: enqueue a delayed task in Celery/ARQ/APScheduler.
-        """
-        # TODO: enqueue task — reminder_at=(appointment.scheduled_at - timedelta(minutes=15)), appointment_id=appointment.appointment_id
-        pass
 
     @staticmethod
     async def recalculate_luu_sao(db: AsyncSession, user_id: uuid.UUID) -> dict:

@@ -31,9 +31,4 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.jobs.recalculate_luu_sao_all_users",
         "schedule": crontab(hour=0, minute=5),
     },
-    # Daily appointment reminders check at every minute (Req 18)
-    "appointment-reminder-check": {
-        "task": "app.tasks.jobs.send_appointment_reminders",
-        "schedule": crontab(),   # every minute
-    },
 }

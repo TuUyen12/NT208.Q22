@@ -123,6 +123,7 @@ const Header = () => {
   const navItems = [
     { label: "Tra cứu", to: "/" },
     { label: "Dịch vụ", to: "services" },
+    { label: "Tử vi hôm nay", to: "/daily-horoscope" },
     { label: "Chatbot", to: "/chatbot" },
     { label: "14 Chính tinh", to: "/major-stars" },
     { label: "12 con giáp", to: "zodiac" },
@@ -754,14 +755,51 @@ const Footer = () => {
   );
 };
 
+/* ─────────────────────── Daily horoscope banner (logged-in only) ── */
+const DailyBanner = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  if (!user) return null;
+  return (
+    <div
+      onClick={() => navigate("/daily-horoscope")}
+      style={{
+        position: "fixed", top: "5.25rem", left: 0, right: 0, zIndex: 40,
+        background: "linear-gradient(90deg, rgba(109,32,140,0.85) 0%, rgba(237,177,255,0.15) 100%)",
+        backdropFilter: "blur(12px)",
+        borderBottom: "1px solid rgba(237,177,255,0.15)",
+        padding: "0.5rem 1.5rem",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        gap: "0.6rem",
+        cursor: "pointer",
+        transition: "opacity .2s",
+      }}
+      onMouseEnter={e => e.currentTarget.style.opacity = "0.85"}
+      onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+    >
+      <span style={{ fontSize: "1rem" }}>🔮</span>
+      <span style={{ fontSize: "0.85rem", color: "#edb1ff", fontWeight: 600, fontFamily: "'Manrope', sans-serif" }}>
+        Tử vi hôm nay của bạn đã sẵn sàng
+      </span>
+      <span style={{
+        fontSize: "0.75rem", color: "rgba(237,177,255,0.65)",
+        fontFamily: "'Manrope', sans-serif",
+        marginLeft: 4,
+      }}>→ Xem ngay</span>
+    </div>
+  );
+};
+
 /* ─────────────────────── HomePage (root) ──────────────────────── */
 export default function HomePage() {
+  const { user } = useAuth();
   return (
     <>
       <FontLoader />
       <div style={{ background: C.background, minHeight: "100vh" }}>
         <Header />
-        <main style={{ paddingTop: "4rem" }}>
+        <DailyBanner />
+        <main style={{ paddingTop: user ? "7.75rem" : "5.25rem" }}>
           <HeroSection />
           <ComboSection />
           <InsightsSection />
