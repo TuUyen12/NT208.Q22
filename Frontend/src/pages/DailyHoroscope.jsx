@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { api } from "../config/api";
+import NotificationBell from "../components/NotificationBell";
 
 const C = {
   bg:               "#0b0e17",
@@ -145,6 +146,17 @@ function Nav() {
               onMouseLeave={e => e.currentTarget.style.color = C.onSurfaceVar}
             >{label}</button>
           ))}
+          {user && <NotificationBell />}
+          {user && (
+            <div onClick={() => navigate("/profile")} title={user.full_name || user.email} style={{
+              width: "30px", height: "30px", borderRadius: "50%", flexShrink: 0,
+              background: "linear-gradient(135deg,#edb1ff,#6d208c)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "0.7rem", fontWeight: 700, color: "#111", cursor: "pointer",
+            }}>
+              {(user.full_name || user.email || "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+            </div>
+          )}
           {user && (
             <button onClick={() => { logout(); navigate("/"); }} style={{
               background: "none", border: `1px solid ${C.outline}`,

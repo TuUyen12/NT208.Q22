@@ -5,6 +5,7 @@ import { GlobalStyles } from "./Login";
 import { useAuth } from "../contexts/AuthContext";
 import { chartService } from "../services/chartService";
 import { annotationService } from "../services/annotationService";
+import NotificationBell from "../components/NotificationBell";
 
 import {
   translateAstrolabe,
@@ -896,6 +897,7 @@ function ChartNav() {
   const navLinks = [
     { label: "Tra cứu", to: "/" },
     { label: "Tử vi hôm nay", to: "/daily-horoscope" },
+    { label: "Nhật ký", to: "/journal" },
     { label: "Chatbot", to: "/chatbot" },
     { label: "14 Chính tinh", to: "/major-stars" },
   ];
@@ -925,10 +927,16 @@ function ChartNav() {
         </div>
 
         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+          {user && <NotificationBell />}
           {user && (
-            <span style={{ fontSize: "0.8rem", color: "rgba(237,177,255,0.55)", fontFamily: "'Manrope',sans-serif" }}>
-              {user.email?.split("@")[0]}
-            </span>
+            <div onClick={() => navigate("/profile")} title={user.full_name || user.email} style={{
+              width: "30px", height: "30px", borderRadius: "50%", flexShrink: 0,
+              background: "linear-gradient(135deg,#edb1ff,#6d208c)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "0.7rem", fontWeight: 700, color: "#111", cursor: "pointer",
+            }}>
+              {(user.full_name || user.email || "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+            </div>
           )}
           {user
             ? <button className="btn-primary" style={{ padding: "0.45rem 1.2rem", fontSize: "0.85rem", borderRadius: "0.75rem", fontFamily: "'Manrope',sans-serif" }}

@@ -9,7 +9,15 @@ from app.core.config import get_settings
 from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.auth import LoginRequest, RegisterRequest, RegisterResponse, TokenResponse, UserResponse
+from app.schemas.auth import (
+    ChangePasswordRequest,
+    LoginRequest,
+    RegisterRequest,
+    RegisterResponse,
+    TokenResponse,
+    UpdateProfileRequest,
+    UserResponse,
+)
 from app.services.auth_service import AuthService
 
 router = APIRouter()
@@ -56,7 +64,39 @@ async def google_callback(code: str, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)):
-    return current_user
+    data = UserResponse.model_validate(current_user)
+    data.has_password = current_user.hashed_password is not None
+    return data
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_profile(
+    body: UpdateProfileRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if body.full_name is not None:
+        current_user.full_name = body.full_name.strip() or None
+    if body.notify_channel is not None:
+        current_user.notify_channel = body.notify_channel
+    await db.commit()
+    await db.refresh(current_user)
+    data = UserResponse.model_validate(current_user)
+    data.has_password = current_user.hashed_password is not None
+    return data
+
+
+@router.put("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_password(
+    body: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if not AuthService.verify_password(body.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Mật khẩu hiện tại không đúng")
+    from app.core.security import hash_password
+    current_user.hashed_password = hash_password(body.new_password)
+    await db.commit()
 
 
 @router.delete("/me", status_code=status.HTTP_202_ACCEPTED)

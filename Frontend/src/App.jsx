@@ -9,6 +9,7 @@ import MajorStars     from "./pages/MajorStars";
 import AuthCallback   from "./pages/AuthCallback";
 import DailyHoroscope from "./pages/DailyHoroscope";
 import Journal        from "./pages/Journal";
+import Profile        from "./pages/Profile";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/la-so-tu-vi"     element={<Navigate to="/la-so" replace />} />
           <Route path="/daily-horoscope" element={<ProtectedRoute><DailyHoroscope /></ProtectedRoute>} />
           <Route path="/journal"         element={<ProtectedRoute><Journal /></ProtectedRoute>} />
+          <Route path="/profile"         element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="*"              element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

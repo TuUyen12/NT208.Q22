@@ -56,8 +56,10 @@ export function AuthProvider({ children }) {
   const register = (email, password, fullName) =>
     authService.register(email, password, fullName);
 
+  const updateUser = (data) => setUser((prev) => ({ ...prev, ...data }));
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginWithTokens, logout, register }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithTokens, logout, register, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
