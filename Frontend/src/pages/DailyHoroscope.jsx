@@ -130,7 +130,7 @@ function Nav() {
         </div>
         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
           {[
-            { label: "Lá Số", to: "/la-so-tu-vi" },
+            { label: "Lá Số", to: "/la-so" },
             { label: "Chatbot", to: "/chatbot" },
           ].map(({ label, to }) => (
             <button key={to} onClick={() => navigate(to)} style={{

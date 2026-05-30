@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { astro } from "iztro";
 import { GlobalStyles } from "./Login";
+import { useAuth } from "../contexts/AuthContext";
 import { chartService } from "../services/chartService";
+import { annotationService } from "../services/annotationService";
 
 import {
   translateAstrolabe,
@@ -131,6 +133,7 @@ const PalaceCell = ({
   rawBranch,
   isCurrentYear,
   rawPalace,
+  onAnnotate,
 }) => {
   if (!palace) {
     return <div style={newPaletteStyles.cell} />;
@@ -414,6 +417,24 @@ const PalaceCell = ({
               }}
             >
               TH {CURRENT_YEAR}
+            </div>
+          )}
+
+          {onAnnotate && (
+            <div
+              onClick={e => { e.stopPropagation(); onAnnotate(); }}
+              title="Ghi chú cho cung này"
+              style={{
+                marginTop: 4, alignSelf: "flex-end",
+                fontSize: "0.62rem", color: "rgba(237,177,255,0.55)",
+                cursor: "pointer", padding: "2px 6px",
+                borderRadius: 4, userSelect: "none",
+                border: "1px solid rgba(237,177,255,0.2)",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = "#edb1ff"; e.currentTarget.style.borderColor = "rgba(237,177,255,0.5)"; e.currentTarget.style.background = "rgba(237,177,255,0.08)"; }}
+              onMouseLeave={e => { e.currentTarget.style.color = "rgba(237,177,255,0.55)"; e.currentTarget.style.borderColor = "rgba(237,177,255,0.2)"; e.currentTarget.style.background = "none"; }}
+            >
+              ✎ ghi chú
             </div>
           )}
         </div>
@@ -869,99 +890,50 @@ function FontLoader() {
 // HEADER
 // ============================================================
 
-function NewHeader({ onLoginClick }) {
+function ChartNav() {
   const navigate = useNavigate();
-
-  const navItems = [
+  const { user, logout } = useAuth();
+  const navLinks = [
     { label: "Tra cứu", to: "/" },
+    { label: "Tử vi hôm nay", to: "/daily-horoscope" },
     { label: "Chatbot", to: "/chatbot" },
     { label: "14 Chính tinh", to: "/major-stars" },
-    { label: "Blog", to: "/" },
-    { label: "Liên hệ", to: "contact" },
   ];
-
   return (
-    <nav
-      style={{
-        position: "fixed",
-        top: 0,
-        width: "100%",
-        zIndex: 50,
-        background: "rgba(15,19,28,0.8)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderBottom: "1px solid rgba(255,255,255,0.05)",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "1rem 2rem",
-          maxWidth: "1400px",
-          margin: "0 auto",
-        }}
-      >
-        <div
-          className="font-headline"
-          style={{
-            fontFamily: "Cinzel, serif",
-            fontSize: "2.5rem",
-            color: "#FFFFFF",
-            cursor: "pointer",
-          }}
-          onClick={() => navigate("/")}
-        >
-          YinYang
-        </div>
+    <nav style={{
+      position: "fixed", top: 0, width: "100%", zIndex: 50,
+      background: "rgba(15,19,28,0.85)",
+      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+      borderBottom: "1px solid rgba(255,255,255,0.05)",
+    }}>
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        padding: "1rem 2rem", maxWidth: "1400px", margin: "0 auto",
+      }}>
+        <div style={{ fontFamily: "Cinzel, serif", fontSize: "2rem", color: "#fff", cursor: "pointer" }}
+          onClick={() => navigate("/")}>YinYang</div>
 
-        <div
-          className="nav-links"
-          style={{
-            display: "flex",
-            gap: "2rem",
-            alignItems: "center",
-          }}
-        >
-          {navItems.map((item) => (
-            <span
-              key={item.label}
-              className="nav-link"
-              style={{ cursor: "pointer" }}
-              onClick={() => {
-                if (item.to === "contact") {
-                  const el =
-                    document.getElementById("contact");
-
-                  if (el) {
-                    window.scrollTo({
-                      top: el.offsetTop - 80,
-                      behavior: "smooth",
-                    });
-                  }
-                } else {
-                  navigate(item.to);
-                }
-              }}
-            >
-              {item.label}
+        <div className="nav-links" style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
+          {navLinks.map(({ label, to }) => (
+            <span key={label} className="nav-link" style={{ cursor: "pointer" }} onClick={() => navigate(to)}>
+              {label}
             </span>
           ))}
         </div>
 
-        <button
-          className="btn-primary"
-          style={{
-            padding: "0.55rem 1.5rem",
-            fontSize: "0.95rem",
-            borderRadius: "0.75rem",
-            fontFamily: "'Manrope', sans-serif",
-          }}
-          onClick={onLoginClick}
-        >
-          Login
-        </button>
+        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+          {user && (
+            <span style={{ fontSize: "0.8rem", color: "rgba(237,177,255,0.55)", fontFamily: "'Manrope',sans-serif" }}>
+              {user.email?.split("@")[0]}
+            </span>
+          )}
+          {user
+            ? <button className="btn-primary" style={{ padding: "0.45rem 1.2rem", fontSize: "0.85rem", borderRadius: "0.75rem", fontFamily: "'Manrope',sans-serif" }}
+                onClick={() => { logout(); navigate("/"); }}>Đăng xuất</button>
+            : <button className="btn-primary" style={{ padding: "0.45rem 1.2rem", fontSize: "0.85rem", borderRadius: "0.75rem", fontFamily: "'Manrope',sans-serif" }}
+                onClick={() => navigate("/login")}>Đăng nhập</button>
+          }
+        </div>
       </div>
     </nav>
   );
@@ -1055,6 +1027,207 @@ function AIInterpretation({ data }) {
 }
 
 // ============================================================
+// ALL ANNOTATIONS SECTION
+// ============================================================
+
+function AllAnnotations({ chartId, palaces, onOpenHouse }) {
+  const [allNotes, setAllNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const reload = () => {
+    if (!chartId) return;
+    annotationService.list(chartId)
+      .then(setAllNotes)
+      .catch(() => setAllNotes([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { reload(); }, [chartId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const grouped = palaces.reduce((acc, p) => {
+    const notes = allNotes.filter(n => n.house_number === p.index);
+    if (notes.length > 0) acc.push({ palace: p, notes });
+    return acc;
+  }, []);
+
+  return (
+    <div style={{
+      marginTop: "3rem", maxWidth: "800px", marginInline: "auto",
+      background: "rgba(15,17,28,0.7)", border: "1px solid rgba(100,80,130,0.25)",
+      borderRadius: 14, padding: "1.5rem 2rem", backdropFilter: "blur(12px)",
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.4rem" }}>
+        <h2 style={{ color: "#edb1ff", fontFamily: "'Newsreader', serif", fontSize: "1.4rem", letterSpacing: "0.04em" }}>
+          ✎ Ghi Chú Lá Số
+        </h2>
+        <button
+          onClick={() => onOpenHouse(null)}
+          style={{
+            background: "linear-gradient(135deg,#edb1ff,#6d208c)", border: "none",
+            borderRadius: 8, color: "#fff", fontSize: "0.78rem", fontWeight: 700,
+            padding: "6px 14px", cursor: "pointer", fontFamily: "'Manrope',sans-serif",
+          }}
+        >+ Thêm ghi chú</button>
+      </div>
+
+      {loading && <div style={{ color: "rgba(237,177,255,0.4)", fontSize: "0.8rem", textAlign: "center" }}>Đang tải...</div>}
+
+      {!loading && grouped.length === 0 && (
+        <div style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.85rem", textAlign: "center", padding: "1rem 0" }}>
+          Chưa có ghi chú nào. Nhấn vào từng cung trên lá số hoặc nút "+ Thêm" để bắt đầu.
+        </div>
+      )}
+
+      {grouped.map(({ palace, notes }) => (
+        <div key={palace.index} style={{ marginBottom: "1.2rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+            <div style={{ color: "#c4b5fd", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              {palace.name}
+            </div>
+            <button
+              onClick={() => onOpenHouse(palace)}
+              style={{ background: "none", border: "1px solid rgba(237,177,255,0.2)", borderRadius: 6, color: "rgba(237,177,255,0.6)", fontSize: "0.68rem", padding: "2px 8px", cursor: "pointer" }}
+            >Sửa</button>
+          </div>
+          {notes.map(note => (
+            <div key={note.annotation_id} style={{
+              background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "8px 12px",
+              fontSize: "0.83rem", color: "#d4c8e8", lineHeight: 1.6, whiteSpace: "pre-wrap",
+              border: "1px solid rgba(237,177,255,0.08)", marginBottom: 6,
+            }}>{note.content}</div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// ANNOTATION PANEL
+// ============================================================
+
+function AnnotationPanel({ chartId, house, onClose }) {
+  const [notes, setNotes]       = useState([]);
+  const [text, setText]         = useState("");
+  const [editId, setEditId]     = useState(null);
+  const [editText, setEditText] = useState("");
+  const [loading, setLoading]   = useState(true);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!chartId) return;
+    annotationService.list(chartId)
+      .then(all => setNotes(all.filter(n => n.house_number === house.index)))
+      .catch(() => setNotes([]))
+      .finally(() => setLoading(false));
+  }, [chartId, house.index]);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const handleAdd = async () => {
+    if (!text.trim()) return;
+    const created = await annotationService.create({
+      chart_id: chartId,
+      house_number: house.index,
+      content: text.trim(),
+    });
+    setNotes(prev => [created, ...prev]);
+    setText("");
+  };
+
+  const handleSaveEdit = async (id) => {
+    if (!editText.trim()) return;
+    const updated = await annotationService.update(id, editText.trim());
+    setNotes(prev => prev.map(n => n.annotation_id === id ? updated : n));
+    setEditId(null);
+  };
+
+  const handleDelete = async (id) => {
+    await annotationService.remove(id);
+    setNotes(prev => prev.filter(n => n.annotation_id !== id));
+  };
+
+  const panelStyle = {
+    position: "fixed", top: 0, right: 0, bottom: 0, width: "clamp(300px, 30vw, 420px)",
+    background: "rgba(18,14,30,0.97)", backdropFilter: "blur(20px)",
+    borderLeft: "1px solid rgba(237,177,255,0.15)", zIndex: 200,
+    display: "flex", flexDirection: "column", boxShadow: "-12px 0 40px rgba(0,0,0,0.5)",
+    animation: "slideIn .25s ease",
+  };
+
+  return (
+    <>
+      <style>{`
+        @keyframes slideIn { from { transform: translateX(100%) } to { transform: translateX(0) } }
+        .ann-note { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 10px 12px; border: 1px solid rgba(237,177,255,0.08); }
+        .ann-note:hover { border-color: rgba(237,177,255,0.2); }
+        .ann-del { background: none; border: none; cursor: pointer; color: rgba(248,113,113,0.6); font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
+        .ann-del:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+        .ann-edit-btn { background: none; border: none; cursor: pointer; color: rgba(237,177,255,0.5); font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
+        .ann-edit-btn:hover { color: #edb1ff; background: rgba(237,177,255,0.08); }
+        .ann-textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(237,177,255,0.2); border-radius: 10px; color: #e2d9f3; padding: 10px 12px; font-size: 0.82rem; font-family: 'Manrope', sans-serif; resize: vertical; min-height: 72px; outline: none; }
+        .ann-textarea:focus { border-color: rgba(237,177,255,0.5); }
+        .ann-save { background: linear-gradient(135deg,#edb1ff,#6d208c); border: none; border-radius: 8px; color: #fff; font-size: 0.8rem; font-weight: 700; padding: 7px 18px; cursor: pointer; }
+        .ann-save:disabled { opacity: 0.4; cursor: default; }
+      `}</style>
+
+      {/* Overlay */}
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 199, background: "rgba(0,0,0,0.35)" }} />
+
+      <div style={panelStyle}>
+        {/* Header */}
+        <div style={{ padding: "20px 20px 14px", borderBottom: "1px solid rgba(237,177,255,0.1)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: "0.62rem", letterSpacing: "0.14em", color: "rgba(237,177,255,0.45)", textTransform: "uppercase", marginBottom: 3 }}>Ghi chú</div>
+            <div style={{ fontSize: "1rem", fontWeight: 700, color: "#edb1ff", fontFamily: "'Newsreader', serif" }}>{house.name}</div>
+          </div>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(237,177,255,0.5)", cursor: "pointer", fontSize: "1.2rem", lineHeight: 1 }}>✕</button>
+        </div>
+
+        {/* Notes list */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+          {loading && <div style={{ color: "rgba(237,177,255,0.4)", fontSize: "0.8rem", textAlign: "center", marginTop: 20 }}>Đang tải...</div>}
+          {!loading && notes.length === 0 && (
+            <div style={{ color: "rgba(255,255,255,0.2)", fontSize: "0.8rem", textAlign: "center", marginTop: 20 }}>Chưa có ghi chú nào</div>
+          )}
+          {notes.map(note => (
+            <div key={note.annotation_id} className="ann-note">
+              {editId === note.annotation_id ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <textarea className="ann-textarea" value={editText} onChange={e => setEditText(e.target.value)} rows={3} />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button className="ann-save" onClick={() => handleSaveEdit(note.annotation_id)}>Lưu</button>
+                    <button className="ann-edit-btn" onClick={() => setEditId(null)}>Huỷ</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ color: "#d4c8e8", fontSize: "0.83rem", lineHeight: 1.6, whiteSpace: "pre-wrap", marginBottom: 8 }}>{note.content}</div>
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: 4 }}>
+                    <button className="ann-edit-btn" onClick={() => { setEditId(note.annotation_id); setEditText(note.content); }}>Sửa</button>
+                    <button className="ann-del" onClick={() => handleDelete(note.annotation_id)}>Xoá</button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Add new */}
+        <div style={{ padding: "14px 20px 20px", borderTop: "1px solid rgba(237,177,255,0.1)" }}>
+          <textarea ref={inputRef} className="ann-textarea" placeholder="Thêm ghi chú cho cung này..." value={text} onChange={e => setText(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleAdd(); }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+            <span style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.2)" }}>Ctrl+Enter để lưu</span>
+            <button className="ann-save" disabled={!text.trim()} onClick={handleAdd}>Thêm ghi chú</button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ============================================================
 // MAIN
 // ============================================================
 
@@ -1063,89 +1236,56 @@ export default function LaSoTuVi() {
 
   const location = useLocation();
 
-  const [chartData, setChartData] =
-    useState(null);
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
+  const [chartData, setChartData]           = useState(null);
+  const [error, setError]                   = useState(null);
+  const [interpretation, setInterpretation] = useState(null);
+  const [interpreting, setInterpreting]     = useState(false);
+  const [chartId, setChartId]               = useState(null);
+  const [selectedHouse, setSelectedHouse]   = useState(null);
+  const [annotationsKey, setAnnotationsKey] = useState(0);
 
-  const [error, setError] = useState(null);
-
-  const [interpretation, setInterpretation] =
-    useState(null);
-
-  const [interpreting, setInterpreting] =
-    useState(false);
+  const buildChart = (name, birthDate, birthHour, gender) => {
+    const genderVi = gender === "male" ? "Nam" : "Nữ";
+    const chart = generateChartData(name, birthDate, birthHour, genderVi);
+    if (!chart?.astrolabe?.palaces?.length) { setError("Không tạo được lá số"); return; }
+    setChartData(chart);
+  };
 
   useEffect(() => {
     const formData = location.state;
 
-    if (!formData) {
-      setError("Không có dữ liệu");
-      return;
+    if (formData) {
+      // Đến từ form nhập liệu — tạo + lưu chart
+      const { name, birthDate, birthHour, gender } = formData;
+      buildChart(name, birthDate, birthHour, gender);
+      setInterpreting(true);
+      chartService
+        .save({ name, gender, dob_solar: birthDate, birth_hour: birthHour,
+                chart_matrix: JSON.parse(JSON.stringify(generateChartData(name, birthDate, birthHour, gender === "male" ? "Nam" : "Nữ")?.raw ?? {})) })
+        .then((saved) => {
+          setChartId(saved.chart_id);
+          if (saved.ai_interpretation && !saved.ai_interpretation._fallback)
+            setInterpretation(saved.ai_interpretation);
+          return chartService.interpret(saved.chart_id);
+        })
+        .then((res) => { if (!res.interpretation?._fallback) setInterpretation(res.interpretation); })
+        .catch((err) => console.warn("AI unavailable:", err))
+        .finally(() => setInterpreting(false));
+    } else {
+      // Vào trực tiếp từ navbar — load lá số mới nhất
+      chartService.latest()
+        .then((saved) => {
+          setChartId(saved.chart_id);
+          buildChart(saved.name, saved.dob_solar, saved.birth_hour, saved.gender);
+          if (saved.ai_interpretation && !saved.ai_interpretation._fallback)
+            setInterpretation(saved.ai_interpretation);
+        })
+        .catch(() => setError("Chưa có lá số nào. Hãy tạo lá số từ trang chủ."));
     }
-
-    try {
-      const {
-        name,
-        birthDate,
-        birthHour,
-        gender,
-      } = formData;
-
-      const genderVi =
-        gender === "male" ? "Nam" : "Nữ";
-
-      const chart = generateChartData(
-        name,
-        birthDate,
-        birthHour,
-        genderVi
-      );
-
-      if (!chart?.astrolabe?.palaces?.length) {
-        setError("Không tạo được lá số");
-      } else {
-        setChartData(chart);
-
-        setInterpreting(true);
-
-        chartService
-          .save({
-            name,
-            gender: gender,
-            dob_solar: birthDate,
-            birth_hour: birthHour,
-            chart_matrix: JSON.parse(
-              JSON.stringify(chart.raw)
-            ),
-          })
-          .then((saved) => {
-            return chartService.interpret(
-              saved.chart_id
-            );
-          })
-          .then((res) => {
-            if (
-              !res.interpretation?._fallback
-            ) {
-              setInterpretation(
-                res.interpretation
-              );
-            }
-          })
-          .catch((err) =>
-            console.warn(
-              "AI interpretation unavailable:",
-              err
-            )
-          )
-          .finally(() =>
-            setInterpreting(false)
-          );
-      }
-    } catch (e) {
-      console.error(e);
-      setError("Lỗi dữ liệu");
-    }
-  }, [location.state]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (error) {
     return (
@@ -1317,6 +1457,7 @@ export default function LaSoTuVi() {
         const rawPalace =
           rawPalaceByBranch[rawBranch];
 
+        const houseIndex = BRANCH_ORDER.indexOf(rawBranch) + 1;
         cells.push(
           <PalaceCell
             key={`${row}-${col}`}
@@ -1324,15 +1465,10 @@ export default function LaSoTuVi() {
             rawPalace={rawPalace}
             rawBranch={rawBranch}
             tuanKhong={tuanKhong}
-            isMenh={
-              rawBranch === menhBranch
-            }
-            isBody={
-              rawBranch === bodyBranch
-            }
-            isCurrentYear={
-              rawBranch === tieuHanBranch
-            }
+            isMenh={rawBranch === menhBranch}
+            isBody={rawBranch === bodyBranch}
+            isCurrentYear={rawBranch === tieuHanBranch}
+            onAnnotate={isLoggedIn && chartId ? () => setSelectedHouse({ index: houseIndex, name: palace.name }) : null}
           />
         );
       }
@@ -1344,8 +1480,15 @@ export default function LaSoTuVi() {
   return (
     <>
       <GlobalStyles />
-
       <FontLoader />
+
+      {selectedHouse && (
+        <AnnotationPanel
+          chartId={chartId}
+          house={selectedHouse}
+          onClose={() => { setSelectedHouse(null); setAnnotationsKey(k => k + 1); }}
+        />
+      )}
 
       <div
         style={{
@@ -1389,11 +1532,7 @@ export default function LaSoTuVi() {
           }}
         />
 
-        <NewHeader
-          onLoginClick={() =>
-            navigate("/login")
-          }
-        />
+        <ChartNav />
 
         <main
           style={{
@@ -1539,6 +1678,25 @@ export default function LaSoTuVi() {
 
             <Legend />
 
+            {isLoggedIn && chartId && (
+              <AllAnnotations
+                key={annotationsKey}
+                chartId={chartId}
+                palaces={BRANCH_ORDER.map((b, i) => ({
+                  index: i + 1,
+                  name: palaceByBranch[b]?.name || `Cung ${i + 1}`,
+                }))}
+                onOpenHouse={(palace) => {
+                  if (palace) {
+                    setSelectedHouse(palace);
+                  } else {
+                    // Open first palace as default
+                    setSelectedHouse({ index: 1, name: palaceByBranch[BRANCH_ORDER[0]]?.name || "Cung 1" });
+                  }
+                }}
+              />
+            )}
+
             {interpreting && (
               <div
                 style={{
@@ -1559,50 +1717,23 @@ export default function LaSoTuVi() {
               />
             )}
 
-            <div
-              style={{
-                textAlign: "center",
-                marginTop: "1rem",
-              }}
-            >
-              <button
-                onClick={() => navigate("/")}
-                style={{
-                  padding: "8px 24px",
-                  borderRadius: 99,
-
-                  border:
-                    "1px solid rgba(167,139,250,0.35)",
-
-                  background: "transparent",
-
-                  color: "#c4b5fd",
-
-                  cursor: "pointer",
-
-                  fontSize: "0.78rem",
-
-                  transition:
-                    "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background =
-                    "rgba(167,139,250,0.1)";
-
-                  e.currentTarget.style.borderColor =
-                    "rgba(167,139,250,0.6)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background =
-                    "transparent";
-
-                  e.currentTarget.style.borderColor =
-                    "rgba(167,139,250,0.35)";
-                }}
-              >
-                ← Nhập lại
-              </button>
-            </div>
+            {location.state && (
+              <div style={{ textAlign: "center", marginTop: "1rem" }}>
+                <button
+                  onClick={() => navigate("/")}
+                  style={{
+                    padding: "8px 24px", borderRadius: 99,
+                    border: "1px solid rgba(167,139,250,0.35)",
+                    background: "transparent", color: "#c4b5fd",
+                    cursor: "pointer", fontSize: "0.78rem", transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = "rgba(167,139,250,0.1)"; e.currentTarget.style.borderColor = "rgba(167,139,250,0.6)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "rgba(167,139,250,0.35)"; }}
+                >
+                  ← Nhập lại
+                </button>
+              </div>
+            )}
           </div>
         </main>
       </div>

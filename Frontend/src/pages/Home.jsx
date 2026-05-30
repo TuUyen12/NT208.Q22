@@ -124,6 +124,7 @@ const Header = () => {
   const navItems = [
     { label: "Tra cứu", to: "/" },
     { label: "Dịch vụ", to: "services" },
+    { label: "Lá số", to: "/la-so" },
     { label: "Tử vi hôm nay", to: "/daily-horoscope" },
     { label: "Chatbot", to: "/chatbot" },
     { label: "14 Chính tinh", to: "/major-stars" },
@@ -296,7 +297,7 @@ const HeroSection = () => {
       }
     }
 
-    navigate("/la-so-tu-vi", {
+    navigate("/la-so", {
       state: {
         name:       form.name,
         birthDate,
