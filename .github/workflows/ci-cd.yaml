@@ -85,9 +85,10 @@ jobs:
 
       - name: Backup database
         run: |
-          BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql"
-          docker compose exec -T db pg_dump -U tuvi tuvi > "/etc/yinyang/$BACKUP_FILE"
-          echo "Backup saved to /etc/yinyang/$BACKUP_FILE"
+          BACKUP_FILE="$HOME/backups/backup_$(date +%Y%m%d_%H%M%S).sql"
+          mkdir -p "$HOME/backups"
+          docker compose exec -T db pg_dump -U tuvi tuvi > "$BACKUP_FILE"
+          echo "Backup saved to $BACKUP_FILE"
 
       - name: Build backend images
         run: docker compose build --no-cache api worker beat
