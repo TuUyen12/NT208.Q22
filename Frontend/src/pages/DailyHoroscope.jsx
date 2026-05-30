@@ -176,7 +176,7 @@ function Card({ icon, iconColor, title, delay = 0, children }) {
 }
 
 /* ── List ── */
-function ItemList({ items, iconColor, bg, icon }) {
+function ItemList({ items, iconColor, icon }) {
   if (!items?.length) return <p style={{ color: C.onSurfaceVar, fontSize: "0.9rem" }}>—</p>;
   return (
     <ul style={{ listStyle: "none", display: "flex", flexDirection: "column" }}>
@@ -249,7 +249,7 @@ function Skeleton() {
 
 /* ── Main ── */
 export default function DailyHoroscope() {
-  const { user } = useAuth();
+  useAuth();
   const navigate = useNavigate();
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
