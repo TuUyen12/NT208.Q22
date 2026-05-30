@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:4173"]
 
+    # API Docs basic auth (leave empty to disable auth — dev only)
+    DOCS_USERNAME: str = ""
+    DOCS_PASSWORD: str = ""
+
     # Email — Google SMTP
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
