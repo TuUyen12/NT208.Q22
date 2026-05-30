@@ -1,4 +1,4 @@
-# Stage 1 — build
+# Stage 1 — build React app
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
@@ -6,11 +6,8 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 2 — serve with vite preview
-FROM node:20-alpine
-WORKDIR /app
-COPY --from=build /app/dist ./dist
-COPY --from=build /app/package*.json ./
-RUN npm ci --omit=dev
-EXPOSE 4173
-CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "4173"]
+# Stage 2 — serve with nginx (proxies /api → backend)
+FROM nginx:alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80

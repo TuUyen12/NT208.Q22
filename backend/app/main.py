@@ -11,17 +11,13 @@ from app.core.rate_limit import rate_limit
 from app.routers import (
     ai_interpretation,
     annotations,
-    appointments,
-    attachments,
     auth,
     calendar,
     charts,
     chat,
-    clients,
     daily_horoscope,
     journal,
     notifications,
-    reports,
 )
 settings = get_settings()
 
@@ -74,10 +70,6 @@ app.include_router(calendar.router,          prefix=f"{API_PREFIX}/calendar",   
 app.include_router(ai_interpretation.router, prefix=f"{API_PREFIX}/ai",            tags=["AI Interpretation"],   dependencies=_rate_limited)
 app.include_router(annotations.router,       prefix=f"{API_PREFIX}/annotations",   tags=["Annotations"],         dependencies=_rate_limited)
 app.include_router(journal.router,           prefix=f"{API_PREFIX}/journal",       tags=["Journal"],             dependencies=_rate_limited)
-app.include_router(clients.router,           prefix=f"{API_PREFIX}/clients",       tags=["CRM — Clients"],       dependencies=_rate_limited)
-app.include_router(appointments.router,      prefix=f"{API_PREFIX}/appointments",  tags=["CRM — Appointments"],  dependencies=_rate_limited)
-app.include_router(attachments.router,       prefix=f"{API_PREFIX}/attachments",   tags=["CRM — Attachments"],   dependencies=_rate_limited)
-app.include_router(reports.router,           prefix=f"{API_PREFIX}/reports",       tags=["CRM — Reports"],       dependencies=_rate_limited)
 app.include_router(notifications.router,     prefix=f"{API_PREFIX}/notifications", tags=["Notifications"],       dependencies=_rate_limited)
 app.include_router(chat.router,              prefix=f"{API_PREFIX}/chat",          tags=["Chat"],                dependencies=_rate_limited)
 
