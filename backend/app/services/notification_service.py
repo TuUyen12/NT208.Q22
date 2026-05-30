@@ -11,6 +11,8 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.services.luu_sao_utils import calculate_all_tiers
+
 class NotificationService:
 
     @staticmethod
@@ -31,7 +33,7 @@ class NotificationService:
         )
         log = result.scalar_one_or_none()
 
-        luu_sao = _calculate_luu_sao(today)
+        luu_sao = calculate_all_tiers(today)
 
         if log:
             log.luu_sao_positions = luu_sao
@@ -86,18 +88,3 @@ async def _send_push(user_id: str, title: str, body: str) -> None:
     pass
 
 
-def _calculate_luu_sao(today) -> dict:
-    """
-    Deterministic Lưu_Sao positions for a given date.
-    Returns house assignments for Lưu Thái Tuế, Lưu Thiên Mã, Lưu Lộc Tồn.
-    """
-    year_chi = today.year % 12
-
-    return {
-        "Lưu Thái Tuế": year_chi + 1,                  # house 1-indexed
-        "Lưu Thiên Mã": (year_chi + 3) % 12 + 1,
-        "Lưu Lộc Tồn": (year_chi + 6) % 12 + 1,
-        "Lưu Hao":      (year_chi + 1) % 12 + 1,
-        "Lưu Hình":     (year_chi + 4) % 12 + 1,
-        "Lưu Kị":       (year_chi + 9) % 12 + 1,
-    }

@@ -16,9 +16,20 @@ from app.dependencies import get_current_user
 from app.models.journal import JournalLog
 from app.models.user import User
 from app.schemas.journal import JournalLogCreate, JournalLogResponse, JournalLogUpdate
-from app.services.notification_service import _calculate_luu_sao
+from app.services.luu_sao_utils import calculate_all_tiers
 
 router = APIRouter()
+
+
+# ─── stars endpoint (no entry required) ──────────────────────────────────────
+
+@router.get("/stars", response_model=dict)
+async def get_stars_for_date(
+    date_str: date,
+    current_user: User = Depends(get_current_user),
+):
+    """Return three-tier Lưu Sao for any date — no journal entry needed."""
+    return calculate_all_tiers(date_str)
 
 
 @router.post("/", response_model=JournalLogResponse, status_code=status.HTTP_201_CREATED)
@@ -36,7 +47,7 @@ async def create_or_update_log(
     )
     log = result.scalar_one_or_none()
 
-    luu_sao = _calculate_luu_sao(body.log_date)
+    luu_sao = calculate_all_tiers(body.log_date)
 
     if log:
         log.content = body.content

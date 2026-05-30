@@ -291,13 +291,14 @@ const Header = () => {
     }}>
       <div style={{
         display:"flex", justifyContent:"space-between", alignItems:"center",
-        padding:"14px 32px", maxWidth:"1200px", margin:"0 auto",
+        padding:"0.65rem 1.5rem", maxWidth:"1200px", margin:"0 auto",
       }}>
-        <span onClick={() => navigate("/")} style={{ textDecoration:"none", cursor:"pointer" }}>
-          <span className="hn" style={{ fontSize:"1.5rem", fontWeight:700, color:C.primary, letterSpacing:"-.01em" }}>
+        <div onClick={() => navigate("/")} style={{ display:"flex", alignItems:"center", gap:"0.5rem", cursor:"pointer", flexShrink:0 }}>
+          <img src="/favicon3.png" alt="logo" style={{ width:"38px", height:"38px", objectFit:"contain" }} />
+          <div className="font-headline" style={{ fontFamily:"Cinzel, serif", fontSize:"1.65rem", color:C.onSurface }}>
             YinYang
-          </span>
-        </span>
+          </div>
+        </div>
 
         <div style={{ display:"flex", alignItems:"center", gap:"28px" }}>
           {[

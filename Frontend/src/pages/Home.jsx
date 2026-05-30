@@ -66,7 +66,8 @@ const FontLoader = () => (
     .btn-outline:active { transform: scale(0.97); }
     .nav-link {
       color: ${C.onSurfaceVariant}; font-family: 'Manrope', sans-serif;
-      font-size: 0.875rem; text-decoration: none; transition: color 0.3s;
+      font-size: 0.8rem; text-decoration: none; transition: color 0.3s;
+      white-space: nowrap;
     }
     .nav-link:hover { color: ${C.primary}; }
     .field-input, .field-select {
@@ -126,6 +127,7 @@ const Header = () => {
     { label: "Dịch vụ", to: "services" },
     { label: "Lá số", to: "/la-so" },
     { label: "Tử vi hôm nay", to: "/daily-horoscope" },
+    { label: "Nhật ký", to: "/journal" },
     { label: "Chatbot", to: "/chatbot" },
     { label: "14 Chính tinh", to: "/major-stars" },
     { label: "12 con giáp", to: "zodiac" },
@@ -142,40 +144,29 @@ const Header = () => {
     }}>
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "1rem 2rem", maxWidth: "80rem", margin: "0 auto",
+        padding: "0.65rem 1.5rem", maxWidth: "80rem", margin: "0 auto",
       }}>
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "0.75rem",
-            cursor: "pointer",
+            display: "flex", alignItems: "center",
+            gap: "0.5rem", cursor: "pointer", flexShrink: 0,
           }}
           onClick={() => navigate("/")}
         >
           <img
             src="/favicon3.png"
             alt="logo"
-            style={{
-              width: "52px",
-              height: "52px",
-              objectFit: "contain",
-            }}
+            style={{ width: "38px", height: "38px", objectFit: "contain" }}
           />
-
           <div
             className="font-headline"
-            style={{
-              fontFamily: "Cinzel, serif",
-              fontSize: "2.5rem",
-              color: C.onSurface,
-            }}
+            style={{ fontFamily: "Cinzel, serif", fontSize: "1.65rem", color: C.onSurface }}
           >
             YinYang
           </div>
         </div>
 
-        <div className="nav-links" style={{ display: "flex", gap: "2rem", alignItems: "center" }}>
+        <div className="nav-links" style={{ display: "flex", gap: "1.15rem", alignItems: "center" }}>
           {navItems.map(item => (
             <span
               key={item.label}
@@ -198,19 +189,19 @@ const Header = () => {
         {user ? (
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
             <span style={{
-              fontSize: "0.85rem",
+              fontSize: "0.78rem",
               color: "#d0c2d3",
               fontFamily: "'Manrope', sans-serif",
-              maxWidth: "160px",
+              maxWidth: "120px",
               overflow: "hidden",
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
             }}>
-              {user.full_name || user.email}
+              {user.email?.split("@")[0]}
             </span>
             <button
               className="btn-outline"
-              style={{ padding: "0.5rem 1.25rem", fontSize: "0.85rem", fontFamily: "'Manrope', sans-serif" }}
+              style={{ padding: "0.4rem 1rem", fontSize: "0.8rem", fontFamily: "'Manrope', sans-serif" }}
               onClick={logout}
             >
               Đăng xuất
