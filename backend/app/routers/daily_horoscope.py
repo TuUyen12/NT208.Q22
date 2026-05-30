@@ -230,7 +230,7 @@ def _build_prompt(chart: Chart | None, today: str) -> str:
         f"=== LÁ SỐ TỬ VI CỦA {chart.name.upper()} ({chart.gender}) ===",
         _summarise_matrix(chart.chart_matrix),
         "=== KẾT THÚC LÁ SỐ ===",
-        f"\n=== SAO NHẬT HÔM NAY CHIẾU VÀO LÁ SỐ ===",
+        "\n=== SAO NHẬT HÔM NAY CHIẾU VÀO LÁ SỐ ===",
         sao_palace_map,
         "=== KẾT THÚC SAO NHẬT ===",
         base,
