@@ -22,7 +22,8 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.chart import Chart
 from app.models.user import User
-from app.services.ai_service import _summarise_matrix
+from app.services.ai_service import _summarise_matrix, _PALACE_VI
+from app.services.luu_sao_utils import calculate_luu_nhat
 
 # Can Chi lookup tables
 _CAN = ["Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý"]
@@ -95,6 +96,54 @@ _GEMINI_URL = (
 # Prompt
 # ---------------------------------------------------------------------------
 
+_BRANCH_ORDER_CN = ["巳","午","未","申","酉","戌","亥","子","丑","寅","卯","辰"]
+
+
+def _map_sao_to_palaces(sao_nhat: dict, chart_matrix: dict) -> str:
+    """Cross-reference sao nhật house positions with the user's natal palaces."""
+    palaces = chart_matrix.get("palaces", [])
+    house_to_palace: dict = {}
+    for p in palaces:
+        branch_cn = p.get("earthlyBranch", "")
+        if branch_cn in _BRANCH_ORDER_CN:
+            house_idx = _BRANCH_ORDER_CN.index(branch_cn) + 1
+            name_vi = _PALACE_VI.get(p.get("name", ""), p.get("name", ""))
+            major = [s.get("name", "") for s in p.get("majorStars", [])]
+            minor = [s.get("name", "") for s in (p.get("minorStars", []) + p.get("adjectiveStars", []))]
+            house_to_palace[house_idx] = {"name": name_vi, "major": major, "minor": minor[:4]}
+
+    lines = [f"Sao Nhật ngày {sao_nhat.get('can','')} {sao_nhat.get('chi','')} chiếu vào lá số:"]
+    for key in ("Lưu Nhật Lộc Tồn","Lưu Nhật Kình Dương","Lưu Nhật Đà La",
+                "Lưu Nhật Thiên Mã","Lưu Nhật Tang Môn","Lưu Nhật Bạch Hổ"):
+        if key not in sao_nhat:
+            continue
+        house = sao_nhat[key]["house"]
+        chi   = sao_nhat[key]["chi"]
+        palace = house_to_palace.get(house, {})
+        palace_name = palace.get("name", f"nhà {house}")
+        major_str = ", ".join(palace.get("major", [])) or "không chính tinh"
+        lines.append(f"  • {key} tại {chi} (nhà {house}) → Cung {palace_name} [{major_str}]")
+
+    tu_hoa = sao_nhat.get("tu_hoa", {})
+    if tu_hoa:
+        hoa_str = "  |  ".join(f"{star} {hoa}" for star, hoa in tu_hoa.items())
+        lines.append(f"  • Tứ Hóa ngày: {hoa_str}")
+    return "\n".join(lines)
+
+
+def _sao_nhat_summary(sn: dict) -> str:
+    """Tóm tắt sao nhật để đưa vào prompt."""
+    lines = [f"Sao Nhật ngày {sn['can']} {sn['chi']}:"]
+    for key in ("Lưu Nhật Lộc Tồn","Lưu Nhật Kình Dương","Lưu Nhật Đà La",
+                "Lưu Nhật Thiên Mã","Lưu Nhật Tang Môn","Lưu Nhật Bạch Hổ"):
+        if key in sn:
+            lines.append(f"  • {key}: cung {sn[key]['chi']} (nhà {sn[key]['house']})")
+    if "tu_hoa" in sn:
+        hoa_str = ", ".join(f"{star} {hoa}" for star, hoa in sn["tu_hoa"].items())
+        lines.append(f"  • Tứ Hóa ngày: {hoa_str}")
+    return "\n".join(lines)
+
+
 def _build_prompt(chart: Chart | None, today: str) -> str:
     d = date.fromisoformat(today)
     meta = _get_day_metadata(d)
@@ -103,6 +152,7 @@ def _build_prompt(chart: Chart | None, today: str) -> str:
     truc = meta["truc"]
     chi = can_chi.split()[1]
     gio_hd_str = ", ".join(meta["gio_hoang_dao"])
+    sao_nhat = calculate_luu_nhat(d)
 
     base = (
         f"Bạn là chuyên gia Tử Vi Đẩu Số và lịch vạn niên của YinYang.\n\n"
@@ -111,6 +161,8 @@ def _build_prompt(chart: Chart | None, today: str) -> str:
         f"Can Chi ngày: {can_chi} (hành {hanh})\n"
         f"Trực ngày   : {truc}\n"
         f"Giờ Hoàng Đạo: {gio_hd_str}\n"
+        f"--- Sao Lưu Nhật ---\n"
+        f"{_sao_nhat_summary(sao_nhat)}\n"
         f"=====================\n\n"
         f"Viết tử vi hàng ngày bằng tiếng Việt. "
         f"Nội dung BẮT BUỘC bám sát đặc trưng riêng của ngày {can_chi} — "
@@ -138,30 +190,63 @@ def _build_prompt(chart: Chart | None, today: str) -> str:
         f"}}"
     )
 
-    if chart is None:
-        return base + "\n\nNgười dùng chưa có lá số Tử Vi. Viết tử vi tổng quát theo ngày."
+    sao_palace_map = _map_sao_to_palaces(sao_nhat, chart.chart_matrix)
+
+    # Extract key palace names for explicit field instructions
+    palaces = chart.chart_matrix.get("palaces", [])
+    house_to_name: dict = {}
+    for p in palaces:
+        branch_cn = p.get("earthlyBranch", "")
+        if branch_cn in _BRANCH_ORDER_CN:
+            idx = _BRANCH_ORDER_CN.index(branch_cn) + 1
+            house_to_name[idx] = _PALACE_VI.get(p.get("name", ""), p.get("name", ""))
+
+    loc_house  = sao_nhat.get("Lưu Nhật Lộc Tồn",  {}).get("house")
+    kinh_house = sao_nhat.get("Lưu Nhật Kình Dương",{}).get("house")
+    tang_house = sao_nhat.get("Lưu Nhật Tang Môn",  {}).get("house")
+    loc_cung   = house_to_name.get(loc_house,  f"nhà {loc_house}")  if loc_house  else ""
+    kinh_cung  = house_to_name.get(kinh_house, f"nhà {kinh_house}") if kinh_house else ""
+    tang_cung  = house_to_name.get(tang_house, f"nhà {tang_house}") if tang_house else ""
+
+    personalized_rules = (
+        f"\n--- YÊU CẦU CÁ NHÂN HÓA CHO {chart.name.upper()} ---\n"
+        f"Lá số ở trên là của {chart.name} ({chart.gender}). "
+        f"Mọi nội dung PHẢI dùng tên cung CỤ THỂ từ lá số này.\n\n"
+        f'• "tong_quan": Đề cập đích danh {chart.name}. '
+        f"Nêu ít nhất 1 cung bị sao nhật chiếu và ý nghĩa của nó với chủ nhân lá số.\n"
+        f'• "nen_lam": Mỗi việc PHẢI có tên cung liên quan. '
+        f"Ưu tiên cung {'Cung ' + loc_cung if loc_cung else 'có Lưu Nhật Lộc Tồn'} "
+        f"(sao tài lộc đóng ở đây hôm nay). "
+        f"Dùng tên cung thật từ lá số, không dùng từ chung như 'sự nghiệp' hay 'tình duyên' mà không gắn vào cung.\n"
+        f'• "nen_tranh": Mỗi việc PHẢI nhắc cung bị sao sát chiếu. '
+        f"{'Cung ' + kinh_cung + ' bị Lưu Nhật Kình Dương — cẩn thận. ' if kinh_cung else ''}"
+        f"{'Cung ' + tang_cung + ' bị Lưu Nhật Tang Môn — tránh việc lớn tại lĩnh vực này. ' if tang_cung else ''}\n"
+        f'• "gio_tot" / "mau_may_man" / "con_so_may_man" / "loi_khuyen": '
+        f"kết hợp với đặc điểm cung Mệnh và ngũ hành cục của lá số.\n"
+        f"TUYỆT ĐỐI không viết nội dung chung chung có thể áp dụng cho bất kỳ ai."
+    )
 
     parts = [
-        base,
-        f"\nLuận giải riêng cho: {chart.name} ({chart.gender}).",
-        "\n=== LÁ SỐ TỬ VI ===",
+        f"=== LÁ SỐ TỬ VI CỦA {chart.name.upper()} ({chart.gender}) ===",
         _summarise_matrix(chart.chart_matrix),
         "=== KẾT THÚC LÁ SỐ ===",
+        f"\n=== SAO NHẬT HÔM NAY CHIẾU VÀO LÁ SỐ ===",
+        sao_palace_map,
+        "=== KẾT THÚC SAO NHẬT ===",
+        base,
+        personalized_rules,
     ]
-    if chart.ai_interpretation and chart.ai_interpretation.get("overall"):
-        parts.append(f"\nTóm tắt lá số: {chart.ai_interpretation['overall']}")
-    parts.append(
-        f"\nKết hợp lá số với đặc trưng ngày {can_chi} hôm nay — đề cập sao/cung ảnh hưởng đến vận ngày."
-    )
-    return "\n".join(parts)
+    return "\n\n".join(parts)
 
 
 # ---------------------------------------------------------------------------
 # Redis helpers
 # ---------------------------------------------------------------------------
 
+_CACHE_VER = "v3"  # bump to invalidate all cached responses
+
 def _horoscope_key(user_id: str, date_str: str) -> str:
-    return f"horoscope:{user_id}:{date_str}"
+    return f"horoscope:{_CACHE_VER}:{user_id}:{date_str}"
 
 def _checkin_key(user_id: str, date_str: str) -> str:
     return f"checkin:{user_id}:{date_str}"
@@ -210,16 +295,18 @@ async def _update_streak(redis, db: AsyncSession, user: User, today: str) -> int
 
 class HoroscopeResponse(BaseModel):
     date: str
-    tong_quan: str
-    nen_lam: list[str]
-    nen_tranh: list[str]
-    gio_tot: list[str]
-    mau_may_man: str
-    con_so_may_man: str
-    loi_khuyen: str
-    cached: bool
-    personalized: bool
-    streak: int
+    needs_chart: bool = False
+    tong_quan: str = ""
+    nen_lam: list[str] = []
+    nen_tranh: list[str] = []
+    gio_tot: list[str] = []
+    mau_may_man: str = ""
+    con_so_may_man: str = ""
+    loi_khuyen: str = ""
+    cached: bool = False
+    personalized: bool = False
+    streak: int = 0
+    sao_nhat: dict = {}
 
 
 # ---------------------------------------------------------------------------
@@ -237,6 +324,7 @@ async def get_daily_horoscope(
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     redis = request.app.state.redis
+    sao_nhat = calculate_luu_nhat(date.fromisoformat(today))
 
     # Update streak (idempotent — only counts once per day)
     streak = await _update_streak(redis, db, current_user, today)
@@ -247,11 +335,11 @@ async def get_daily_horoscope(
     if cached_raw:
         try:
             data = json.loads(cached_raw)
-            return HoroscopeResponse(**data, date=today, cached=True, streak=streak)
+            return HoroscopeResponse(**data, date=today, cached=True, streak=streak, sao_nhat=sao_nhat)
         except Exception:
             pass  # corrupt cache — regenerate below
 
-    # Load latest chart
+    # Load latest chart — required for personalized horoscope
     result = await db.execute(
         select(Chart)
         .where(Chart.user_id == current_user.user_id)
@@ -259,7 +347,15 @@ async def get_daily_horoscope(
         .limit(1)
     )
     latest_chart = result.scalar_one_or_none()
-    personalized = latest_chart is not None
+
+    # No chart → return placeholder response (no AI call)
+    if latest_chart is None:
+        return HoroscopeResponse(
+            date=today, needs_chart=True, cached=False, personalized=False,
+            streak=streak, sao_nhat=sao_nhat,
+        )
+
+    personalized = True
 
     # Call Gemini
     prompt = _build_prompt(latest_chart, today)
@@ -304,4 +400,4 @@ async def get_daily_horoscope(
     to_cache = {k: horoscope[k] for k in defaults} | {"personalized": personalized}
     await redis.setex(cache_key, _seconds_until_midnight_utc(), json.dumps(to_cache, ensure_ascii=False))
 
-    return HoroscopeResponse(**horoscope, date=today, cached=False, personalized=personalized, streak=streak)
+    return HoroscopeResponse(**horoscope, date=today, cached=False, personalized=personalized, streak=streak, sao_nhat=sao_nhat)

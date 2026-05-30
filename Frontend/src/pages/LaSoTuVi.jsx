@@ -908,10 +908,13 @@ function ChartNav() {
     }}>
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "1rem 2rem", maxWidth: "1400px", margin: "0 auto",
+        padding: "0.65rem 1.5rem", maxWidth: "1400px", margin: "0 auto",
       }}>
-        <div style={{ fontFamily: "Cinzel, serif", fontSize: "2rem", color: "#fff", cursor: "pointer" }}
-          onClick={() => navigate("/")}>YinYang</div>
+        <div style={{ display:"flex", alignItems:"center", gap:"0.5rem", cursor:"pointer", flexShrink:0 }}
+          onClick={() => navigate("/")}>
+          <img src="/favicon3.png" alt="logo" style={{ width:"36px", height:"36px", objectFit:"contain" }} />
+          <span style={{ fontFamily:"Cinzel,serif", fontSize:"1.65rem", color:"#fff" }}>YinYang</span>
+        </div>
 
         <div className="nav-links" style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
           {navLinks.map(({ label, to }) => (

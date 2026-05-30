@@ -131,6 +131,7 @@ function Nav() {
         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
           {[
             { label: "Lá Số", to: "/la-so" },
+            { label: "Nhật ký", to: "/journal" },
             { label: "Chatbot", to: "/chatbot" },
           ].map(({ label, to }) => (
             <button key={to} onClick={() => navigate(to)} style={{
@@ -243,6 +244,70 @@ function Skeleton() {
           background: C.surfaceHigh, opacity: 0.6,
         }} />
       ))}
+    </div>
+  );
+}
+
+const SAO_INFO = {
+  "Lưu Nhật Lộc Tồn":   { icon: "💰", color: "#4ade80",  desc: "Sao tài lộc — tốt cho giao dịch, kiếm tiền" },
+  "Lưu Nhật Kình Dương": { icon: "⚔",  color: "#f87171",  desc: "Sao sát — cẩn thận va chạm, tranh chấp" },
+  "Lưu Nhật Đà La":      { icon: "🌑", color: "#a78bfa",  desc: "Sao cản — tránh quyết định lớn, dễ trì hoãn" },
+  "Lưu Nhật Thiên Mã":   { icon: "🐎", color: "#67e8f9",  desc: "Sao di chuyển — tốt cho xuất hành, đi lại" },
+  "Lưu Nhật Tang Môn":   { icon: "🪦", color: "#94a3b8",  desc: "Sao tang — hạn chế việc lớn, cẩn thận sức khoẻ" },
+  "Lưu Nhật Bạch Hổ":    { icon: "🐯", color: "#fb923c",  desc: "Sao hung — đề phòng tranh cãi, chấn thương" },
+};
+const HOA_COLORS = {
+  "Hóa Lộc": "#4ade80", "Hóa Quyền": "#fbbf24", "Hóa Khoa": "#67e8f9", "Hóa Kỵ": "#f87171",
+};
+
+function SaoNhatCard({ saoNhat, delay = 0 }) {
+  if (!saoNhat) return null;
+  const stars = Object.entries(SAO_INFO)
+    .map(([name, info]) => ({ name, ...info, data: saoNhat[name] }))
+    .filter(s => s.data);
+  const tuHoa = saoNhat.tu_hoa || {};
+  return (
+    <div className="card" style={{ animationDelay: `${delay}ms` }}>
+      <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:"1.1rem" }}>
+        <span className="ms" style={{ color: C.primary, fontSize:"1.3rem" }}>auto_awesome</span>
+        <span style={{ fontWeight:700, fontSize:"1rem", color: C.onSurface }}>
+          Sao Nhật — {saoNhat.can} {saoNhat.chi}
+        </span>
+      </div>
+      <div style={{ display:"flex", flexDirection:"column", gap:6, marginBottom:"1rem" }}>
+        {stars.map(({ name, icon, color, desc, data }) => (
+          <div key={name} style={{ display:"flex", alignItems:"flex-start", gap:10,
+            padding:"7px 10px", borderRadius:8, background:"rgba(255,255,255,0.03)",
+            border:"1px solid rgba(255,255,255,0.06)" }}>
+            <span style={{ flexShrink:0, fontSize:"1rem", marginTop:1 }}>{icon}</span>
+            <div style={{ flex:1 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span style={{ fontWeight:700, fontSize:"0.78rem", color }}>{name}</span>
+                <span style={{ fontSize:"0.68rem", color: C.onSurfaceVar }}>
+                  Cung {data.house} · {data.chi}
+                </span>
+              </div>
+              <div style={{ fontSize:"0.68rem", color: C.onSurfaceVar, marginTop:2 }}>{desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {Object.keys(tuHoa).length > 0 && (
+        <>
+          <div style={{ fontSize:"0.68rem", color: C.onSurfaceVar, marginBottom:6,
+            letterSpacing:"0.08em", textTransform:"uppercase" }}>Tứ Hóa ngày</div>
+          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+            {Object.entries(tuHoa).map(([star, hoa]) => (
+              <span key={star} style={{
+                fontSize:"0.72rem", padding:"3px 10px", borderRadius:999,
+                background:`${HOA_COLORS[hoa] || "#fff"}18`,
+                border:`1px solid ${HOA_COLORS[hoa] || "#fff"}40`,
+                color: HOA_COLORS[hoa] || C.onSurface, fontWeight:600,
+              }}>{star} · {hoa}</span>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -360,8 +425,47 @@ export default function DailyHoroscope() {
           </div>
         )}
 
+        {/* No chart placeholder */}
+        {data && !loading && data.needs_chart && (
+          <div style={{
+            background: C.surfaceLow, border: `1px solid rgba(192,132,252,0.2)`,
+            borderRadius: "1.5rem", padding: "3rem 2rem",
+            textAlign: "center", animation: "fadeUp .4s ease",
+          }}>
+            <div style={{
+              width: 72, height: 72, borderRadius: "50%", margin: "0 auto 1.5rem",
+              background: "radial-gradient(circle, rgba(192,132,252,0.2), transparent 70%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <span className="ms" style={{ color: C.primary, fontSize: "2.4rem" }}>auto_awesome</span>
+            </div>
+            <h2 style={{
+              fontFamily: "Newsreader, serif", fontStyle: "italic",
+              fontSize: "1.6rem", color: C.onSurface, marginBottom: "0.75rem",
+            }}>Bạn chưa có Lá Số Tử Vi</h2>
+            <p style={{
+              color: C.onSurfaceVar, fontSize: "0.9rem", lineHeight: 1.75,
+              maxWidth: "360px", margin: "0 auto 2rem",
+            }}>
+              Tử vi hôm nay được cá nhân hóa hoàn toàn dựa trên lá số của bạn.
+              Hãy lập lá số để nhận luận giải riêng theo từng cung, từng sao nhật chiếu vào lá số.
+            </p>
+            <button className="btn" onClick={() => navigate("/")} style={{
+              background: `linear-gradient(135deg, ${C.primary}, #818cf8)`,
+              color: "#fff", padding: "0.75rem 2rem", fontSize: "0.95rem",
+            }}>
+              Lập Lá Số Ngay
+            </button>
+            {data.sao_nhat && Object.keys(data.sao_nhat).length > 0 && (
+              <div style={{ marginTop: "2.5rem", textAlign: "left" }}>
+                <SaoNhatCard saoNhat={data.sao_nhat} />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Content */}
-        {data && !loading && (
+        {data && !loading && !data.needs_chart && (
           <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
 
             {/* Tổng quan */}
@@ -394,8 +498,15 @@ export default function DailyHoroscope() {
               <LuckyPair color={data.mau_may_man} number={data.con_so_may_man} />
             </div>
 
+            {/* Sao Nhật */}
+            {data.sao_nhat && (
+              <div style={{ animation:"fadeUp .45s ease both", animationDelay:"360ms" }}>
+                <SaoNhatCard saoNhat={data.sao_nhat} />
+              </div>
+            )}
+
             {/* Lời khuyên */}
-            <Card icon="tips_and_updates" iconColor={C.gold} title="Lời Khuyên" delay={400}>
+            <Card icon="tips_and_updates" iconColor={C.gold} title="Lời Khuyên" delay={440}>
               <p style={{ fontSize: "0.9875rem", lineHeight: 1.75, color: C.onSurface }}>
                 {data.loi_khuyen}
               </p>

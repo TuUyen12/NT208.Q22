@@ -8,6 +8,7 @@ import LaSoTuVi       from "./pages/LaSoTuVi";
 import MajorStars     from "./pages/MajorStars";
 import AuthCallback   from "./pages/AuthCallback";
 import DailyHoroscope from "./pages/DailyHoroscope";
+import Journal        from "./pages/Journal";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/la-so"           element={<ProtectedRoute><LaSoTuVi /></ProtectedRoute>} />
           <Route path="/la-so-tu-vi"     element={<Navigate to="/la-so" replace />} />
           <Route path="/daily-horoscope" element={<ProtectedRoute><DailyHoroscope /></ProtectedRoute>} />
+          <Route path="/journal"         element={<ProtectedRoute><Journal /></ProtectedRoute>} />
           <Route path="*"              element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
