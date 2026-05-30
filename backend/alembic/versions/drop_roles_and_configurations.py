@@ -21,17 +21,45 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Drop FK constraint and configuration_id column from charts
-    op.drop_constraint('charts_configuration_id_fkey', 'charts', type_='foreignkey')
-    op.drop_column('charts', 'configuration_id')
+    conn = op.get_bind()
 
-    # Drop chart_configurations table
-    op.drop_index(op.f('ix_chart_configurations_user_id'), table_name='chart_configurations')
-    op.drop_table('chart_configurations')
+    # Drop configuration_id FK + column from charts (if they exist)
+    has_col = conn.execute(sa.text(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_name='charts' AND column_name='configuration_id'"
+    )).fetchone()
+    if has_col:
+        # Drop any FK constraints on configuration_id
+        fks = conn.execute(sa.text(
+            "SELECT conname FROM pg_constraint "
+            "WHERE conrelid='charts'::regclass AND contype='f' "
+            "AND conkey @> ARRAY["
+            "  (SELECT attnum FROM pg_attribute "
+            "   WHERE attrelid='charts'::regclass AND attname='configuration_id')"
+            "]::smallint[]"
+        )).fetchall()
+        for (fk_name,) in fks:
+            op.drop_constraint(fk_name, 'charts', type_='foreignkey')
+        op.drop_column('charts', 'configuration_id')
 
-    # Drop role column from users
-    op.drop_column('users', 'role')
-    op.execute("DROP TYPE IF EXISTS user_role")
+    # Drop chart_configurations table if it exists
+    has_table = conn.execute(sa.text(
+        "SELECT 1 FROM information_schema.tables "
+        "WHERE table_name='chart_configurations'"
+    )).fetchone()
+    if has_table:
+        op.drop_index(op.f('ix_chart_configurations_user_id'), table_name='chart_configurations')
+        op.drop_table('chart_configurations')
+
+    # Drop role column from users if it exists
+    has_role = conn.execute(sa.text(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_name='users' AND column_name='role'"
+    )).fetchone()
+    if has_role:
+        op.drop_column('users', 'role')
+
+    op.execute(sa.text("DROP TYPE IF EXISTS user_role"))
 
 
 def downgrade() -> None:

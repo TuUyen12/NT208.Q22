@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { calendarService } from "../services/calendarService";
 
 /* ─────────────────────────────────────────────
    Design tokens
@@ -242,38 +243,68 @@ const HeroSection = () => {
   };
 
   const currentYear = new Date().getFullYear();
-  const [form, setForm] = useState({ 
-    name: "", 
-    dob: "", 
-    time: "", 
-    gender: "Nam", 
-    year: currentYear.toString()
+  const [calMode, setCalMode] = useState("solar"); // "solar" | "lunar"
+  const [form, setForm] = useState({
+    name: "", dob: "", time: "", gender: "Nam", year: currentYear.toString(),
+    lunarDay: "", lunarMonth: "", lunarYear: "", lunarLeap: false,
   });
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const [converting, setConverting] = useState(false);
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
+  };
 
   const startYear = currentYear - 10;
   const endYear = currentYear + 10;
   const yearOptions = [];
   for (let y = startYear; y <= endYear; y++) {
-    const canChi = getCanChi(y);
-    yearOptions.push({ value: y, label: `${y} (${canChi})` });
+    yearOptions.push({ value: y, label: `${y} (${getCanChi(y)})` });
   }
 
-  const handleGetChartClick = () => {
-    if (!form.name || !form.dob || !form.time) {
-      alert("Vui lòng nhập đầy đủ thông tin (Họ tên, Ngày sinh, Giờ sinh)");
+  const handleGetChartClick = async () => {
+    if (!form.name || !form.time) {
+      alert("Vui lòng nhập đầy đủ thông tin (Họ tên, Giờ sinh)");
       return;
     }
- 
-    const formData = {
-      name:       form.name,
-      birthDate:  form.dob,
-      birthHour:  form.time,
-      gender:     form.gender === "Nữ" ? "female" : "male",
-      targetYear: Number(form.year),
-    };
- 
-    navigate("/la-so-tu-vi", { state: formData });
+
+    let birthDate = form.dob;
+
+    if (calMode === "lunar") {
+      if (!form.lunarDay || !form.lunarMonth || !form.lunarYear) {
+        alert("Vui lòng nhập đầy đủ ngày, tháng, năm âm lịch");
+        return;
+      }
+      setConverting(true);
+      try {
+        const res = await calendarService.lunarToSolar(
+          parseInt(form.lunarYear),
+          parseInt(form.lunarMonth),
+          parseInt(form.lunarDay),
+          form.lunarLeap,
+        );
+        birthDate = res.solar_date ?? res.date ?? res.dob_solar;
+      } catch {
+        alert("Không thể chuyển đổi ngày âm lịch. Vui lòng kiểm tra lại ngày nhập.");
+        setConverting(false);
+        return;
+      }
+      setConverting(false);
+    } else {
+      if (!form.dob) {
+        alert("Vui lòng nhập ngày sinh dương lịch");
+        return;
+      }
+    }
+
+    navigate("/la-so-tu-vi", {
+      state: {
+        name:       form.name,
+        birthDate,
+        birthHour:  form.time,
+        gender:     form.gender === "Nữ" ? "female" : "male",
+        targetYear: Number(form.year),
+      },
+    });
   };
 
   return (
@@ -331,23 +362,76 @@ const HeroSection = () => {
         </div>
 
         <div className="glass-panel" style={{ maxWidth: "70rem", margin: "0 auto", padding: "3rem", borderRadius: "2rem", border: `1px solid rgba(77, 67, 81, 0.12)`, boxShadow: "0 32px 80px rgba(0,0,0,0.4)" }}>
+
+          {/* Toggle dương / âm lịch */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "2rem" }}>
+            <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", borderRadius: 999, padding: "4px", border: "1px solid rgba(237,177,255,0.15)", gap: 4 }}>
+              {[{ key: "solar", label: "Dương lịch" }, { key: "lunar", label: "Âm lịch" }].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => setCalMode(key)}
+                  style={{
+                    padding: "0.35rem 1.2rem",
+                    borderRadius: 999,
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: "0.78rem",
+                    fontWeight: 600,
+                    fontFamily: "'Manrope', sans-serif",
+                    transition: "all 0.2s",
+                    background: calMode === key ? "linear-gradient(135deg, #edb1ff, #6d208c)" : "transparent",
+                    color: calMode === key ? "#fff" : "rgba(237,177,255,0.55)",
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "2.5rem" }}>
-            {[
-              { label: "Họ và Tên", name: "name", type: "text",  placeholder: "Nguyễn Văn A" },
-              { label: "Ngày sinh (Dương Lịch)", name: "dob",  type: "date",  placeholder: "" },
-              { label: "Giờ sinh",  name: "time", type: "time",  placeholder: "" },
-            ].map(({ label, name, type, placeholder }) => (
-              <div key={name}>
-                <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>{label}</label>
-                <input className="field-input" type={type} name={name} placeholder={placeholder} value={form[name]} onChange={handleChange} style={type === "date" || type === "time" ? { colorScheme: "dark" } : {}} />
+            {/* Họ tên */}
+            <div>
+              <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Họ và Tên</label>
+              <input className="field-input" type="text" name="name" placeholder="Nguyễn Văn A" value={form.name} onChange={handleChange} />
+            </div>
+
+            {/* Ngày sinh — dương hoặc âm */}
+            {calMode === "solar" ? (
+              <div>
+                <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Ngày sinh (Dương lịch)</label>
+                <input className="field-input" type="date" name="dob" value={form.dob} onChange={handleChange} style={{ colorScheme: "dark" }} />
               </div>
-            ))}
+            ) : (
+              <div>
+                <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Ngày sinh (Âm lịch)</label>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input className="field-input" type="number" name="lunarDay" placeholder="Ngày" min={1} max={30} value={form.lunarDay} onChange={handleChange} style={{ width: "33%" }} />
+                  <input className="field-input" type="number" name="lunarMonth" placeholder="Tháng" min={1} max={12} value={form.lunarMonth} onChange={handleChange} style={{ width: "33%" }} />
+                  <input className="field-input" type="number" name="lunarYear" placeholder="Năm" min={1900} max={2100} value={form.lunarYear} onChange={handleChange} style={{ width: "34%" }} />
+                </div>
+                <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: "0.72rem", color: "rgba(237,177,255,0.6)", cursor: "pointer" }}>
+                  <input type="checkbox" name="lunarLeap" checked={form.lunarLeap} onChange={handleChange} style={{ accentColor: "#edb1ff" }} />
+                  Tháng nhuận
+                </label>
+              </div>
+            )}
+
+            {/* Giờ sinh */}
+            <div>
+              <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Giờ sinh</label>
+              <input className="field-input" type="time" name="time" value={form.time} onChange={handleChange} style={{ colorScheme: "dark" }} />
+            </div>
+
+            {/* Giới tính */}
             <div>
               <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Giới tính</label>
               <select className="field-select" name="gender" value={form.gender} onChange={handleChange}>
                 <option>Nam</option><option>Nữ</option>
               </select>
             </div>
+
+            {/* Năm tra cứu */}
             <div>
               <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Năm tra cứu</label>
               <select className="field-select" name="year" value={form.year} onChange={handleChange}>
@@ -356,9 +440,16 @@ const HeroSection = () => {
                 ))}
               </select>
             </div>
+
+            {/* Submit */}
             <div style={{ display: "flex", alignItems: "flex-end" }}>
-              <button className="btn-outline" style={{ width: "100%", padding: "1rem", fontSize: "1.3rem", fontFamily: "'Manrope', sans-serif" }} onClick={handleGetChartClick}>
-                Giải Mã Lá Số
+              <button
+                className="btn-outline"
+                style={{ width: "100%", padding: "1rem", fontSize: "1.3rem", fontFamily: "'Manrope', sans-serif", opacity: converting ? 0.6 : 1, cursor: converting ? "not-allowed" : "pointer" }}
+                onClick={handleGetChartClick}
+                disabled={converting}
+              >
+                {converting ? "Đang chuyển đổi..." : "Giải Mã Lá Số"}
               </button>
             </div>
           </div>
