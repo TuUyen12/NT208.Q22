@@ -76,6 +76,19 @@ jobs:
       - name: Inject .env
         run: cp /etc/yinyang/.env .env
 
+      - name: Check FK constraint name (verify migration will succeed)
+        run: |
+          docker compose exec -T db psql -U tuvi tuvi -c "
+            SELECT conname FROM pg_constraint
+            WHERE conrelid = 'charts'::regclass AND contype = 'f';
+          "
+
+      - name: Backup database
+        run: |
+          BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql"
+          docker compose exec -T db pg_dump -U tuvi tuvi > "/etc/yinyang/$BACKUP_FILE"
+          echo "Backup saved to /etc/yinyang/$BACKUP_FILE"
+
       - name: Build backend images
         run: docker compose build --no-cache api worker beat
 
@@ -92,3 +105,8 @@ jobs:
           echo "Waiting for API to become healthy..."
           timeout 60 sh -c 'until docker compose exec -T api python3 -c "import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")" 2>/dev/null; do sleep 3; done'
           echo "Deploy complete"
+
+      - name: Verify migration applied
+        run: |
+          docker compose exec -T db psql -U tuvi tuvi -c "\d users" | grep -v "role" && echo "OK: role column removed"
+          docker compose exec -T db psql -U tuvi tuvi -c "\dt chart_configurations" 2>&1 | grep "Did not find" && echo "OK: chart_configurations table dropped"

@@ -22,11 +22,6 @@ class User(Base):
     google_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     facebook_id: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
 
-    role: Mapped[str] = mapped_column(
-        Enum("nguoi_dung", "nghien_cuu", "chuyen_gia", name="user_role"),
-        default="nguoi_dung",
-        nullable=False,
-    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Timestamps

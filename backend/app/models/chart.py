@@ -35,11 +35,6 @@ class Chart(Base):
     # Star placement result (Ma_Trận_Lá_Số)
     chart_matrix: Mapped[dict] = mapped_column(JSONB, nullable=False)
 
-    # Researcher configuration
-    configuration_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("chart_configurations.configuration_id", ondelete="SET NULL"), nullable=True
-    )
-
     # AI interpretation (cached)
     ai_interpretation: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     ai_cached_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -48,23 +43,4 @@ class Chart(Base):
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="charts")  # noqa: F821
-    configuration: Mapped["ChartConfiguration | None"] = relationship("ChartConfiguration", back_populates="charts")
     annotations: Mapped[list["Annotation"]] = relationship("Annotation", back_populates="chart", cascade="all, delete-orphan")  # noqa: F821
-
-
-class ChartConfiguration(Base):
-    """Named configuration of star placement rules for researchers."""
-
-    __tablename__ = "chart_configurations"
-
-    configuration_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    rules: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
-    charts: Mapped[list["Chart"]] = relationship("Chart", back_populates="configuration")

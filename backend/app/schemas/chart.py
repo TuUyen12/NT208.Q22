@@ -12,7 +12,6 @@ class ChartCreateRequest(BaseModel):
     birth_hour: str | None = None  # HH:MM; defaults to 12:00
     timezone_offset: float = 7.0   # hours from UTC; default Vietnam (UTC+7)
     chart_matrix: dict[str, Any]   # generated client-side by iztro
-    configuration_id: uuid.UUID | None = None
 
     @field_validator("gender")
     @classmethod
@@ -60,34 +59,8 @@ class ChartResponse(BaseModel):
     lunar_date: LunarDate
     chart_matrix: dict[str, Any]
     ai_interpretation: dict | None = None
-    configuration_id: uuid.UUID | None
     created_at: datetime
 
     model_config = {"from_attributes": True}
 
 
-class ChartCompareRequest(BaseModel):
-    chart_id_a: uuid.UUID
-    chart_id_b: uuid.UUID
-    view: str = "side_by_side"   # "side_by_side" | "merged"
-
-
-class ChartSearchRequest(BaseModel):
-    star_name: str | None = None
-    house_number: int | None = None
-    date_from: date | None = None
-    date_to: date | None = None
-
-
-class ConfigurationCreateRequest(BaseModel):
-    name: str
-    rules: dict[str, Any]
-
-
-class ConfigurationResponse(BaseModel):
-    configuration_id: uuid.UUID
-    name: str
-    rules: dict[str, Any]
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
