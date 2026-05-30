@@ -187,33 +187,3 @@ class ChartEngine:
         # Convert to 1-indexed string keys
         return {str(i + 1): matrix[i] for i in range(12)}
 
-    @staticmethod
-    def compare(matrix_a: dict, matrix_b: dict, view: str = "side_by_side") -> dict:
-        """Chart comparison with compatibility scoring (Req 9)."""
-        if view == "merged":
-            merged = {}
-            all_keys = set(matrix_a) | set(matrix_b)
-            for k in sorted(all_keys):
-                merged[k] = {
-                    "chart_a": matrix_a.get(k, []),
-                    "chart_b": matrix_b.get(k, []),
-                    "shared": list(set(matrix_a.get(k, [])) & set(matrix_b.get(k, []))),
-                }
-            score = _compatibility_score(matrix_a, matrix_b)
-            return {"view": "merged", "houses": merged, "compatibility_score": score}
-        else:
-            return {
-                "view": "side_by_side",
-                "chart_a": matrix_a,
-                "chart_b": matrix_b,
-                "compatibility_score": _compatibility_score(matrix_a, matrix_b),
-            }
-
-
-def _compatibility_score(a: dict, b: dict) -> float:
-    """Simple overlap-based compatibility score 0.0–1.0."""
-    all_stars_a = {s for stars in a.values() for s in stars}
-    all_stars_b = {s for stars in b.values() for s in stars}
-    shared = len(all_stars_a & all_stars_b)
-    total = len(all_stars_a | all_stars_b)
-    return round(shared / total, 3) if total else 0.0

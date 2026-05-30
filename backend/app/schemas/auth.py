@@ -43,7 +43,6 @@ class RegisterResponse(BaseModel):
 class UserResponse(BaseModel):
     user_id: UUID
     email: str
-    role: str | None
     streak_count: int
 
     model_config = {"from_attributes": True}

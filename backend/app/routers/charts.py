@@ -5,89 +5,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.dependencies import get_current_user, require_role
-from app.models.chart import Chart, ChartConfiguration
+from app.dependencies import get_current_user
+from app.models.chart import Chart
 from app.models.user import User
-from app.schemas.chart import (
-    ChartCompareRequest,
-    ChartCreateRequest,
-    ChartResponse,
-    ChartSearchRequest,
-    ConfigurationCreateRequest,
-    ConfigurationResponse,
-)
+from app.schemas.chart import ChartCreateRequest, ChartResponse
 from app.services.chart_engine import ChartEngine
 from app.core.encryption import decrypt_field, encrypt_field
 
 router = APIRouter()
-
-
-# --- Researcher: chart comparison (Req 9) ---
-# ⚠️ Phải đặt TRƯỚC /{chart_id} để tránh FastAPI hiểu "compare" là một UUID
-
-@router.post("/compare")
-async def compare_charts(
-    body: ChartCompareRequest,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    chart_a = await _get_owned_chart(db, body.chart_id_a, current_user.user_id)
-    chart_b = await _get_owned_chart(db, body.chart_id_b, current_user.user_id)
-    return ChartEngine.compare(chart_a.chart_matrix, chart_b.chart_matrix, body.view)
-
-
-# --- Researcher: advanced search (Req 11) ---
-
-@router.post("/search", response_model=list[ChartResponse])
-async def search_charts(
-    body: ChartSearchRequest,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    from sqlalchemy import and_
-
-    filters = [Chart.user_id == current_user.user_id]
-
-    if body.date_from:
-        filters.append(Chart.created_at >= body.date_from)
-    if body.date_to:
-        filters.append(Chart.created_at <= body.date_to)
-
-    result = await db.execute(select(Chart).where(and_(*filters)))
-    charts = result.scalars().all()
-
-    if body.star_name:
-        charts = [c for c in charts if _chart_has_star(c.chart_matrix, body.star_name)]
-    if body.house_number:
-        charts = [c for c in charts if str(body.house_number) in c.chart_matrix]
-
-    return [_build_chart_response(c) for c in charts]
-
-
-# --- Researcher: named configurations (Req 8) ---
-
-@router.post("/configurations", response_model=ConfigurationResponse, status_code=201)
-async def create_configuration(
-    body: ConfigurationCreateRequest,
-    current_user: User = Depends(require_role("nghien_cuu", "chuyen_gia")),
-    db: AsyncSession = Depends(get_db),
-):
-    cfg = ChartConfiguration(user_id=current_user.user_id, name=body.name, rules=body.rules)
-    db.add(cfg)
-    await db.commit()
-    await db.refresh(cfg)
-    return cfg
-
-
-@router.get("/configurations", response_model=list[ConfigurationResponse])
-async def list_configurations(
-    current_user: User = Depends(require_role("nghien_cuu", "chuyen_gia")),
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(ChartConfiguration).where(ChartConfiguration.user_id == current_user.user_id)
-    )
-    return result.scalars().all()
 
 
 # --- /latest phải đặt trước /{chart_id} ---
@@ -134,7 +59,6 @@ async def create_chart(
         dob_lunar_day=lunar["day"],
         dob_lunar_leap=lunar["is_leap_month"],
         chart_matrix=body.chart_matrix,
-        configuration_id=body.configuration_id,
     )
     db.add(chart)
     await db.commit()
@@ -210,13 +134,7 @@ def _build_chart_response(chart: Chart) -> dict:
         },
         "chart_matrix": chart.chart_matrix,
         "ai_interpretation": chart.ai_interpretation,
-        "configuration_id": chart.configuration_id,
         "created_at": chart.created_at,
     }
 
 
-def _chart_has_star(matrix: dict, star_name: str) -> bool:
-    for stars in matrix.values():
-        if isinstance(stars, list) and star_name in stars:
-            return True
-    return False

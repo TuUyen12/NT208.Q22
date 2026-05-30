@@ -26,7 +26,6 @@ def upgrade() -> None:
     sa.Column('hashed_password', sa.String(length=255), nullable=True),
     sa.Column('google_id', sa.String(length=255), nullable=True),
     sa.Column('facebook_id', sa.String(length=255), nullable=True),
-    sa.Column('role', sa.Enum('nguoi_dung', 'nghien_cuu', 'chuyen_gia', name='user_role'), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('last_login', sa.DateTime(timezone=True), nullable=True),
@@ -37,16 +36,6 @@ def upgrade() -> None:
     sa.UniqueConstraint('google_id')
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
-    op.create_table('chart_configurations',
-    sa.Column('configuration_id', sa.UUID(), nullable=False),
-    sa.Column('user_id', sa.UUID(), nullable=False),
-    sa.Column('name', sa.String(length=255), nullable=False),
-    sa.Column('rules', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('configuration_id')
-    )
-    op.create_index(op.f('ix_chart_configurations_user_id'), 'chart_configurations', ['user_id'], unique=False)
     op.create_table('clients',
     sa.Column('client_id', sa.UUID(), nullable=False),
     sa.Column('expert_id', sa.UUID(), nullable=False),
@@ -101,11 +90,9 @@ def upgrade() -> None:
     sa.Column('dob_lunar_day', sa.Integer(), nullable=True),
     sa.Column('dob_lunar_leap', sa.Boolean(), nullable=False),
     sa.Column('chart_matrix', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.Column('configuration_id', sa.UUID(), nullable=True),
     sa.Column('ai_interpretation', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
     sa.Column('ai_cached_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.ForeignKeyConstraint(['configuration_id'], ['chart_configurations.configuration_id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['user_id'], ['users.user_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('chart_id')
     )
@@ -159,8 +146,6 @@ def downgrade() -> None:
     op.drop_table('journal_logs')
     op.drop_index(op.f('ix_clients_expert_id'), table_name='clients')
     op.drop_table('clients')
-    op.drop_index(op.f('ix_chart_configurations_user_id'), table_name='chart_configurations')
-    op.drop_table('chart_configurations')
     op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
     # ### end Alembic commands ###
