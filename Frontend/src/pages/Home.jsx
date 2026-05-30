@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { calendarService } from "../services/calendarService";
+import NotificationBell from "../components/NotificationBell";
 
 /* ─────────────────────────────────────────────
    Design tokens
@@ -188,17 +189,15 @@ const Header = () => {
 
         {user ? (
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-            <span style={{
-              fontSize: "0.78rem",
-              color: "#d0c2d3",
-              fontFamily: "'Manrope', sans-serif",
-              maxWidth: "120px",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+            <NotificationBell />
+            <div onClick={() => navigate("/profile")} title={user.full_name || user.email} style={{
+              width: "32px", height: "32px", borderRadius: "50%", flexShrink: 0,
+              background: "linear-gradient(135deg,#edb1ff,#6d208c)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: "0.75rem", fontWeight: 700, color: "#111", cursor: "pointer",
             }}>
-              {user.email?.split("@")[0]}
-            </span>
+              {(user.full_name || user.email || "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+            </div>
             <button
               className="btn-outline"
               style={{ padding: "0.4rem 1rem", fontSize: "0.8rem", fontFamily: "'Manrope', sans-serif" }}

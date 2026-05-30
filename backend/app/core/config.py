@@ -55,6 +55,13 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:4173"]
 
+    # Email — Google SMTP
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""        # Gmail account used for auth
+    SMTP_PASSWORD: str = ""    # Gmail App Password (not login password)
+    SMTP_FROM: str = ""        # From address shown to recipients (alias); falls back to SMTP_USER
+
 
 @lru_cache
 def get_settings() -> Settings:

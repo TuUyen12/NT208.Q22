@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { authService } from "../services/authService";
+import NotificationBell from "../components/NotificationBell";
 
 
 /* ═══════════ DESIGN TOKENS  — mirrors HomePage.jsx exactly ═══════════ */
@@ -30,6 +31,8 @@ const GlobalStyles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Manrope:wght@200..800&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel&display=swap');
+    .font-headline { font-family: 'Cinzel', serif; }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
@@ -313,12 +316,15 @@ const Header = () => {
 
           {user ? (
             <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
-              <span style={{
-                fontSize:"0.82rem", color:C.onSurfaceVariant,
-                maxWidth:"160px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
+              <NotificationBell />
+              <div onClick={() => navigate("/profile")} title={user.full_name || user.email} style={{
+                width:"30px", height:"30px", borderRadius:"50%", flexShrink:0,
+                background:"linear-gradient(135deg,#edb1ff,#6d208c)",
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize:"0.7rem", fontWeight:700, color:"#111", cursor:"pointer",
               }}>
-                {user.full_name || user.email}
-              </span>
+                {(user.full_name || user.email || "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+              </div>
               <button
                 className="btn-primary"
                 style={{ padding:"6px 16px", fontSize:"0.82rem", borderRadius:"8px" }}

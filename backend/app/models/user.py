@@ -39,3 +39,4 @@ class User(Base):
     charts: Mapped[list["Chart"]] = relationship("Chart", back_populates="user", cascade="all, delete-orphan")  # noqa: F821
     annotations: Mapped[list["Annotation"]] = relationship("Annotation", back_populates="user", cascade="all, delete-orphan")  # noqa: F821
     journal_logs: Mapped[list["JournalLog"]] = relationship("JournalLog", back_populates="user", cascade="all, delete-orphan")  # noqa: F821
+    notifications: Mapped[list["Notification"]] = relationship("Notification", back_populates="user", cascade="all, delete-orphan")  # noqa: F821

@@ -9,6 +9,14 @@ export const authService = {
 
   me: () => api.get("/api/v1/auth/me"),
 
+  updateProfile: (data) => api.patch("/api/v1/auth/me", data),
+
+  changePassword: (currentPassword, newPassword) =>
+    api.put("/api/v1/auth/me/password", {
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+
   deleteMe: () => api.delete("/api/v1/auth/me"),
 
   googleLoginUrl: () => `${API_BASE}/api/v1/auth/google/login`,

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { journalService } from "../services/journalService";
 import { GlobalStyles } from "./Login";
+import NotificationBell from "../components/NotificationBell";
 
 // ─── constants ───────────────────────────────────────────────────────────────
 
@@ -178,9 +179,17 @@ function NavBar() {
           ))}
         </div>
         <div style={{ display:"flex", gap:"0.75rem", alignItems:"center" }}>
-          {user && <span style={{ fontSize:"0.8rem", color:"rgba(237,177,255,0.55)", fontFamily:"Manrope,sans-serif" }}>
-            {user.email?.split("@")[0]}
-          </span>}
+          {user && <NotificationBell />}
+          {user && (
+            <div onClick={() => navigate("/profile")} title={user.full_name || user.email} style={{
+              width:"30px", height:"30px", borderRadius:"50%", flexShrink:0,
+              background:"linear-gradient(135deg,#edb1ff,#6d208c)",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              fontSize:"0.7rem", fontWeight:700, color:"#111", cursor:"pointer",
+            }}>
+              {(user.full_name || user.email || "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+            </div>
+          )}
           <button onClick={() => { logout(); navigate("/"); }}
             style={{ background:"linear-gradient(135deg,#edb1ff,#6d208c)", border:"none",
               borderRadius:"0.75rem", color:"#fff", fontWeight:700, cursor:"pointer",
