@@ -156,7 +156,6 @@ async def test_daily_email(
     current_user: User = Depends(get_current_user),
 ):
     """Gửi thử email sao lưu hàng ngày đến chính user đang đăng nhập."""
-    from datetime import datetime, timezone
     from app.services.notification_service import _build_email_html, _send_email
     from app.services.luu_sao_utils import calculate_all_tiers
 
