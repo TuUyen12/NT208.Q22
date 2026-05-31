@@ -10,6 +10,7 @@ import AuthCallback   from "./pages/AuthCallback";
 import DailyHoroscope from "./pages/DailyHoroscope";
 import Journal        from "./pages/Journal";
 import Profile        from "./pages/Profile";
+import Zodiac          from "./pages/Zodiac";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/signup"        element={<SignUp />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/major-stars"   element={<MajorStars />} />
+          <Route path="/zodiac"        element={<Zodiac/> } />
           <Route path="/chatbot"          element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
           <Route path="/la-so"           element={<ProtectedRoute><LaSoTuVi /></ProtectedRoute>} />
           <Route path="/la-so-tu-vi"     element={<Navigate to="/la-so" replace />} />
