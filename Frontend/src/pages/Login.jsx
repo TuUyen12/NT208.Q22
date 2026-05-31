@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate} from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { authService } from "../services/authService";
 import NotificationBell from "../components/NotificationBell";
@@ -243,6 +243,32 @@ const GlobalStyles = () => (
     /* ── Responsive hide ── */
     @media (max-width: 800px) { .hide-sm { display: none !important; } }
     @media (max-width: 480px) { .card-pad { padding: 2rem 1.5rem !important; } }
+    /* ── Login header responsive ── */
+    .lp-mobile-btn { display: none; }
+    @media (max-width: 640px) {
+      .lp-desktop-nav { display: none !important; }
+      .lp-mobile-btn  { display: block !important; }
+    }
+    /* ── Chart Header Responsive ── */
+    .chart-mobile-btn {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .chart-desktop-nav {
+        display: none !important;
+      }
+
+      .chart-mobile-btn {
+        display: block !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .chart-logo-text {
+        font-size: 1.25rem !important;
+      }
+    }
   `}</style>
 );
 
@@ -280,67 +306,164 @@ const Background = () => (
   </div>
 );
 
-/* =========== HEADER  — shared design language with HomePage ========= */
 const Header = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navItems = [
+    { label: "Tra cứu",       to: "/" },
+    { label: "Chatbot",       to: "/chatbot" },
+    { label: "14 Chính tinh", to: "/major-stars" },
+  ];
+
+  const userInitials = (user?.full_name || user?.email || "?")
+    .split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
 
   return (
     <nav style={{
-      position:"fixed", top:0, width:"100%", zIndex:50,
-      background:"rgba(15,19,28,.82)",
-      backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)",
-      borderBottom:`1px solid rgba(77,67,81,.12)`,
+      position: "fixed", top: 0, width: "100%", zIndex: 50,
+      background: "rgba(15,19,28,.82)",
+      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+      borderBottom: "1px solid rgba(77,67,81,.12)",
     }}>
       <div style={{
-        display:"flex", justifyContent:"space-between", alignItems:"center",
-        padding:"0.65rem 1.5rem", maxWidth:"1200px", margin:"0 auto",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        padding: "0.65rem clamp(1rem, 4vw, 1.5rem)",
+        maxWidth: "1200px", margin: "0 auto", gap: "1rem",
       }}>
-        <div onClick={() => navigate("/")} style={{ display:"flex", alignItems:"center", gap:"0.5rem", cursor:"pointer", flexShrink:0 }}>
-          <img src="/favicon3.png" alt="logo" style={{ width:"38px", height:"38px", objectFit:"contain" }} />
-          <div className="font-headline" style={{ fontFamily:"Cinzel, serif", fontSize:"1.65rem", color:C.onSurface }}>
+
+        {/* Logo */}
+        <div
+          onClick={() => navigate("/")}
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", flexShrink: 0 }}
+        >
+          <img src="/favicon3.png" alt="logo" style={{ width: "36px", height: "36px", objectFit: "contain" }} />
+          <div className="font-headline" style={{ fontFamily: "Cinzel, serif", fontSize: "clamp(1.1rem, 3vw, 1.65rem)", color: C.onSurface }}>
             YinYang
           </div>
         </div>
 
-        <div style={{ display:"flex", alignItems:"center", gap:"28px" }}>
-          {[
-            { label: "Tra cứu", to: "/" },
-            { label: "Chatbot", to: "/chatbot" },
-            { label: "14 Chính tinh", to: "/major-stars" },
-          ].map(item => (
-            <span key={item.label} className="nl hide-sm" style={{ cursor:"pointer" }} onClick={() => navigate(item.to)}>
+        {/* Desktop nav */}
+        <div className="lp-desktop-nav" style={{ display: "flex", alignItems: "center", gap: "28px" }}>
+          {navItems.map(item => (
+            <span
+              key={item.label}
+              className="nl"
+              style={{ cursor: "pointer" }}
+              onClick={() => navigate(item.to)}
+            >
               {item.label}
             </span>
           ))}
 
           {user ? (
-            <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
               <NotificationBell />
-              <div onClick={() => navigate("/profile")} title={user.full_name || user.email} style={{
-                width:"30px", height:"30px", borderRadius:"50%", flexShrink:0,
-                background:"linear-gradient(135deg,#edb1ff,#6d208c)",
-                display:"flex", alignItems:"center", justifyContent:"center",
-                fontSize:"0.7rem", fontWeight:700, color:"#111", cursor:"pointer",
-              }}>
-                {(user.full_name || user.email || "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+              <div
+                onClick={() => navigate("/profile")}
+                title={user.full_name || user.email}
+                style={{
+                  width: "30px", height: "30px", borderRadius: "50%", flexShrink: 0,
+                  background: "linear-gradient(135deg,#edb1ff,#6d208c)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "0.7rem", fontWeight: 700, color: "#111", cursor: "pointer",
+                }}
+              >
+                {userInitials}
               </div>
               <button
-                className="btn-primary"
-                style={{ padding:"6px 16px", fontSize:"0.82rem", borderRadius:"8px" }}
+                className="btn-pri"
+                style={{ padding: "6px 16px", fontSize: "0.82rem", borderRadius: "8px", width: "auto" }}
                 onClick={logout}
               >
                 Đăng xuất
               </button>
             </div>
           ) : (
-            <span onClick={() => navigate("/")} className="nl" style={{ display:"flex", alignItems:"center", gap:4, color:C.onSurfaceVariant, cursor:"pointer" }}>
-              <span className="mso" style={{ fontSize:16 }}>arrow_back</span>
-              <span style={{ fontSize:13 }}>Trang chủ</span>
+            <span
+              onClick={() => navigate("/")}
+              className="nl"
+              style={{ display: "flex", alignItems: "center", gap: 4, color: C.onSurfaceVariant, cursor: "pointer" }}
+            >
+              <span className="mso" style={{ fontSize: 16 }}>arrow_back</span>
+              <span style={{ fontSize: 13 }}>Trang chủ</span>
             </span>
           )}
         </div>
+
+        {/* Hamburger */}
+        <button
+          className="lp-mobile-btn"
+          onClick={() => setMobileOpen(o => !o)}
+          style={{ background: "none", border: "none", color: C.onSurface, fontSize: "1.6rem", cursor: "pointer", lineHeight: 1, padding: "4px", flexShrink: 0 }}
+          aria-label={mobileOpen ? "Đóng menu" : "Mở menu"}
+        >
+          {mobileOpen ? "✕" : "☰"}
+        </button>
       </div>
+
+      {/* Mobile dropdown */}
+      {mobileOpen && (
+        <div style={{
+          background: "rgba(15,19,28,0.98)",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          padding: "1rem 1.25rem",
+          display: "flex", flexDirection: "column", gap: "0.85rem",
+        }}>
+          <span style={{
+            fontSize: "11px", color: "rgba(237,177,255,0.5)",
+            textTransform: "uppercase", letterSpacing: "0.08em",
+            borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "6px",
+          }}>
+            Điều hướng
+          </span>
+
+          {navItems.map(item => (
+            <span
+              key={item.label}
+              style={{ cursor: "pointer", color: C.onSurfaceVariant, fontSize: "0.9rem", fontFamily: "'Manrope', sans-serif" }}
+              onClick={() => { navigate(item.to); setMobileOpen(false); }}
+            >
+              {item.label}
+            </span>
+          ))}
+
+          {/* User row */}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            {user ? (
+              <>
+                <div style={{
+                  width: "28px", height: "28px", borderRadius: "50%",
+                  background: "linear-gradient(135deg,#edb1ff,#6d208c)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "0.65rem", fontWeight: 700, color: "#111", flexShrink: 0,
+                }}>
+                  {userInitials}
+                </div>
+                <span style={{ color: C.onSurfaceVariant, fontSize: "0.82rem", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {user.full_name || user.email}
+                </span>
+                <button
+                  className="btn-pri"
+                  style={{ padding: "5px 12px", fontSize: "0.75rem", borderRadius: "8px", width: "auto" }}
+                  onClick={() => { logout(); setMobileOpen(false); }}
+                >
+                  Đăng xuất
+                </button>
+              </>
+            ) : (
+              <span
+                style={{ display: "flex", alignItems: "center", gap: 6, color: C.onSurfaceVariant, cursor: "pointer", fontSize: "0.9rem" }}
+                onClick={() => { navigate("/"); setMobileOpen(false); }}
+              >
+                <span className="mso" style={{ fontSize: 16 }}>arrow_back</span>
+                Trang chủ
+              </span>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 };
