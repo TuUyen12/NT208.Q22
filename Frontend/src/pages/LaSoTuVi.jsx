@@ -878,9 +878,22 @@ function FontLoader() {
         transform: scale(0.98);
       }
 
-      @media (max-width: 768px) {
-        .nav-links {
-          display: none;
+      .chart-mobile-btn {
+        display: none;
+      }
+
+      @media (max-width: 900px) {
+        .chart-desktop-nav {
+          display: none !important;
+        }
+
+        .chart-logo-text {
+          display: inline;
+          font-size: 1rem !important;
+        }
+
+        .chart-mobile-btn {
+          display: block !important;
         }
       }
     `}</style>
@@ -890,66 +903,305 @@ function FontLoader() {
 // ============================================================
 // HEADER
 // ============================================================
-
 function ChartNav() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
+
+  const [mobileOpen, setMobileOpen] = useState(false);
   const navLinks = [
-    { label: "Tra cứu", to: "/" },
-    { label: "Tử vi hôm nay", to: "/daily-horoscope" },
-    { label: "Nhật ký", to: "/journal" },
-    { label: "Chatbot", to: "/chatbot" },
-    { label: "14 Chính tinh", to: "/major-stars" },
+  { label: "Tra cứu", to: "/" },
+  { label: "Dịch vụ", to: "services" },
+  { label: "Lá số", to: "/la-so" },
+  { label: "Tử vi hôm nay", to: "/daily-horoscope" },
+  { label: "Nhật ký", to: "/journal" },
+  { label: "Chatbot", to: "/chatbot" },
+  { label: "14 Chính tinh", to: "/major-stars" },
+  { label: "12 con giáp", to: "/zodiac" },
+  { label: "Liên hệ", to: "contact" },
   ];
+
   return (
-    <nav style={{
-      position: "fixed", top: 0, width: "100%", zIndex: 50,
-      background: "rgba(15,19,28,0.85)",
-      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-      borderBottom: "1px solid rgba(255,255,255,0.05)",
-    }}>
-      <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "0.65rem 1.5rem", maxWidth: "1400px", margin: "0 auto",
-      }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"0.5rem", cursor:"pointer", flexShrink:0 }}
-          onClick={() => navigate("/")}>
-          <img src="/favicon3.png" alt="logo" style={{ width:"36px", height:"36px", objectFit:"contain" }} />
-          <span style={{ fontFamily:"Cinzel,serif", fontSize:"1.65rem", color:"#fff" }}>YinYang</span>
+    <nav
+      style={{
+        position: "fixed",
+        top: 0,
+        width: "100%",
+        zIndex: 50,
+        background: "rgba(15,19,28,0.85)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderBottom: "1px solid rgba(255,255,255,0.05)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "0.65rem clamp(1rem,4vw,1.5rem)",
+          maxWidth: "80rem",
+          margin: "0 auto",
+        }}
+      >
+        {/* LOGO */}
+        <div
+          onClick={() => navigate("/")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          <img
+            src="/favicon3.png"
+            alt="logo"
+            style={{
+              width: "36px",
+              height: "36px",
+              objectFit: "contain",
+            }}
+          />
+
+          <span
+            className="chart-logo-text"
+            style={{
+              fontFamily: "Cinzel, serif",
+              fontSize: "clamp(1.1rem,3vw,1.65rem)",
+              color: "#fff",
+            }}
+          >
+            YinYang
+          </span>
         </div>
 
-        <div className="nav-links" style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
+        {/* DESKTOP NAV */}
+        <div
+          className="chart-desktop-nav"
+          style={{
+            display: "flex",
+            gap: "1.25rem",
+            alignItems: "center",
+            flex: 1,
+            justifyContent: "center",
+          }}
+        >
           {navLinks.map(({ label, to }) => (
-            <span key={label} className="nav-link" style={{ cursor: "pointer" }} onClick={() => navigate(to)}>
+            <span
+              key={label}
+              className="nl"
+              style={{
+                cursor: "pointer",
+                color:
+                  location.pathname === to
+                    ? "#edb1ff"
+                    : "rgba(255,255,255,.75)",
+                fontWeight:
+                  location.pathname === to
+                    ? 700
+                    : 400,
+              }}
+              onClick={() => navigate(to)}
+            >
               {label}
             </span>
           ))}
         </div>
 
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+        {/* DESKTOP USER */}
+        <div
+          className="chart-desktop-nav"
+          style={{
+            display: "flex",
+            gap: "0.75rem",
+            alignItems: "center",
+            flexShrink: 0,
+          }}
+        >
           {user && <NotificationBell />}
+
           {user && (
-            <div onClick={() => navigate("/profile")} title={user.full_name || user.email} style={{
-              width: "30px", height: "30px", borderRadius: "50%", flexShrink: 0,
-              background: "linear-gradient(135deg,#edb1ff,#6d208c)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: "0.7rem", fontWeight: 700, color: "#111", cursor: "pointer",
-            }}>
-              {(user.full_name || user.email || "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+            <div
+              onClick={() => navigate("/profile")}
+              title={user.full_name || user.email}
+              style={{
+                width: "30px",
+                height: "30px",
+                borderRadius: "50%",
+                background:
+                  "linear-gradient(135deg,#edb1ff,#6d208c)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "0.7rem",
+                fontWeight: 700,
+                color: "#111",
+                cursor: "pointer",
+              }}
+            >
+              {(user.full_name || user.email || "?")
+                .split(" ")
+                .map((w) => w[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
             </div>
           )}
-          {user
-            ? <button className="btn-primary" style={{ padding: "0.45rem 1.2rem", fontSize: "0.85rem", borderRadius: "0.75rem", fontFamily: "'Manrope',sans-serif" }}
-                onClick={() => { logout(); navigate("/"); }}>Đăng xuất</button>
-            : <button className="btn-primary" style={{ padding: "0.45rem 1.2rem", fontSize: "0.85rem", borderRadius: "0.75rem", fontFamily: "'Manrope',sans-serif" }}
-                onClick={() => navigate("/login")}>Đăng nhập</button>
-          }
+
+          {user ? (
+            <button
+              className="btn-primary"
+              style={{
+                padding: "0.45rem 1.2rem",
+                fontSize: "0.85rem",
+                borderRadius: "0.75rem",
+              }}
+              onClick={() => {
+                logout();
+                navigate("/");
+              }}
+            >
+              Đăng xuất
+            </button>
+          ) : (
+            <button
+              className="btn-outline hp-desktop-nav"
+              style={{ padding: "0.45rem 1.25rem", fontSize: "0.85rem", fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}
+              onClick={() => navigate("/login")}
+            >
+              Đăng nhập
+            </button>
+          )}
         </div>
+
+        {/* MOBILE BUTTON */}
+        <button
+          className="chart-mobile-btn"
+          onClick={() => setMobileOpen((o) => !o)}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#fff",
+            fontSize: "1.6rem",
+            cursor: "pointer",
+            lineHeight: 1,
+            display: "none",
+          }}
+        >
+          {mobileOpen ? "✕" : "☰"}
+        </button>
       </div>
+
+      {/* MOBILE DROPDOWN */}
+      {mobileOpen && (
+        <div
+          style={{
+            background: "rgba(15,19,28,0.98)",
+            borderTop: "1px solid rgba(255,255,255,.08)",
+            padding: "1rem 1.25rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.85rem",
+          }}
+        >
+          {navLinks.map(({ label, to }) => (
+            <span
+              key={label}
+              style={{
+                cursor: "pointer",
+                color:
+                  location.pathname === to
+                    ? "#edb1ff"
+                    : "rgba(255,255,255,.75)",
+                fontWeight:
+                  location.pathname === to
+                    ? 700
+                    : 400,
+              }}
+              onClick={() => {
+                navigate(to);
+                setMobileOpen(false);
+              }}
+            >
+              {label}
+            </span>
+          ))}
+
+          <div
+            style={{
+              borderTop: "1px solid rgba(255,255,255,.08)",
+              paddingTop: "12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.6rem",
+            }}
+          >
+            {user ? (
+              <>
+                <NotificationBell />
+
+                <div
+                  onClick={() => {
+                    navigate("/profile");
+                    setMobileOpen(false);
+                  }}
+                  style={{
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "50%",
+                    background:
+                      "linear-gradient(135deg,#edb1ff,#6d208c)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "0.65rem",
+                    fontWeight: 700,
+                    color: "#111",
+                    cursor: "pointer",
+                  }}
+                >
+                  {(user.full_name || user.email || "?")
+                    .split(" ")
+                    .map((w) => w[0])
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase()}
+                </div>
+
+                <button
+                  className="btn-primary"
+                  style={{
+                    width: "auto",
+                    padding: "0.45rem 0.9rem",
+                  }}
+                  onClick={() => {
+                    logout();
+                    navigate("/");
+                    setMobileOpen(false);
+                  }}
+                >
+                  Đăng xuất
+                </button>
+              </>
+            ) : (
+              <button
+                className="btn-outline hp-desktop-nav"
+                onClick={() => {
+                  navigate("/login");
+                  setMobileOpen(false);
+                }}
+              >
+                Đăng nhập
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
-
 // ============================================================
 // AI INTERPRETATION
 // ============================================================
