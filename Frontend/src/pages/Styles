@@ -4,13 +4,23 @@
 
 export const CURRENT_YEAR = new Date().getFullYear();
 
+// Kích thước gốc của 1 ô (dùng làm base để scale)
+export const CELL_BASE_WIDTH  = 228;
+export const CELL_BASE_HEIGHT = 319;
+export const GRID_COLS        = 4;
+export const GRID_GAP         = 0;
+
+// Tổng kích thước grid gốc (4 cột × 228px + 2×5px padding wrapper)
+export const GRID_BASE_WIDTH  = CELL_BASE_WIDTH * GRID_COLS + 10; // 922px
+
 export const styles = {
   gridWrapper: {
     display: "grid",
-    gridTemplateColumns: "repeat(4, 228px)",
-    gap: 0,
+    gridTemplateColumns: `repeat(${GRID_COLS}, ${CELL_BASE_WIDTH}px)`,
+    gap: GRID_GAP,
     width: "fit-content",
     margin: "0 auto",
+    // transformOrigin được set inline tuỳ màn hình
   },
 
   centerCell: {
@@ -21,7 +31,8 @@ export const styles = {
     background: "rgba(15,17,28,0.85)",
     backdropFilter: "blur(20px)",
     border: "1px solid rgba(100,80,130,0.25)",
-    boxShadow: "0 0 60px rgba(120,80,200,0.08), inset 0 1px 0 rgba(255,255,255,0.06)",
+    boxShadow:
+      "0 0 60px rgba(120,80,200,0.08), inset 0 1px 0 rgba(255,255,255,0.06)",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
@@ -46,13 +57,13 @@ export const styles = {
 
 export const newPaletteStyles = {
   cell: {
-    width: "228px",
-    height: "319px",
+    width:      `${CELL_BASE_WIDTH}px`,
+    height:     `${CELL_BASE_HEIGHT}px`,
     background: "#FEFBFF",
-    border: "1.5px solid #9C46BE",
+    border:     "1.5px solid #9C46BE",
     borderRadius: "10px",
-    padding: "6px",
-    display: "flex",
+    padding:    "6px",
+    display:    "flex",
     flexDirection: "column",
   },
 
@@ -71,9 +82,9 @@ export const newPaletteStyles = {
   },
 
   StemBranch: {
-    width: "60px",
+    width:    "60px",
     fontSize: "11px",
-    color: "#ED9B59",
+    color:    "#ED9B59",
     fontWeight: 700,
     whiteSpace: "nowrap",
     overflow: "hidden",
@@ -81,68 +92,68 @@ export const newPaletteStyles = {
   },
 
   PalaceName: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
+    position:  "absolute",
+    top:       "50%",
+    left:      "50%",
     transform: "translate(-50%, -50%)",
-    fontSize: "18px",
+    fontSize:  "18px",
     fontWeight: 700,
-    color: "#111",
-    display: "flex",
+    color:     "#111",
+    display:   "flex",
     alignItems: "center",
-    gap: 2,
+    gap:       2,
     whiteSpace: "nowrap",
   },
 
   Age: {
-    width: "50px",
-    textAlign: "right",
-    fontSize: "12px",
+    width:      "50px",
+    textAlign:  "right",
+    fontSize:   "12px",
     fontWeight: 700,
-    color: "#111",
+    color:      "#111",
   },
 
   MainStars: {
-    marginTop: "10px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "2px",
-    color: "#47A0A5",
-    fontSize: "16px",
-    lineHeight: 1.15,
-    fontWeight: 500,
-    fontFamily: "Montserrat, serif",
-    minHeight: "48px",
+    marginTop:      "10px",
+    display:        "flex",
+    flexDirection:  "column",
+    alignItems:     "center",
+    gap:            "2px",
+    color:          "#47A0A5",
+    fontSize:       "16px",
+    lineHeight:     1.15,
+    fontWeight:     500,
+    fontFamily:     "Montserrat, serif",
+    minHeight:      "48px",
   },
 
   sideContainer: {
-    flex: 1,
-    display: "flex",
-    justifyContent: "space-between",
-    marginTop: "10px",
-    overflow: "hidden",
+    flex:            1,
+    display:         "flex",
+    justifyContent:  "space-between",
+    marginTop:       "10px",
+    overflow:        "hidden",
   },
 
   LeftStars: {
-    width: "48%",
-    display: "flex",
-    flexDirection: "column",
-    gap: "2px",
-    fontSize: "12px",
-    lineHeight: 1.2,
-    fontFamily: "Montserrat, serif",
-    fontWeight: 700,
+    width:          "48%",
+    display:        "flex",
+    flexDirection:  "column",
+    gap:            "2px",
+    fontSize:       "12px",
+    lineHeight:     1.2,
+    fontFamily:     "Montserrat, serif",
+    fontWeight:     700,
   },
 
   RightStars: {
-    width: "48%",
-    display: "flex",
-    flexDirection: "column",
-    gap: "2px",
-    fontSize: "12px",
-    lineHeight: 1.2,
-    fontFamily: "Montserrat, serif",
-    fontWeight: 700,
+    width:          "48%",
+    display:        "flex",
+    flexDirection:  "column",
+    gap:            "2px",
+    fontSize:       "12px",
+    lineHeight:     1.2,
+    fontFamily:     "Montserrat, serif",
+    fontWeight:     700,
   },
 };
