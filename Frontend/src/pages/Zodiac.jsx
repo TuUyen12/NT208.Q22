@@ -1,4 +1,3 @@
-import { useNavigate } from "react-router-dom";
 import { Background, C, GlobalStyles, Header } from "./Login";
 export default function Zodiac() {
   return (
