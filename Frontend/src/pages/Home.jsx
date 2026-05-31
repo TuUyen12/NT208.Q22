@@ -183,6 +183,29 @@ const FontLoader = () => (
         grid-template-columns: repeat(2, 1fr);
       }
     }
+/* Modal con giáp mobile */
+@media (max-width: 600px) {
+  .zodiac-modal-header {
+    flex-direction: column;
+    gap: 0.75rem !important;
+  }
+
+  .zodiac-modal-header h3 {
+    font-size: 2rem !important;
+    text-align: center;
+  }
+
+  .zodiac-modal-header img {
+    width: 64px !important;
+    height: 64px !important;
+  }
+
+  .zodiac-modal-text {
+    font-size: 0.95rem !important;
+    line-height: 1.7 !important;
+  }
+}
+  
     /* ================= FOOTER ================= */
 
     .footer-grid {
@@ -272,6 +295,22 @@ const FontLoader = () => (
         width: 3rem !important;
         height: 3rem !important;
       }
+
+    @media (max-width: 768px) {
+  .hero-top {
+    flex-direction: column !important;
+    text-align: center;
+  }
+
+  .hero-top > div:first-child {
+    text-align: center !important;
+  }
+
+  .hero-top img {
+    width: 180px !important;
+    margin-top: 1rem;
+  }
+}  
     }
   `}</style>
 );
@@ -291,17 +330,24 @@ const Header = () => {
     { label: "Nhật ký",       to: "/journal",         activePath: "/journal" },
     { label: "Chatbot",       to: "/chatbot",         activePath: "/chatbot" },
     { label: "14 Chính tinh", to: "/major-stars",     activePath: "/major-stars" },
-    { label: "12 con giáp",   to: "/zodiac",          activePath: "/zodiac" },
+    { label: "12 con giáp", to: "zodiac", activePath: null },
     { label: "Liên hệ",       to: "contact",          activePath: null },
   ];
 
   const handleNav = (item) => {
-    if (["contact", "services"].includes(item.to)) {
+    if (["contact", "services", "zodiac"].includes(item.to)) {
       const el = document.getElementById(item.to);
-      if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
+
+      if (el) {
+        window.scrollTo({
+          top: el.offsetTop - 80,
+          behavior: "smooth",
+        });
+      }
     } else {
       navigate(item.to);
     }
+
     setMobileOpen(false);
   };
 
@@ -579,14 +625,15 @@ const HeroSection = () => {
       <div style={{ position: "relative", zIndex: 10, maxWidth: "80rem", width: "100%" }}>
 
         <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: "4rem",
-            gap: "1rem",
-          }}
-        >
+  className="hero-top"
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: "4rem",
+    gap: "1rem",
+  }}
+>
           {/* Cột trái */}
           <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
             <h1
@@ -744,13 +791,60 @@ const HeroSection = () => {
 
 /* ─────────────────────── Combo / Packages ──────────────────────── */
 const comboData = [
-  { title: "TƯƠNG HỢP TÌNH YÊU", desc: "Đánh giá mối quan hệ giữa hai lá số, hóa giải xung khắc, xem duyên nợ.", stats: "1 MỤC • 5 CHỦ ĐỀ", price: "169.000 đ", color: "#d9659e" },
-  { title: "GÓI CƠ BẢN",         desc: "Tổng quan Vận mệnh, Cá nhân, Sự nghiệp Tiền tài & Tình duyên.",          stats: "3 MỤC • 16 CHỦ ĐỀ", price: "199.000 đ", color: "#c37735" },
-  { title: "GÓI NÂNG CAO",       desc: "Có thêm Vận hạn năm & Tương tác. Giúp định hướng rõ ràng.",              stats: "5 MỤC • 24 CHỦ ĐỀ", price: "299.000 đ", color: "#d46b84" },
-  { title: "GÓI TRỌN ĐỜI",       desc: "Giải mã toàn diện lá số, vận hạn trọn đời, chi tiết từng đại vận.",      stats: "TẤT CẢ CHỦ ĐỀ",    price: "499.000 đ", color: "#7a5c9e" },
+  {
+    title: "TƯƠNG HỢP TÌNH YÊU",
+    desc: "Đánh giá mối quan hệ giữa hai lá số, hóa giải xung khắc, xem duyên nợ.",
+    stats: "1 MỤC • 5 CHỦ ĐỀ",
+    price: "169.000 đ",
+    color: "#d9659e",
+    details: [
+      "Phân tích mức độ hòa hợp giữa hai lá số.",
+      "Luận duyên nợ, cảm xúc và sự gắn kết.",
+      "Gợi ý cách hóa giải xung khắc trong tình yêu.",
+    ],
+  },
+  {
+    title: "GÓI CƠ BẢN",
+    desc: "Tổng quan Vận mệnh, Cá nhân, Sự nghiệp Tiền tài & Tình duyên.",
+    stats: "3 MỤC • 16 CHỦ ĐỀ",
+    price: "199.000 đ",
+    color: "#c37735",
+    details: [
+      "Luận tổng quan vận mệnh cá nhân.",
+      "Phân tích tính cách, sự nghiệp, tài lộc và tình duyên.",
+      "Phù hợp cho người mới bắt đầu xem lá số.",
+    ],
+  },
+  {
+    title: "GÓI NÂNG CAO",
+    desc: "Có thêm Vận hạn năm & Tương tác. Giúp định hướng rõ ràng.",
+    stats: "5 MỤC • 24 CHỦ ĐỀ",
+    price: "299.000 đ",
+    color: "#d46b84",
+    details: [
+      "Bao gồm nội dung gói cơ bản.",
+      "Phân tích vận hạn từng năm.",
+      "Gợi ý thời điểm thuận lợi và cần cẩn trọng.",
+    ],
+  },
+  {
+    title: "GÓI TRỌN ĐỜI",
+    desc: "Giải mã toàn diện lá số, vận hạn trọn đời, chi tiết từng đại vận.",
+    stats: "TẤT CẢ CHỦ ĐỀ",
+    price: "499.000 đ",
+    color: "#7a5c9e",
+    details: [
+      "Giải mã toàn diện lá số tử vi.",
+      "Luận đại vận, tiểu vận và các mốc quan trọng.",
+      "Phân tích dài hạn về sự nghiệp, tài lộc, tình duyên, sức khỏe.",
+    ],
+  },
 ];
 
-const ComboSection = () => (
+const ComboSection = () => {
+  const [selectedCombo, setSelectedCombo] = useState(null);
+
+  return (
   <section id="services" style={{ position: "relative", width: "100%", padding: "6rem 0", overflow: "hidden" }}>
     <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
       <img
@@ -784,6 +878,7 @@ const ComboSection = () => (
         {comboData.map((combo, idx) => (
           <div
             key={idx}
+            onClick={() => setSelectedCombo(combo)}
             style={{
               background: "#ffffff", border: `1px solid ${combo.color}`,
               borderRadius: "0", padding: "2rem 1.5rem",
@@ -809,8 +904,103 @@ const ComboSection = () => (
         ))}
       </div>
     </div>
+    {selectedCombo && (
+  <div
+    onClick={() => setSelectedCombo(null)}
+    style={{
+      position: "fixed",
+      inset: 0,
+      zIndex: 999,
+      background: "rgba(0,0,0,0.68)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "1.5rem",
+    }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        width: "100%",
+        maxWidth: "560px",
+        maxHeight: "85vh",
+        overflowY: "auto",
+        background: C.surfaceContainerHigh,
+        border: "1px solid rgba(255,255,255,0.25)",
+        borderRadius: "1.5rem",
+        padding: "2rem",
+        boxShadow: "0 30px 90px rgba(0,0,0,0.55)",
+      }}
+    >
+      <h3
+  style={{
+    color: "#ffffff",
+    fontSize: "2rem",
+    fontWeight: 700,
+    fontFamily: "'Manrope', sans-serif",
+    letterSpacing: "0.02em",
+    marginBottom: "1rem",
+    textAlign: "center",
+  }}
+>
+        {selectedCombo.title}
+      </h3>
+
+      <p
+        style={{
+          color: C.onSurfaceVariant,
+          fontSize: "1.1rem",
+          lineHeight: 1.8,
+          marginBottom: "1.25rem",
+          textAlign: "justify",
+        }}
+      >
+        {selectedCombo.desc}
+      </p>
+
+      <div
+        style={{
+          color: C.primary,
+          fontWeight: 700,
+          marginBottom: "1rem",
+        }}
+      >
+        {selectedCombo.stats} • {selectedCombo.price}
+      </div>
+
+      <ul
+        style={{
+          paddingLeft: "1.2rem",
+          color: C.onSurfaceVariant,
+          lineHeight: 1.9,
+          fontSize: "1.05rem",
+          marginBottom: "1.75rem",
+        }}
+      >
+        {selectedCombo.details.map((item, index) => (
+          <li key={index}>{item}</li>
+        ))}
+      </ul>
+
+      <div style={{ display: "flex", justifyContent: "center" }}>
+  <button
+    className="btn-outline"
+    onClick={() => setSelectedCombo(null)}
+    style={{
+      padding: "0.75rem 2rem",
+      fontSize: "1rem",
+      minWidth: "120px",
+    }}
+  >
+    Đóng
+  </button>
+</div>
+    </div>
+  </div>
+)}
   </section>
-);
+  );
+};
 
 /* ─────────────────────── Insights Grid ──────────────────────── */
 const insightItems = [
@@ -863,64 +1053,202 @@ const zodiacData = [
   { name: "Hợi",  src: "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f437.svg" },
 ];
 
+const zodiacDetails = {
+"Tý": {
+title: "Tuổi Tý",
+text: "Là con giáp đầu tiên trong chu kỳ 12 con giáp, chuột tượng trưng cho sự khởi đầu mới mẻ, sự thông minh, lanh lợi và khả năng thích nghi tốt. Người tuổi Tý thường rất ham học hỏi, cầu tiến và có ý chí phấn đấu mạnh mẽ. Tuy nhiên, đôi khi họ có thể hơi nóng tính, bướng bỉnh và thiếu kiên nhẫn. \n\nDung mạo người tuổi Tý thường nhanh nhẹn, ánh mắt linh hoạt, gương mặt sáng và biểu cảm thông minh. \n\nNgười tuổi Tý tương hợp với tuổi Thân, Thìn và dễ xung khắc với tuổi Ngọ."
+},
+
+"Sửu": {
+title: "Tuổi Sửu",
+text: "Trong chu kỳ 12 con giáp, trâu tượng trưng cho sự chăm chỉ, kiên trì, nhẫn nại và trung thành. Người tuổi Sửu có trách nhiệm cao, đáng tin cậy và luôn sẵn sàng giúp đỡ người khác. Tuy nhiên họ cũng khá bảo thủ, cố chấp và thiếu linh hoạt. \n\nDung mạo người tuổi Sửu thường chắc chắn, thân hình cân đối, khuôn mặt điềm đạm và tạo cảm giác đáng tin cậy. \n\nTương hợp với tuổi Tỵ, Dậu; dễ xung khắc với tuổi Mùi."
+},
+
+"Dần": {
+title: "Tuổi Dần",
+text: "Người tuổi Dần thường mạnh mẽ, quyết đoán, có khí chất lãnh đạo và thích tự do. Họ tự tin, dám nghĩ dám làm và luôn muốn khẳng định bản thân. Tuy nhiên đôi khi khá nóng nảy và bốc đồng. \n\nDung mạo người tuổi Dần thường có ánh mắt sắc bén, thần thái mạnh mẽ, dáng đi tự tin và dễ tạo cảm giác uy nghiêm. \n\nTương hợp với tuổi Ngọ, Tuất; dễ xung khắc với tuổi Thân."
+},
+
+"Mão": {
+title: "Tuổi Mão",
+text: "Người tuổi Mão thường mềm mỏng, tinh tế, khéo léo trong giao tiếp và biết giữ hòa khí. Họ có trực giác tốt, sống tình cảm và yêu thích cái đẹp. \n\nDung mạo người tuổi Mão thường thanh tú, khuôn mặt hài hòa, ánh mắt hiền lành và tạo cảm giác dễ gần. \n\nTương hợp với tuổi Hợi, Mùi; dễ xung khắc với tuổi Dậu."
+},
+
+"Thìn": {
+title: "Tuổi Thìn",
+text: "Người tuổi Thìn thường có tham vọng lớn, khí chất mạnh mẽ và khả năng lãnh đạo nổi bật. Họ thích thử thách, luôn muốn vươn lên và dễ thu hút sự chú ý của người khác. \n\nDung mạo người tuổi Thìn thường sáng sủa, thần thái tự tin, ánh mắt có sức hút và phong thái nổi bật giữa đám đông. \n\nTương hợp với tuổi Tý, Thân; dễ xung khắc với tuổi Tuất."
+},
+
+"Tỵ": {
+title: "Tuổi Tỵ",
+text: "Người tuổi Tỵ thường thông minh, sâu sắc, kín đáo và có trực giác nhạy bén. Họ thích quan sát, suy nghĩ kỹ trước khi hành động và có khả năng phân tích tốt. \n\nDung mạo người tuổi Tỵ thường thanh mảnh, ánh mắt sắc sảo, gương mặt có nét bí ẩn và cuốn hút. \n\nTương hợp với tuổi Sửu, Dậu; dễ xung khắc với tuổi Hợi."
+},
+
+"Ngọ": {
+title: "Tuổi Ngọ",
+text: "Người tuổi Ngọ thường năng động, nhiệt tình, yêu tự do và thích khám phá những điều mới mẻ. Họ hòa đồng, cởi mở và có khả năng truyền cảm hứng cho người khác. \n\nDung mạo người tuổi Ngọ thường cao ráo, nhanh nhẹn, gương mặt tươi sáng và tràn đầy sức sống. \n\nTương hợp với tuổi Dần, Tuất; dễ xung khắc với tuổi Tý."
+},
+
+"Mùi": {
+title: "Tuổi Mùi",
+text: "Người tuổi Mùi thường hiền hòa, giàu lòng trắc ẩn và sống tình cảm. Họ có óc nghệ thuật, yêu cái đẹp và luôn quan tâm đến cảm xúc của người khác. \n\nDung mạo người tuổi Mùi thường có nét dịu dàng, khuôn mặt phúc hậu, ánh mắt ấm áp và dễ tạo thiện cảm. \n\nTương hợp với tuổi Mão, Hợi; dễ xung khắc với tuổi Sửu."
+},
+
+"Thân": {
+title: "Tuổi Thân",
+text: "Người tuổi Thân thường thông minh, linh hoạt, hoạt ngôn và có khả năng thích nghi nhanh với mọi hoàn cảnh. Họ sáng tạo, hài hước và luôn tìm được cách giải quyết vấn đề. \n\nDung mạo người tuổi Thân thường nhanh nhẹn, ánh mắt lanh lợi, gương mặt sáng và biểu cảm phong phú. \n\nTương hợp với tuổi Tý, Thìn; dễ xung khắc với tuổi Dần."
+},
+
+"Dậu": {
+title: "Tuổi Dậu",
+text: "Người tuổi Dậu thường chỉn chu, thẳng thắn, có tính kỷ luật cao và luôn chú trọng hình ảnh cá nhân. Họ cầu toàn, chăm chỉ và có tinh thần trách nhiệm. \n\nDung mạo người tuổi Dậu thường gọn gàng, sắc nét, phong thái chỉnh chu và gây ấn tượng bởi vẻ ngoài chỉn chu. \n\nTương hợp với tuổi Sửu, Tỵ; dễ xung khắc với tuổi Mão."
+},
+
+"Tuất": {
+title: "Tuổi Tuất",
+text: "Người tuổi Tuất thường trung thành, chính trực và có tinh thần bảo vệ người thân. Họ sống chân thành, đáng tin cậy và luôn giữ lời hứa. \n\nDung mạo người tuổi Tuất thường cương nghị, ánh mắt chân thành, khuôn mặt tạo cảm giác đáng tin tưởng. \n\nTương hợp với tuổi Dần, Ngọ; dễ xung khắc với tuổi Thìn."
+},
+
+"Hợi": {
+title: "Tuổi Hợi",
+text: "Người tuổi Hợi thường phúc hậu, chân thành, sống tình cảm và biết tận hưởng cuộc sống. Họ hòa nhã, rộng lượng và dễ được mọi người yêu mến. \n\nDung mạo người tuổi Hợi thường đầy đặn, gương mặt hiền hòa, nụ cười thân thiện và tạo cảm giác gần gũi. \n\nTương hợp với tuổi Mão, Mùi; dễ xung khắc với tuổi Tỵ."
+}
+};
+
+
 const ZodiacSection = () => {
-  const navigate = useNavigate();
+  const [selectedZodiac, setSelectedZodiac] = useState(null);
+
   return (
-    <section
-      id="zodiac"
-      className="zodiac-section"
-      style={{ padding: "6rem 0", background: C.surfaceContainerLowest, position: "relative", overflow: "hidden" }}
-    >
+    <section id="zodiac" style={{ padding: "6rem 0", background: C.surfaceContainerLowest, position: "relative", overflow: "hidden" }}>
       <div className="celestial-glow" style={{ position: "absolute", inset: 0, pointerEvents: "none" }} />
 
       <div style={{ maxWidth: "80rem", margin: "0 auto", padding: "0 2rem", position: "relative", zIndex: 10 }}>
         <div style={{ textAlign: "center", marginBottom: "5rem" }}>
-          <h2
-            className="font-headline zodiac-title"
-            style={{ fontFamily: "Cormorant Garamond, serif", fontSize: "clamp(2rem, 4vw, 3.5rem)", color: C.primary, marginBottom: "1.5rem" }}
-          >
+          <h2 className="font-headline" style={{ fontFamily: "Cormorant Garamond, serif", fontSize: "clamp(2.5rem, 4vw, 3.5rem)", color: C.primary, marginBottom: "1.5rem" }}>
             12 con giáp
           </h2>
           <div style={{ width: "6rem", height: "4px", background: C.primaryContainer, borderRadius: "9999px", margin: "0 auto 1.5rem" }} />
           <p style={{ color: C.onSurfaceVariant, maxWidth: "30rem", margin: "0 auto", lineHeight: 1.8 }}>
-            Vòng quay 12 linh vật biểu tượng cho các tính cách và vận mệnh riêng biệt trong văn hóa Á Đông.
+            Bấm vào từng con giáp để xem luận giải tổng quan về tính cách, khuynh hướng và tương hợp.
           </p>
         </div>
 
-        <div
-          className="zodiac-grid"
-          style={{
-            marginBottom: "4rem",
-          }}
-        >
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "1.5rem", marginBottom: "4rem" }}>
           {zodiacData.map(({ name, src }) => (
-            <div key={name} className="zodiac-card" style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div
+              key={name}
+              className="zodiac-card"
+              onClick={() => setSelectedZodiac({ name, src, ...zodiacDetails[name] })}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center" }}
+            >
               <img
                 src={src}
                 alt={name}
                 style={{
-                  width: "100%", aspectRatio: "1/1", padding: "0.5rem",
-                  objectFit: "contain", background: "rgba(255,255,255,0.03)",
-                  borderRadius: "50%", marginBottom: "1.25rem",
+                  width: "100%",
+                  aspectRatio: "1/1",
+                  padding: "0.5rem",
+                  objectFit: "contain",
+                  background: "rgba(255,255,255,0.03)",
+                  borderRadius: "50%",
+                  marginBottom: "1.25rem",
                 }}
               />
-              <span className="font-headline zodiac-label" style={{ fontSize: "1.15rem", color: C.onSurface }}>
-                {name}
-              </span>
+              <span className="font-headline" style={{ fontSize: "1.15rem", color: C.onSurface }}>{name}</span>
             </div>
           ))}
         </div>
-
-        <div style={{ textAlign: "center" }}>
-          <button
-            className="btn-outline"
-            style={{ padding: "1rem 2.5rem", fontSize: "1rem", fontFamily: "'Manrope', sans-serif" }}
-            onClick={() => navigate("/zodiac")}
-          >
-            Tìm hiểu thêm
-          </button>
-        </div>
       </div>
+
+      {selectedZodiac && (
+        <div
+          onClick={() => setSelectedZodiac(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 999,
+            background: "rgba(0,0,0,0.65)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1.5rem",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: "520px",
+              maxHeight: "85vh",
+              overflowY: "auto",
+              background: C.surfaceContainerHigh,
+              border: `1px solid rgba(237,177,255,0.35)`,
+              borderRadius: "1.5rem",
+              padding: "2rem",
+              boxShadow: "0 30px 90px rgba(0,0,0,0.55)",
+              textAlign: "center",
+            }}
+          >
+            <div
+            className="zodiac-modal-header"
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "1rem",
+    marginBottom: "1.5rem",
+  }}
+>
+  <img
+    src={selectedZodiac.src}
+    alt={selectedZodiac.name}
+    style={{
+      width: "80px",
+      height: "80px",
+      objectFit: "contain",
+    }}
+  />
+
+  <h3
+    className="font-headline"
+    style={{
+      fontFamily: "Cormorant Garamond, serif",
+      fontSize: "clamp(1.8rem, 6vw, 3rem)",
+      color: C.primary,
+      margin: 0,
+      lineHeight: 1,
+      fontWeight: 600,
+    }}
+  >
+    {selectedZodiac.title}
+  </h3>
+</div>
+
+            <p
+            className="zodiac-modal-text"
+              style={{
+                color: C.onSurfaceVariant,
+                lineHeight: 1.9,
+                fontSize: "1.15rem",
+                marginBottom: "1.75rem",
+                textAlign: "justify",
+                whiteSpace: "pre-line",
+              }}
+>
+  {selectedZodiac.text}
+</p>
+
+            <button
+              className="btn-outline"
+              onClick={() => setSelectedZodiac(null)}
+              style={{ padding: "0.75rem 1.5rem", fontSize: "1rem" }}
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
