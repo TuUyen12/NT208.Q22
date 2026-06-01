@@ -20,7 +20,7 @@ def send_daily_horoscope_emails(self):
         from app.services.notification_service import NotificationService
 
         settings = get_settings()
-        engine = create_async_engine(settings.DATABASE_URL)
+        engine = create_async_engine(settings.DATABASE_URL, connect_args={"ssl": False})
         Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
         async with Session() as db:
@@ -42,7 +42,7 @@ def recalculate_luu_sao_all_users(self):
         from app.services.notification_service import NotificationService
 
         settings = get_settings()
-        engine = create_async_engine(settings.DATABASE_URL)
+        engine = create_async_engine(settings.DATABASE_URL, connect_args={"ssl": False})
         Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
         async with Session() as db:
