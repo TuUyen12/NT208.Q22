@@ -1,1081 +1,2035 @@
-# YinYang — Complete Project Documentation
+# YinYang — Backend Documentation (Chi Tiết Từng Hàm)
 
-> Vietnamese Tử Vi (Purple Star Astrology) web platform.  
-> Backend: FastAPI + PostgreSQL + Redis + Celery  
-> Frontend: React (Vite) + iztro library  
-
----
-
-## Table of Contents
-
-1. [Big Picture](#1-big-picture)
-2. [User Roles](#2-user-roles)
-3. [Infrastructure & Docker](#3-infrastructure--docker)
-4. [Backend — File-by-File](#4-backend--file-by-file)
-   - [Entry Point](#41-entry-point--appmainpy)
-   - [Core Modules](#42-core-modules-appcore)
-   - [Database Layer](#43-database-layer)
-   - [Dependencies (Auth Guards)](#44-dependencies-appdependenciespy)
-   - [Models](#45-models-appmodels)
-   - [Schemas](#46-schemas-appschemas)
-   - [Routers (API Endpoints)](#47-routers-approuters)
-   - [Services (Business Logic)](#48-services-appservices)
-   - [Background Tasks (Celery)](#49-background-tasks-apptasks)
-   - [Database Migrations (Alembic)](#410-database-migrations-alembic)
-5. [Frontend — File-by-File](#5-frontend--file-by-file)
-   - [Entry & Routing](#51-entry--routing)
-   - [Auth Context](#52-auth-context)
-   - [API Client](#53-api-client-configapijs)
-   - [Services Layer](#54-services-layer)
-   - [Pages](#55-pages)
-   - [Components](#56-components)
-6. [Data Flow Diagrams](#6-data-flow-diagrams)
-7. [Security Architecture](#7-security-architecture)
-8. [Glossary](#8-glossary-tử-vi-terms)
+> FastAPI + PostgreSQL + Redis + Celery · Python 3.12 · Async-first  
+> Production: https://yinyang.io.vn
 
 ---
 
-## 1. Big Picture
+## Mục Lục
+
+1. [Kiến Trúc Tổng Quan](#1-kiến-trúc-tổng-quan)
+2. [app/main.py](#2-appmainpy)
+3. [app/database.py](#3-appdatabasepy)
+4. [app/dependencies.py](#4-appdependenciespy)
+5. [app/core/config.py](#5-appccoreconfigpy)
+6. [app/core/security.py](#6-appccoresecuritypy)
+7. [app/core/encryption.py](#7-appccoreencryptionpy)
+8. [app/core/rate_limit.py](#8-appccore-rate_limitpy)
+9. [app/models/](#9-appmodels)
+10. [app/schemas/](#10-appschemas)
+11. [app/routers/auth.py](#11-approutersauthpy)
+12. [app/routers/charts.py](#12-approuterschartspy)
+13. [app/routers/ai_interpretation.py](#13-approutersai_interpretationpy)
+14. [app/routers/chat.py](#14-approuterschatpy)
+15. [app/routers/daily_horoscope.py](#15-approutersdaily_horoscopepy)
+16. [app/routers/journal.py](#16-approutersjournalpy)
+17. [app/routers/annotations.py](#17-approutersannotationspy)
+18. [app/routers/notifications.py](#18-approutersnotificationspy)
+19. [app/routers/calendar.py](#19-approuterscalendarpy)
+20. [app/services/auth_service.py](#20-appservicesauth_servicepy)
+21. [app/services/ai_service.py](#21-appservicesai_servicepy)
+22. [app/services/luu_sao_utils.py](#22-appservicesluu_sao_utilspy)
+23. [app/services/notification_service.py](#23-appservicesnotification_servicepy)
+24. [app/services/calendar_service.py](#24-appservicescalendar_servicepy)
+25. [app/services/chart_engine.py](#25-appserviceschart_enginepy)
+26. [app/tasks/celery_app.py](#26-apptaskscelery_apppy)
+27. [app/tasks/jobs.py](#27-apptasksjobspy)
+28. [Alembic Migrations](#28-alembic-migrations)
+29. [Environment Variables](#29-environment-variables)
+
+---
+
+## 1. Kiến Trúc Tổng Quan
 
 ```
-Browser (React)
-    │
-    │  REST JSON  /api/v1/…
-    ▼
-FastAPI (port 8000)
-    │
-    ├── PostgreSQL  — persistent data
-    ├── Redis       — rate-limit counters + daily horoscope cache
-    └── Celery      — background jobs
-          ├── worker  — executes tasks
-          └── beat    — cron scheduler (daily Lưu_Sao + minute reminder check)
+Browser (React + iztro)
+       │  HTTPS REST JSON /api/v1/…
+       ▼
+  Nginx :80/:4173
+       │
+       ▼
+  FastAPI :8000 (uvicorn ASGI)
+       │
+       ├── PostgreSQL 16   (asyncpg driver — async queries)
+       ├── Redis 7         (rate-limit sliding window + horoscope cache)
+       └── Celery
+             ├── worker    (executes tasks)
+             └── beat      (cron scheduler)
+                   ├── 00:05 ICT → recalculate_luu_sao_all_users
+                   └── 07:00 ICT → send_daily_horoscope_emails
 ```
 
-The product lets users:
-- Enter birth data → generate a **Lá Số Tử Vi** (astrology chart) client-side with the `iztro` library
-- Save charts to the backend (birth data encrypted at rest)
-- Get an **AI interpretation** of their chart from Google Gemini
-- Chat with an AI **Tử Vi chatbot** (personalized with their chart)
-- Get a **daily horoscope** (cached in Redis per user per day)
-- Keep a **journal** of daily notes linked to moving-star (Lưu Sao) positions
-- Experts (`chuyen_gia`) can manage **clients**, **appointments**, **attachments**, and generate **PDF reports**
+**Luồng request điển hình:**
+```
+Request → HTTPBearer (extract token) → decode_access_token (JWT verify)
+       → get_current_user (DB lookup) → rate_limit (Redis check)
+       → router handler → service/query → JSON response
+```
 
 ---
 
-## 2. User Roles
+## 2. `app/main.py`
 
-Three roles stored in the `users.role` column:
-
-| Role | Vietnamese | Description |
-|------|-----------|-------------|
-| `nguoi_dung` | Người Dùng | Regular user — can create charts, journal, chatbot |
-| `nghien_cuu` | Nghiên Cứu | Researcher — everything above + named chart configurations, advanced search, batch recalculate |
-| `chuyen_gia` | Chuyên Gia | Expert/Consultant — everything above + CRM (clients, appointments, attachments, PDF reports) |
-
----
-
-## 3. Infrastructure & Docker
-
-### `docker-compose.yml`
-
-Defines 6 services:
-
-| Service | Image/Build | Port | Purpose |
-|---------|------------|------|---------|
-| `db` | postgres:16-alpine | 5432 | PostgreSQL database |
-| `redis` | redis:7-alpine | 6379 | Cache + message broker for Celery |
-| `api` | `./backend` Dockerfile | 8000 | FastAPI app |
-| `worker` | `./backend` Dockerfile | — | Celery worker (task execution) |
-| `beat` | `./backend` Dockerfile | — | Celery beat (cron scheduler) |
-| `frontend` | `./Frontend` Dockerfile | 4173 | React app (Nginx) |
-
-**Startup order:** `db` → `redis` → `api` → `worker` + `beat` + `frontend`
-
-The `api` service runs `backend/start.sh` which:
-1. Runs `alembic upgrade head` (applies DB migrations)
-2. Starts `uvicorn` on port 8000
-
-### `monitoring/`
-- `prometheus.yml` — Prometheus scrape config (scrapes `/metrics` from the API)
-- `monitoring/docker-compose.yml` — separate Compose stack for Prometheus + Grafana
-
-### `nginx/yinyang.io.vn.conf`
-Nginx reverse proxy config for production (yinyang.io.vn domain).
-
----
-
-## 4. Backend — File-by-File
-
-### 4.1 Entry Point — `app/main.py`
-
-The FastAPI application factory. Key things it does:
-
-**Lifespan handler** (runs at startup/shutdown):
+### `lifespan(app)` — async context manager
 ```python
-app.state.redis = aioredis.from_url(settings.REDIS_URL)  # shared Redis connection pool
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.redis = aioredis.from_url(
+        settings.REDIS_URL,
+        encoding="utf-8",
+        decode_responses=True,   # Redis trả str thay vì bytes
+    )
+    yield
+    await app.state.redis.aclose()
 ```
+- Chạy **một lần** khi app khởi động và shutdown
+- `app.state.redis` là shared connection pool — mọi request đều dùng qua `request.app.state.redis`
+- `decode_responses=True`: tự decode bytes → str, không cần `.decode()` thủ công
 
-**Middleware:**
-- `CORSMiddleware` — allows the frontend origins listed in `ALLOWED_ORIGINS`
+### `_basic = HTTPBasic(auto_error=False)`
+- `auto_error=False`: HTTPBasic sẽ không tự raise 401 nếu thiếu credentials — để `_docs_auth` tự xử lý logic (cho phép khi dev mode chưa set password)
 
-**Prometheus metrics:**
-- `Instrumentator().instrument(app).expose(app, endpoint="/metrics")` — auto-instruments every route with latency/count metrics
-
-**Route registration:**
+### `_docs_auth(credentials)` — dependency bảo vệ Swagger UI
+```python
+def _docs_auth(credentials: HTTPBasicCredentials | None = Depends(_basic)):
+    u = settings.DOCS_USERNAME
+    p = settings.DOCS_PASSWORD
+    if not u or not p:
+        return              # dev mode — không cần auth
+    if not credentials:
+        raise HTTPException(401, headers={"WWW-Authenticate": "Basic"})
+    ok = secrets.compare_digest(credentials.username, u) and \
+         secrets.compare_digest(credentials.password, p)
+    if not ok:
+        raise HTTPException(401, headers={"WWW-Authenticate": "Basic"})
 ```
-/api/v1/auth/            → auth router (no rate limit)
-/api/v1/charts/          → charts router (rate limited)
-/api/v1/calendar/        → calendar router (rate limited)
-/api/v1/ai/              → AI interpretation router (rate limited)
-/api/v1/annotations/     → annotations router (rate limited)
-/api/v1/journal/         → journal router (rate limited)
-/api/v1/clients/         → CRM clients router (rate limited)
-/api/v1/appointments/    → CRM appointments router (rate limited)
-/api/v1/attachments/     → CRM attachments router (rate limited)
-/api/v1/reports/         → PDF reports router (rate limited)
-/api/v1/notifications/   → notifications router (rate limited)
-/api/v1/chat/            → chatbot router (rate limited)
-/api/v1/daily-horoscope/ → daily horoscope router (rate limited)
-/health                  → simple health check (returns {"status": "ok"})
-```
+- `secrets.compare_digest` thay vì `==`: so sánh theo constant time, chống **timing attack** (attacker không thể đo thời gian để đoán ký tự đúng)
+- Header `WWW-Authenticate: Basic` khiến trình duyệt hiển thị popup đăng nhập
 
-**Why daily-horoscope is registered before `add_middleware`:**  
-The horoscope endpoint was added before CORS middleware, but since CORS middleware applies to all routes regardless of registration order, this has no practical effect. It's just code ordering.
+### FastAPI instance
+```python
+app = FastAPI(
+    docs_url=None,        # tắt /docs mặc định
+    redoc_url=None,       # tắt /redoc mặc định
+    openapi_url=None,     # tắt /openapi.json mặc định
+    lifespan=lifespan,
+)
+```
+Ba route này được tạo lại thủ công ở cuối file với `_docs_auth` dependency.
+
+### Thứ tự đăng ký router
+```python
+# 1. daily_horoscope TRƯỚC add_middleware
+app.include_router(daily_horoscope.router, prefix="/api/v1/daily-horoscope")
+
+# 2. CORS middleware
+app.add_middleware(CORSMiddleware, allow_origins=settings.ALLOWED_ORIGINS, ...)
+
+# 3. Các router còn lại với rate_limit
+_rate_limited = [Depends(rate_limit)]
+app.include_router(auth.router, prefix="/api/v1/auth")           # không rate limit
+app.include_router(charts.router, ..., dependencies=_rate_limited)
+app.include_router(calendar.router, ..., dependencies=_rate_limited)
+app.include_router(ai_interpretation.router, ..., dependencies=_rate_limited)
+app.include_router(annotations.router, ..., dependencies=_rate_limited)
+app.include_router(journal.router, ..., dependencies=_rate_limited)
+app.include_router(notifications.router, ..., dependencies=_rate_limited)
+app.include_router(chat.router, ..., dependencies=_rate_limited)
+```
+> **Ghi chú:** `auth` không có rate limit vì login/register cần accessible mọi lúc. Rate limit ở đây dựa vào `current_user` (JWT), nhưng auth endpoints chưa có JWT nên không thể dùng dependency đó.
+
+### Routes cuối file
+```python
+GET /health            → {"status": "ok"}     (không auth, dùng cho Docker healthcheck)
+GET /api/openapi.json  → app.openapi()         (Basic Auth)
+GET /api/docs          → Swagger UI HTML       (Basic Auth)
+GET /api/redoc         → ReDoc HTML            (Basic Auth)
+GET /metrics           → Prometheus (tự tạo bởi Instrumentator)
+```
 
 ---
 
-### 4.2 Core Modules (`app/core/`)
+## 3. `app/database.py`
 
-#### `config.py` — Application Settings
+### Engine
+```python
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.DEBUG,      # in SQL ra console khi DEBUG=True
+    pool_pre_ping=True,       # gửi SELECT 1 trước khi dùng connection
+)
+```
+- `pool_pre_ping=True`: tránh lỗi `connection closed` khi PostgreSQL restart hay idle timeout. Trước mỗi query, SQLAlchemy test connection còn sống không
+- `echo=True` trong dev: in toàn bộ SQL generated ra console, hữu ích để debug N+1 queries
+
+### Session factory
+```python
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,   # object dùng được sau commit()
+)
+```
+- `expire_on_commit=False`: Mặc định SQLAlchemy mark tất cả attributes là "expired" sau `commit()` — truy cập attribute tiếp theo sẽ trigger SELECT mới. Với async, session có thể đã đóng → lỗi. Tắt đi để đọc attribute thoải mái sau commit
+
+### `Base`
+```python
+class Base(DeclarativeBase):
+    pass
+```
+Tất cả ORM models kế thừa `Base`. SQLAlchemy dùng `Base.metadata` để biết toàn bộ bảng (dùng trong Alembic autogenerate).
+
+### `get_db()` — FastAPI dependency
+```python
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+```
+- `async with` tự close session sau request kể cả khi có exception
+- Explicit rollback để không để lại transaction dở trong DB
+- Inject vào handler: `db: AsyncSession = Depends(get_db)`
+
+---
+
+## 4. `app/dependencies.py`
+
+### `bearer_scheme = HTTPBearer()`
+Đọc `Authorization: Bearer <token>` từ header. Tự trả 403 nếu thiếu header (không có token).
+
+### `get_current_user(credentials, db) -> User`
+```python
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    payload = decode_access_token(credentials.credentials)
+    if payload is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    user_id = payload.get("sub")
+    result = await db.execute(select(User).where(User.user_id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
+```
+**Các bước:**
+1. Extract JWT string từ `credentials.credentials`
+2. `decode_access_token` → `None` nếu expired/invalid signature/type != "access"
+3. Lấy `user_id` từ `sub` claim (UUID string)
+4. `SELECT * FROM users WHERE user_id = ?`
+5. 401 nếu không tìm thấy (user bị xóa sau khi token được cấp)
+6. Return `User` ORM object
+
+---
+
+## 5. `app/core/config.py`
+
+### `Settings` — Pydantic BaseSettings
+Đọc env vars từ `.env` rồi `.env.local` (`.env.local` override). `lru_cache` đảm bảo chỉ parse **một lần**.
+
+| Field | Type | Default | Bắt buộc | Mô tả |
+|-------|------|---------|----------|-------|
+| `APP_NAME` | str | "Tử Vi API" | | Tên app |
+| `DEBUG` | bool | False | | In SQL, verbose |
+| `DATABASE_URL` | str | | ✅ | `postgresql+asyncpg://user:pass@host/db` |
+| `REDIS_URL` | str | | ✅ | `redis://host:6379/0` |
+| `SECRET_KEY` | str | | ✅ | JWT signing key — startup fail nếu thiếu |
+| `ALGORITHM` | str | "HS256" | | JWT algorithm |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | int | 60 | | Access token TTL |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | int | 30 | | Refresh token TTL |
+| `GOOGLE_CLIENT_ID` | str | "" | | Google OAuth |
+| `GOOGLE_CLIENT_SECRET` | str | "" | | Google OAuth |
+| `GOOGLE_REDIRECT_URI` | str | localhost | | OAuth callback |
+| `FIELD_ENCRYPTION_KEY` | str | | ✅ | 64-char hex (32 bytes AES-256) |
+| `GEMINI_API_KEY` | str | "" | | Google Gemini |
+| `RATE_LIMIT_REQUESTS` | int | 100 | | Max requests/window |
+| `RATE_LIMIT_WINDOW_SECONDS` | int | 60 | | Window size |
+| `ALLOWED_ORIGINS` | list[str] | localhost | | CORS allowlist |
+| `FRONTEND_URL` | str | localhost:4173 | | OAuth redirect target |
+| `DOCS_USERNAME` | str | "" | | Basic auth username cho /api/docs |
+| `DOCS_PASSWORD` | str | "" | | Basic auth password. Trống = dev mode |
+| `SMTP_HOST` | str | "smtp.gmail.com" | | SMTP server |
+| `SMTP_PORT` | int | 587 | | STARTTLS port |
+| `SMTP_USER` | str | "" | | Gmail account xác thực |
+| `SMTP_PASSWORD` | str | "" | | Gmail App Password (16 ký tự) |
+| `SMTP_FROM` | str | "" | | Địa chỉ From (alias). Fallback = SMTP_USER |
+
+### `get_settings() -> Settings`
+```python
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+```
+Singleton. Gọi nhiều lần vẫn trả cùng object. Tránh đọc file `.env` nhiều lần.
+
+---
+
+## 6. `app/core/security.py`
+
+### `hash_password(password: str) -> str`
+```python
+salt = bcrypt.gensalt(rounds=12)
+return bcrypt.hashpw(password.encode(), salt).decode()
+```
+- **12 rounds** (cost factor): ~250ms/hash trên hardware thông thường — đủ chậm để brute force không khả thi nhưng không ảnh hưởng UX
+- Salt ngẫu nhiên mỗi lần: cùng password → hash khác nhau → chống rainbow table attack
+
+### `verify_password(plain: str, hashed: str) -> bool`
+```python
+return bcrypt.checkpw(plain.encode(), hashed.encode())
+```
+bcrypt tự extract salt từ trong chuỗi hash. So sánh constant-time.
+
+### `_create_token(data, expires_delta) -> str` — private
+```python
+payload = data.copy()
+payload["exp"] = datetime.now(timezone.utc) + expires_delta
+return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+```
+Base function. `exp` claim là UNIX timestamp — `python-jose` tự validate khi decode.
+
+### `create_access_token(subject: str) -> str`
+```python
+return _create_token(
+    {"sub": subject, "type": "access"},
+    timedelta(minutes=60)
+)
+```
+- `sub`: `user_id` dạng UUID string
+- `type: "access"`: phân biệt với refresh token để không dùng nhầm
+
+### `create_refresh_token(subject: str) -> str`
+Giống nhưng TTL 30 ngày và `type: "refresh"`.  
+**Lưu ý:** Refresh token endpoint (`/auth/refresh`) chưa được implement — infrastructure đã có nhưng chưa expose API.
+
+### `decode_access_token(token: str) -> dict | None`
+```python
+try:
+    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    if payload.get("type") != "access":
+        return None      # từ chối refresh token nếu ai cố dùng nhầm
+    return payload
+except JWTError:
+    return None          # expired, bad signature, malformed
+```
+Trả `None` thay vì raise exception để caller quyết định cách xử lý.
+
+---
+
+## 7. `app/core/encryption.py`
+
+Mã hóa `dob_solar` và `birth_hour` trước khi lưu DB. Dùng **AES-256-GCM**.
+
+### `_get_key() -> bytes`
+```python
+return bytes.fromhex(settings.FIELD_ENCRYPTION_KEY)
+```
+Convert 64-char hex string → 32 bytes. Key dùng chung cho toàn bộ app (single-tenant).
+
+### `encrypt_field(plaintext: str) -> str`
+```python
+nonce = os.urandom(12)                          # 12 bytes ngẫu nhiên mỗi lần
+ct = AESGCM(key).encrypt(nonce, plaintext.encode(), None)
+return base64.b64encode(nonce + ct).decode()
+```
+- **Nonce 12 bytes ngẫu nhiên**: đảm bảo cùng plaintext → ciphertext khác nhau mỗi lần encrypt
+- **AES-256-GCM** (Galois/Counter Mode): *authenticated encryption* — vừa encrypt vừa tạo authentication tag 16 bytes. Nếu ai sửa ciphertext, decrypt sẽ raise `InvalidTag` exception
+- Output: `base64(nonce[12 bytes] + ciphertext + auth_tag[16 bytes])`
+- Tại sao GCM thay vì CBC? CBC chỉ encrypt, không detect tampering. GCM đảm bảo cả confidentiality + integrity
+
+### `decrypt_field(ciphertext: str) -> str`
+```python
+raw = base64.b64decode(ciphertext.encode())
+nonce, ct = raw[:12], raw[12:]
+return AESGCM(key).decrypt(nonce, ct, None).decode()
+```
+Tách 12 bytes đầu là nonce, phần còn lại là ciphertext+tag. AESGCM tự verify tag trước khi decrypt.
+
+---
+
+## 8. `app/core/rate_limit.py`
+
+### `rate_limit(request, current_user)` — FastAPI dependency
+
+Thuật toán **Sliding Window** dùng Redis Sorted Set:
 
 ```python
-class Settings(BaseSettings):
-    DATABASE_URL: str          # PostgreSQL async URL
-    REDIS_URL: str             # Redis URL
-    SECRET_KEY: str            # JWT signing key (required, no default)
-    FIELD_ENCRYPTION_KEY: str  # AES-256 key as hex (required, no default)
-    GEMINI_API_KEY: str        # Google Gemini API key
-    RATE_LIMIT_REQUESTS: int = 100  # per window
-    RATE_LIMIT_WINDOW_SECONDS: int = 60
-    MAX_AUDIO_SIZE: int = 50MB
-    MAX_PDF_SIZE: int = 10MB
-    PDF_LINK_TTL_HOURS: int = 24
-    ALLOWED_ORIGINS: list[str]
+key = f"rate:{current_user.user_id}"
+now = int(time.time())                           # UNIX timestamp hiện tại
+window_start = now - RATE_LIMIT_WINDOW_SECONDS  # 60 giây trước
+
+pipe = redis.pipeline()
+pipe.zremrangebyscore(key, 0, window_start)  # xóa timestamps cũ hơn 60s
+pipe.zadd(key, {str(now): now})              # thêm timestamp hiện tại (score=time)
+pipe.zcard(key)                              # đếm phần tử còn lại (= requests trong 60s)
+pipe.expire(key, RATE_LIMIT_WINDOW_SECONDS)  # auto-cleanup key sau 60s
+results = await pipe.execute()              # 1 round-trip Redis duy nhất
+
+count = results[2]
+if count > RATE_LIMIT_REQUESTS:             # > 100
+    raise HTTPException(429, headers={"Retry-After": "60"})
 ```
 
-`get_settings()` is decorated with `@lru_cache` — settings are read from `.env` once and reused (singleton pattern).
+**Redis Pipeline:** Gửi 4 lệnh trong 1 network round-trip. Không dùng pipeline → 4 round-trips riêng = chậm hơn 4x.
+
+**Sorted Set:** `ZADD key {member: score}` — member là timestamp string (đảm bảo unique), score là UNIX timestamp (dùng để range query bằng `ZREMRANGEBYSCORE`).
+
+**Tại sao Sliding Window tốt hơn Fixed Window?**
+- Fixed Window: window reset mỗi 60s. Có thể gửi 100 req cuối window + 100 req đầu window mới = 200 req trong 2 giây
+- Sliding Window: bất kỳ khoảng 60s nào cũng ≤ 100 req
 
 ---
 
-#### `security.py` — JWT & Password Hashing
+## 9. `app/models/`
 
-| Function | Purpose |
-|----------|---------|
-| `hash_password(password)` | bcrypt hash with 12 rounds (cost factor ≥ 12 for security) |
-| `verify_password(plain, hashed)` | bcrypt comparison |
-| `create_access_token(subject)` | Creates JWT with `type: access`, expires in 60 min |
-| `create_refresh_token(subject)` | Creates JWT with `type: refresh`, expires in 30 days |
-| `decode_access_token(token)` | Decodes JWT, validates type == "access", returns payload or None |
-
-The `subject` is always the `user_id` (UUID string).  
-JWTs use HS256 algorithm with the app's `SECRET_KEY`.
-
----
-
-#### `encryption.py` — AES-256-GCM Field Encryption
-
-Used to encrypt **birth date** and **birth hour** before storing in the DB.
-
-| Function | Purpose |
-|----------|---------|
-| `encrypt_field(plaintext)` | Generates random 12-byte nonce, encrypts with AES-GCM, returns `base64(nonce + ciphertext)` |
-| `decrypt_field(ciphertext)` | Decodes base64, splits nonce/ciphertext, decrypts |
-
-The key is stored as a hex string in `FIELD_ENCRYPTION_KEY` env var. Why AES-GCM? It's authenticated encryption — provides both confidentiality and integrity.
-
----
-
-#### `rate_limit.py` — Sliding Window Rate Limiter
-
-```python
-async def rate_limit(request, current_user):
-    # Uses Redis sorted set: key = "rate:{user_id}"
-    # Scores = timestamps; removes entries older than the window
-    # Counts current entries; raises 429 if > RATE_LIMIT_REQUESTS
-```
-
-**How the sliding window works:**
-1. `ZREMRANGEBYSCORE` — remove timestamps older than `now - 60s`
-2. `ZADD` — add current timestamp
-3. `ZCARD` — count entries in window
-4. `EXPIRE` — auto-cleanup after window expires
-
-Applied globally to all authenticated routes via `dependencies=_rate_limited` in `main.py`.
-
----
-
-### 4.3 Database Layer
-
-#### `database.py`
-
-```python
-engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
-AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
-
-class Base(DeclarativeBase): pass  # All ORM models inherit from this
-
-async def get_db() -> AsyncSession:
-    # FastAPI dependency — yields a session, rolls back on exception
-```
-
-`expire_on_commit=False` means ORM objects remain usable after `commit()` without issuing new SELECT queries — important for async code.
-
-`pool_pre_ping=True` tests DB connections before use to handle dropped connections.
-
----
-
-### 4.4 Dependencies (`app/dependencies.py`)
-
-Two FastAPI dependency functions used throughout routers:
-
-#### `get_current_user`
-1. Extracts `Bearer <token>` from `Authorization` header
-2. Calls `decode_access_token()` — returns 401 if invalid
-3. Queries DB for the user by `user_id` from token's `sub` claim
-4. Returns the `User` ORM object
-
-#### `require_role(*roles)`
-A **factory function** that returns a FastAPI dependency.
-
-```python
-_expert = require_role("chuyen_gia")          # reusable dependency
-_researcher = require_role("nghien_cuu", "chuyen_gia")
-```
-
-Calls `get_current_user` then checks `user.role in roles`. Returns 403 if not.
-
----
-
-### 4.5 Models (`app/models/`)
-
-All models inherit from `Base` (SQLAlchemy ORM, async).
-
-#### `user.py` — `User`
-
+### `user.py` — `User`
 ```
 users
-├── user_id        UUID PK
-├── email          unique, indexed
-├── full_name      nullable
-├── hashed_password nullable (null for OAuth users)
-├── google_id      unique, nullable
-├── facebook_id    unique, nullable
-├── role           Enum: nguoi_dung | nghien_cuu | chuyen_gia
-├── is_active      bool (false = queued for deletion)
-├── created_at
-├── last_login     nullable
-├── streak_count   int (login streak)
-└── notify_channel Enum: email | push | both
+├── user_id         UUID PK, default uuid4
+├── email           String(255), unique, NOT NULL, indexed
+├── full_name       String(255), nullable
+├── hashed_password String(255), nullable  ← null = OAuth user (không có mật khẩu)
+├── google_id       String(255), unique, nullable
+├── is_active       Boolean, default True  ← False = queued for deletion
+├── created_at      DateTime(tz), server_default=now()
+├── last_login      DateTime(tz), nullable
+├── streak_count    Integer, default 0     ← consecutive daily checkins
+└── notify_channel  Enum('email','push','both'), default 'email'
 ```
 
-Relationships:
-- `charts` → one-to-many → `Chart` (cascade delete)
-- `annotations` → one-to-many → `Annotation` (cascade delete)
-- `journal_logs` → one-to-many → `JournalLog` (cascade delete)
+Relationships (tất cả `cascade="all, delete-orphan"`):
+- `charts` → `Chart`
+- `annotations` → `Annotation`  
+- `journal_logs` → `JournalLog`
+- `notifications` → `Notification`
 
----
-
-#### `chart.py` — `Chart` + `ChartConfiguration`
-
+### `chart.py` — `Chart`
 ```
 charts
-├── chart_id           UUID PK
-├── user_id            FK → users (cascade delete)
-├── name               person's name
-├── gender             "male" | "female"
-├── dob_solar_enc      AES-256 encrypted ISO date string
-├── birth_hour_enc     AES-256 encrypted "HH:MM"
-├── dob_lunar_year/month/day/leap  computed lunar date (plain text for fast queries)
-├── chart_matrix       JSONB — the full 12-palace star placement from iztro
-├── configuration_id   FK → chart_configurations (nullable)
-├── ai_interpretation  JSONB — cached Gemini response
-├── ai_cached_at       timestamp of AI cache
-└── created_at
+├── chart_id          UUID PK
+├── user_id           UUID, FK → users (CASCADE DELETE)
+├── name              String(255), NOT NULL    ← tên người được xem
+├── gender            String(10), NOT NULL     ← "male" | "female"
+├── dob_solar_enc     Text, NOT NULL           ← AES-256-GCM encrypted "YYYY-MM-DD"
+├── birth_hour_enc    Text, NOT NULL           ← AES-256-GCM encrypted "HH:MM"
+├── dob_lunar_year    Integer
+├── dob_lunar_month   Integer
+├── dob_lunar_day     Integer
+├── dob_lunar_leap    Boolean                  ← tháng nhuận?
+├── chart_matrix      JSONB                    ← toàn bộ data từ iztro
+├── ai_interpretation JSONB, nullable          ← cached Gemini response
+├── ai_cached_at      DateTime(tz), nullable
+└── created_at        DateTime(tz), server_default=now()
 ```
 
-```
-chart_configurations
-├── configuration_id  UUID PK
-├── user_id           FK → users
-├── name              config name
-├── rules             JSONB — custom star placement rules
-└── created_at
-```
+> `chart_matrix` JSONB structure (từ iztro):
+> ```json
+> {
+>   "soul": "Tử Vi",     "body": "Thiên Cơ",
+>   "fiveElementsClass": "Thủy Nhị Cục",
+>   "palaces": [
+>     {
+>       "name": "命宫",           "earthlyBranch": "寅",
+>       "majorStars": [{"name": "紫微", ...}],
+>       "minorStars": [...],
+>       "adjectiveStars": [...],
+>       "decadal": {"range": [2, 11], ...}
+>     }, ...  (12 cung)
+>   ]
+> }
+> ```
 
-**Why is `chart_matrix` stored?** The `iztro` library runs in the browser. The backend stores the result so you don't recompute it every time and can do server-side search/comparison.
-
----
-
-#### `client.py` — `Client` (CRM)
-
-```
-clients
-├── client_id         UUID PK
-├── expert_id         FK → users (only chuyen_gia can own clients)
-├── name, email, phone, notes
-├── tags              ARRAY(String) — for OR-filtered search
-├── last_consultation Date
-└── created_at
-```
-
-Relationships: `appointments`, `attachments` (both cascade delete).
-
----
-
-#### `appointment.py` — `Appointment`
-
-```
-appointments
-├── appointment_id  UUID PK
-├── client_id       FK → clients (cascade delete)
-├── expert_id       FK → users
-├── scheduled_at    DateTime (with timezone)
-├── status          Enum: pending | confirmed | cancelled
-├── payment_status  Enum: unpaid | paid | refunded
-├── meeting_link    auto-generated secure URL
-├── notes
-└── created_at
-```
-
----
-
-#### `annotation.py` — `Annotation`
-
-User notes attached to a specific chart, optionally pinned to a house (1-12) or star name.
-
+### `annotation.py` — `Annotation`
 ```
 annotations
 ├── annotation_id  UUID PK
-├── user_id        FK → users
-├── chart_id       FK → charts
-├── house_number   1-12, nullable
-├── star_name      nullable
-├── content        text
-├── created_at
-└── modified_at    auto-updated on change
+├── user_id        UUID, FK → users
+├── chart_id       UUID, FK → charts
+├── house_number   Integer, nullable (1–12; null = ghi chú chung)
+├── star_name      String(100), nullable
+├── content        Text, NOT NULL
+├── created_at     DateTime(tz)
+└── modified_at    DateTime(tz), onupdate=func.now()
 ```
 
----
-
-#### `journal.py` — `JournalLog`
-
-One log per user per date. Records daily notes + the daily moving-star (Lưu Sao) positions.
-
+### `journal.py` — `JournalLog`
 ```
 journal_logs
 ├── log_id             UUID PK
-├── user_id            FK → users
-├── log_date           Date (indexed)
-├── content            text (nullable)
-└── luu_sao_positions  JSONB — {star_name: house_number, ...}
+├── user_id            UUID, FK → users, indexed
+├── log_date           Date, NOT NULL, indexed
+├── content            Text, nullable
+└── luu_sao_positions  JSONB, nullable
 ```
+Constraint (không tường minh trong code, enforce ở app layer): unique(user_id, log_date).
 
----
-
-#### `attachment.py` — `Attachment`
-
-Files (audio recordings or PDFs) attached to a client. Supports: mp3, wav, m4a, pdf.
-
-```
-attachments
-├── attachment_id   UUID PK
-├── client_id       FK → clients (cascade delete)
-├── appointment_id  FK → appointments (set null on delete, nullable)
-├── file_name, file_type (MIME), file_size (bytes)
-├── storage_path    path in object storage (TODO: S3/GCS)
-└── upload_date
-```
-
----
-
-### 4.6 Schemas (`app/schemas/`)
-
-Pydantic models for request validation and response serialization.
-
-| File | Key Schemas |
-|------|------------|
-| `auth.py` | `RegisterRequest`, `LoginRequest`, `TokenResponse`, `UserResponse`, `RegisterResponse` |
-| `chart.py` | `ChartCreateRequest`, `ChartResponse`, `ChartSearchRequest`, `ChartCompareRequest`, `ConfigurationCreateRequest`, `ConfigurationResponse` |
-| `client.py` | `ClientCreateRequest`, `ClientUpdateRequest`, `ClientResponse`, `BulkTagRequest`, `BulkExportRequest` |
-| `appointment.py` | `AppointmentCreateRequest`, `AppointmentUpdateRequest`, `AppointmentResponse` |
-| `annotation.py` | `AnnotationCreateRequest`, `AnnotationUpdateRequest`, `AnnotationResponse` |
-| `journal.py` | `JournalLogCreate`, `JournalLogUpdate`, `JournalLogResponse` |
-
----
-
-### 4.7 Routers (`app/routers/`)
-
-#### `auth.py` — Authentication
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/register` | None | Create account. Returns 400 generically on duplicate (never reveals why) |
-| POST | `/login` | None | Email+password login. Updates `last_login`. Returns access + refresh tokens |
-| GET | `/google/login` | None | Redirects to Google OAuth consent screen |
-| GET | `/google/callback` | None | Receives OAuth `code`, exchanges for tokens, redirects to frontend with tokens in URL |
-| GET | `/me` | JWT | Returns current user info |
-| DELETE | `/me` | JWT | Marks `is_active=False` (soft delete). Data removed within 30 days by a background job |
-
----
-
-#### `charts.py` — Lá Số Management
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/compare` | JWT | Compare two charts. Body: `{chart_id_a, chart_id_b, view}`. View: "side_by_side" or "merged". Returns compatibility score |
-| POST | `/search` | JWT | Filter charts by date range and/or star name and/or house number |
-| POST | `/configurations` | Researcher+ | Save a named chart configuration (custom star rules) |
-| GET | `/configurations` | Researcher+ | List own configurations |
-| GET | `/latest` | JWT | Get the user's most recently created chart |
-| POST | `/` | JWT | **Create/save a chart.** Receives `chart_matrix` from frontend iztro, encrypts birth data, converts solar→lunar, stores |
-| GET | `/` | JWT | List all own charts (newest first) |
-| GET | `/{chart_id}` | JWT | Get a specific chart (decrypts birth data in response) |
-| DELETE | `/{chart_id}` | JWT | Delete a chart |
-
-**Key design note:** `/compare`, `/search`, `/configurations`, `/latest` are all registered BEFORE `/{chart_id}` to prevent FastAPI from treating those path segments as UUID params.
-
-**`_build_chart_response`** — decrypts `dob_solar_enc` and `birth_hour_enc` before returning to the client.
-
----
-
-#### `ai_interpretation.py` — AI Chart Reading
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/{chart_id}/interpret` | JWT | Generate Gemini interpretation. Returns cached result if `ai_interpretation` already set |
-
-Cache strategy: interpretation is stored in `charts.ai_interpretation` (JSONB). Once generated, it never expires unless the chart is deleted.
-
----
-
-#### `chat.py` — Tử Vi Chatbot
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/` | JWT | Multi-turn chat with Gemini. Loads user's latest chart for personalized context |
-
-**Request body:**
+`luu_sao_positions` JSONB:
 ```json
 {
-  "message": "Cung Mệnh của tôi có ý nghĩa gì?",
-  "history": [{"role": "user", "text": "..."}, {"role": "model", "text": "..."}]
+  "luu_nhat": {
+    "can": "Giáp", "chi": "Thìn",
+    "Lưu Nhật Lộc Tồn":   {"chi": "Dần",  "house": 10},
+    "Lưu Nhật Kình Dương": {"chi": "Mão",  "house": 11},
+    "Lưu Nhật Đà La":      {"chi": "Sửu",  "house": 9},
+    "Lưu Nhật Thiên Mã":   {"chi": "Dần",  "house": 10},
+    "Lưu Nhật Thái Tuế":   {"chi": "Thìn", "house": 12},
+    "Lưu Nhật Tang Môn":   {"chi": "Ngọ",  "house": 2},
+    "Lưu Nhật Bạch Hổ":    {"chi": "Tuất", "house": 6},
+    "tu_hoa": {"Liêm Trinh": "Hóa Lộc", "Phá Quân": "Hóa Quyền", ...}
+  },
+  "luu_nguyet": { ... },
+  "luu_nien":   { ... }
 }
 ```
 
-The system prompt includes:
-- Role definition (Tử Vi expert at YinYang)
-- User's chart summary (from `_summarise_matrix`)
-- Previous AI interpretation if available
-
-Only the last 10 messages from history are sent to Gemini (context window management).
-
----
-
-#### `daily_horoscope.py` — Daily Horoscope
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/` | JWT | Get today's personalized horoscope |
-
-**Caching strategy:**
-1. Check Redis key `horoscope:{user_id}:{YYYY-MM-DD}`
-2. If hit → return immediately
-3. If miss → call Gemini, cache with TTL = seconds until midnight UTC
-4. Falls back to generic horoscope if user has no chart
+### `notification.py` — `Notification`
+```
+notifications
+├── id           UUID PK, default uuid4
+├── user_id      UUID, FK → users (CASCADE DELETE), indexed
+├── title        String(255), NOT NULL
+├── body         Text, NOT NULL
+├── notif_type   String(50), default "info"  ← "info" | "luu_sao" | "system"
+├── is_read      Boolean, default False, NOT NULL
+└── created_at   DateTime(tz), server_default=now()
+```
 
 ---
 
-#### `calendar.py` — Date Conversion
+## 10. `app/schemas/`
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/solar-to-lunar` | None | Gregorian → Vietnamese lunar date |
-| POST | `/lunar-to-solar` | None | Lunar → Gregorian (round-trip) |
+### `auth.py`
 
-No authentication required (public utility endpoints).
+**`RegisterRequest`**
+```python
+email: EmailStr          # Pydantic validate format
+password: str            # validator: len >= 8, raise ValueError nếu không đủ
+full_name: Optional[str] = None
+```
 
----
+**`LoginRequest`**
+```python
+email: EmailStr
+password: str
+```
 
-#### `clients.py` — CRM Client Management (Expert only)
+**`TokenResponse`**
+```python
+access_token: str
+refresh_token: str
+token_type: str = "bearer"
+```
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/` | Expert | Create a client profile |
-| GET | `/` | Expert | List clients. Optional `?tags=tag1&tags=tag2` for OR-filter |
-| GET | `/{client_id}` | Expert | Get one client |
-| PATCH | `/{client_id}` | Expert | Update client fields |
-| DELETE | `/{client_id}` | Expert | Delete client (cascades to appointments + attachments) |
-| POST | `/bulk/tag` | Expert | Add tags to multiple clients at once |
-| POST | `/bulk/export` | Expert | Export client list as CSV or JSON |
+**`UserResponse`** — trả về từ GET/PATCH /me
+```python
+user_id: UUID
+email: str
+full_name: Optional[str] = None
+streak_count: int
+notify_channel: str = "email"
+created_at: Optional[datetime] = None
+last_login: Optional[datetime] = None
+has_password: bool = False      # derived field — tính từ hashed_password is not None
+                                # không lưu trong DB, router tính thủ công
+model_config = {"from_attributes": True}
+```
 
----
+**`UpdateProfileRequest`**
+```python
+full_name: Optional[str] = None
+notify_channel: Optional[str] = None  # validator: phải là "email"|"push"|"both"
+```
+Cả hai field Optional — partial update.
 
-#### `appointments.py` — CRM Appointments (Expert only)
+**`ChangePasswordRequest`**
+```python
+current_password: str
+new_password: str    # validator: len >= 8
+```
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/` | Expert | Create appointment. Auto-generates meeting link. Schedules 15-min reminder |
-| PATCH | `/{appointment_id}` | Expert | Update status, payment_status, notes, etc. |
-| GET | `/` | Expert | List all appointments ordered by scheduled time |
+### `chart.py`
 
----
+**`ChartCreateRequest`**
+```python
+name: str
+gender: str                    # "male" | "female"
+dob_solar: str                 # "YYYY-MM-DD"
+birth_hour: Optional[str]      # "HH:MM" — None → default "12:00"
+chart_matrix: dict             # JSON từ iztro (toàn bộ palace data)
+timezone_offset: int = 7       # UTC+7 Vietnam
+```
 
-#### `attachments.py` — CRM File Uploads (Expert only)
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/` | Expert | Upload audio (mp3/wav/m4a, max 50MB) or PDF (max 10MB). Validates MIME type and size |
-| GET | `/{attachment_id}/download-url` | Expert | Get signed download URL (24h TTL) |
-
-**Note:** Storage path is computed but actual file write to S3/GCS is marked TODO. Currently, the metadata is stored but the file bytes are not persisted beyond the request.
-
----
-
-#### `annotations.py` — Chart Annotations
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/` | JWT | Create annotation on a chart (optionally pin to house/star) |
-| GET | `/` | JWT | List annotations. Optional `?chart_id=...` filter |
-| PATCH | `/{annotation_id}` | JWT | Update annotation content |
-| DELETE | `/{annotation_id}` | JWT | Delete annotation |
-
----
-
-#### `journal.py` — Daily Journal
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/` | JWT | Create or update (upsert) journal log for a date. Auto-computes Lưu Sao positions |
-| GET | `/` | JWT | List logs. Optional `?date_from=...&date_to=...` filter |
-| GET | `/{log_date}` | JWT | Get log for specific date (YYYY-MM-DD) |
-| PATCH | `/{log_date}` | JWT | Update content of existing log |
-| DELETE | `/{log_date}` | JWT | Delete a log |
-
----
-
-#### `notifications.py` — Notifications & Lưu Sao
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/luu-sao` | JWT | Get today's Lưu Sao positions. Creates today's journal log if not exists |
-| POST | `/luu-sao/refresh` | JWT | Force-recalculate Lưu Sao for today |
-| POST | `/daily-recalculate` | Expert/Researcher | Batch recalculate for ALL active users (also called by Celery cron) |
-| POST | `/test-send` | JWT | Send a test notification via user's preferred channel |
-
----
-
-#### `reports.py` — PDF Report Export (Expert only)
-
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| POST | `/` | Expert | Generate branded PDF lá số report. Returns signed download URL |
-| GET | `/download/{token}` | None | Stream the PDF if token is valid and not expired |
-
----
-
-### 4.8 Services (`app/services/`)
-
-#### `auth_service.py` — `AuthService`
-
-| Method | Purpose |
-|--------|---------|
-| `verify_password(plain, hashed)` | bcrypt check, handles null hash for OAuth users |
-| `register(db, email, password, full_name)` | Hashes password, creates User, commits |
-| `create_tokens(user_id)` | Returns `TokenResponse` with access + refresh tokens |
-| `google_auth_url()` | Builds Google OAuth redirect URL |
-| `google_callback(db, code)` | Exchanges OAuth code for tokens, fetches user info, upserts User |
-| `queue_deletion(db, user)` | Sets `is_active=False` (data removal happens in background job) |
-
----
-
-#### `chart_engine.py` — `ChartEngine` (Tử Vi Calculation)
-
-The core astrology calculation engine. **Note:** In practice, iztro runs in the browser and the result (`chart_matrix`) is sent to the backend. The backend's `ChartEngine` is used for server-side features like comparison and search.
-
-**Constants:**
-- `CHI` — 12 earthly branches (Tý, Sửu, Dần, …, Hợi)
-- `HOUR_TO_CHI` — maps pairs of hours to branch index
-- `_CHINH_TINH` — 14 main stars
-- `_PHU_TINH_*` — 45+ auxiliary stars split into year-based, birth-chi-based, and static groups
-
-**Private functions:**
-
-| Function | Purpose |
-|----------|---------|
-| `_hour_to_chi_index(birth_hour)` | Converts "HH:MM" → branch index 0-11 |
-| `_cung_menh(lunar_month, birth_chi)` | Calculates the Life Palace (Cung Mệnh) house index |
-| `_cung_than(lunar_year, birth_chi)` | Calculates the Body Palace (Cung Thân) house index |
-| `_place_chinh_tinh(lunar_day)` | Places 14 main stars across 12 houses using canonical Tử Vi algorithm |
-| `_place_phu_tinh(lunar_year, birth_chi, gender)` | Places 45+ auxiliary stars |
-| `_compatibility_score(a, b)` | Overlap-based score 0.0–1.0 between two chart matrices |
-
-**Public API:**
-
-| Method | Purpose |
-|--------|---------|
-| `ChartEngine.solar_to_lunar(solar_date, tz)` | Delegates to `CalendarService` |
-| `ChartEngine.calculate(lunar, birth_hour, gender)` | Full chart calculation → `{"1": [...stars], ..., "12": [...]}` |
-| `ChartEngine.compare(matrix_a, matrix_b, view)` | Side-by-side or merged comparison with compatibility score |
-
----
-
-#### `calendar_service.py` — `CalendarService`
-
-Implements Vietnamese astronomical lunar calendar conversion (valid 1900–2100).
-
-| Method | Purpose |
-|--------|---------|
-| `solar_to_lunar(solar_date, timezone_offset)` | Gregorian → `{year, month, day, is_leap_month}` |
-| `lunar_to_solar(lunar_year, month, day, is_leap, tz)` | Lunar → `{solar_date: "YYYY-MM-DD"}` |
-
-**Low-level helpers:**
-
-| Function | Purpose |
-|----------|---------|
-| `_solar_to_jd(dd, mm, yy)` | Date → Julian Day Number |
-| `_jd_to_solar(jd)` | Julian Day → (day, month, year) |
-| `_new_moon(k)` | Julian day of the k-th new moon (astronomical formula) |
-| `_sun_longitude(jd, tz)` | Sun longitude in 30° sectors (used to find month 11 / leap months) |
-| `_get_lunar_month_11(yy, tz)` | JD of the start of lunar month 11 for a given year |
-| `_jd_to_lunar(jd, tz)` | Julian Day → `{year, month, day, is_leap_month}` |
-| `_find_leap_month(a11, tz)` | Find which month index is the leap month in a year |
-| `_lunar_to_jd(dd, mm, yy, is_leap, tz)` | Lunar date → Julian Day |
-
----
-
-#### `ai_service.py` — `AIService`
-
-Handles chart interpretation via Google Gemini.
-
-| Function/Method | Purpose |
-|----------------|---------|
-| `_summarise_matrix(matrix)` | Converts raw iztro JSONB → compact Vietnamese text. Translates Chinese palace names to Vietnamese (命宫→Mệnh, etc.) |
-| `_build_prompt(matrix)` | Builds the full Gemini prompt asking for structured JSON output with 7 fields |
-| `AIService.interpret(chart_matrix)` | Calls Gemini, parses JSON response, handles markdown code fences, falls back gracefully |
-| `_fallback()` | Returns a stub dict when Gemini is unavailable |
-
-**Output JSON structure:**
-```json
+**`ChartResponse`** — dict thủ công (không Pydantic model), built bởi `_build_chart_response()`
+```python
 {
-  "overall": "...",        // 3-4 paragraph general reading
-  "cung_menh": "...",     // Life Palace analysis
-  "cung_tai_bach": "...", // Wealth Palace
-  "cung_quan_loc": "...", // Career Palace
-  "cung_phu_the": "...", // Marriage Palace
-  "dai_han": "...",       // Decadal cycles
-  "luu_y": "..."          // Advice / warnings
+  "chart_id": UUID,
+  "user_id": UUID,
+  "name": str,
+  "gender": str,
+  "dob_solar": str,       # decrypted
+  "birth_hour": str,      # decrypted
+  "lunar_date": {"year": int, "month": int, "day": int, "is_leap_month": bool},
+  "chart_matrix": dict,
+  "ai_interpretation": dict | None,
+  "created_at": datetime
 }
 ```
 
----
+### `annotation.py`
 
-#### `notification_service.py` — `NotificationService`
-
-| Method | Purpose |
-|--------|---------|
-| `generate_meeting_link()` | Returns `https://meet.tuvi.app/{token}` with a 16-byte random token |
-| `schedule_reminder(appointment)` | TODO stub — should enqueue a Celery delayed task |
-| `recalculate_luu_sao(db, user_id)` | Compute today's Lưu Sao positions, upsert today's journal log |
-| `daily_recalculate_all(db)` | Iterate all active users, call `recalculate_luu_sao` for each |
-| `send(user, subject, body)` | Dispatch via user's `notify_channel` (email, push, or both) |
-
-**Private helpers:**
-
-| Function | Purpose |
-|----------|---------|
-| `_send_email(to, subject, body)` | TODO stub — wire SendGrid/SES/SMTP |
-| `_send_push(user_id, title, body)` | TODO stub — wire FCM/APNs |
-| `_calculate_luu_sao(today)` | Deterministic formula: positions for Lưu Thái Tuế, Lưu Thiên Mã, Lưu Lộc Tồn, Lưu Hao, Lưu Hình, Lưu Kị based on `year % 12` |
-
----
-
-#### `report_service.py` — PDF Generation
-
-| Function | Purpose |
-|----------|---------|
-| `generate_pdf(client_name, dob, gender, birth_hour, chart_matrix, interpretation, expert_name)` | Builds PDF using ReportLab. Returns bytes |
-| `_build_grid_table(chart_matrix)` | Creates 4×4 ReportLab `Table` representing 12 palaces + 2×2 center cell |
-| `_add_watermark(canvas, doc)` | Draws "YIN♾️YANG" watermark at 45° on each page |
-| `create_download_token(report_id)` | HMAC-SHA256 signed token: `{report_id}:{timestamp}:{signature}` |
-| `verify_download_token(token)` | Verifies signature + checks 24h TTL. Returns `report_id` or `None` |
-
-**Grid layout** — palace positions in the 4×4 grid:
-```
- [3] [2] [1] [0]   ← top row (palaces 4,3,2,1 in 0-indexed)
- [4] [C] [C] [11]  ← C = center cell (2×2 span)
- [5] [C] [C] [10]
- [6] [7] [8] [9]   ← bottom row
+**`AnnotationCreateRequest`**
+```python
+chart_id: UUID
+house_number: Optional[int] = None    # 1–12
+star_name: Optional[str] = None
+content: str
 ```
 
+**`AnnotationUpdateRequest`**
+```python
+content: Optional[str] = None
+house_number: Optional[int] = None
+star_name: Optional[str] = None
+```
+`model_dump(exclude_none=True)` dùng khi PATCH để chỉ update các field có giá trị.
+
+**`AnnotationResponse`**
+```python
+annotation_id: UUID
+chart_id: UUID
+house_number: Optional[int]
+star_name: Optional[str]
+content: str
+created_at: datetime
+modified_at: datetime
+model_config = {"from_attributes": True}
+```
+
+### `journal.py`
+
+**`JournalLogCreate`**
+```python
+log_date: date
+content: Optional[str] = None
+```
+
+**`JournalLogUpdate`**
+```python
+content: Optional[str] = None
+```
+
+**`JournalLogResponse`**
+```python
+log_id: UUID
+log_date: date
+content: Optional[str]
+luu_sao_positions: Optional[dict]
+model_config = {"from_attributes": True}
+```
+
 ---
 
-### 4.9 Background Tasks (`app/tasks/`)
+## 11. `app/routers/auth.py`
 
-#### `celery_app.py` — Celery Configuration
+### `POST /register` → `RegisterResponse` (201)
 
 ```python
-celery_app = Celery("tuvi", broker=REDIS_URL, backend=REDIS_URL)
-celery_app.conf.timezone = "Asia/Ho_Chi_Minh"
+async def register(body: RegisterRequest, db):
+    existing = await db.execute(select(User).where(User.email == body.email))
+    if existing.scalar_one_or_none():
+        raise HTTPException(400, "Registration failed")   # KHÔNG nói "email đã tồn tại"
+    user = await AuthService.register(db, body.email, body.password, body.full_name)
+    return user
+```
 
-beat_schedule = {
-    "daily-luu-sao-recalculation": crontab(hour=0, minute=5),  # 00:05 ICT every day
-    "appointment-reminder-check":  crontab(),                   # every minute
+**Tại sao message chung "Registration failed"?** User enumeration attack: nếu trả "email đã tồn tại", attacker có thể check email nào đã đăng ký trong hệ thống.
+
+### `POST /login` → `TokenResponse`
+
+```python
+async def login(body: LoginRequest, db):
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+    if not user or not AuthService.verify_password(body.password, user.hashed_password):
+        raise HTTPException(401, "Invalid credentials")    # cùng message cho cả 2 trường hợp
+    user.last_login = datetime.utcnow()
+    await db.commit()
+    return AuthService.create_tokens(str(user.user_id))
+```
+
+**Lưu ý bảo mật:** Dù user không tồn tại hay sai password đều trả cùng message. Nếu trả "user not found" vs "wrong password", attacker biết email nào valid.
+
+**`AuthService.verify_password`** trả `False` nếu `hashed_password is None` (OAuth user cố đăng nhập bằng email/password).
+
+### `GET /google/login` → RedirectResponse
+Redirect browser đến Google consent screen. URL có: `client_id`, `redirect_uri`, `response_type=code`, `scope=openid email profile`.
+
+### `GET /google/callback?code=...` → RedirectResponse
+```python
+async def google_callback(code: str, db):
+    user = await AuthService.google_callback(db, code)    # upsert user
+    tokens = AuthService.create_tokens(str(user.user_id))
+    return RedirectResponse(
+        f"{FRONTEND_URL}/auth/callback"
+        f"?access_token={tokens.access_token}"
+        f"&refresh_token={tokens.refresh_token}"
+    )
+```
+Tokens truyền qua URL params → `AuthCallback.jsx` đọc và lưu vào localStorage.
+
+**Tại sao tokens trong URL params thay vì body?** Redirect response không có request body. Frontend phải đọc từ URL.
+
+### `GET /me` → `UserResponse`
+```python
+async def me(current_user: User = Depends(get_current_user)):
+    data = UserResponse.model_validate(current_user)  # ORM → Pydantic
+    data.has_password = current_user.hashed_password is not None
+    return data
+```
+`has_password` tính sau `model_validate` vì không có trong DB model.
+
+### `PATCH /me` → `UserResponse`
+```python
+async def update_profile(body: UpdateProfileRequest, current_user, db):
+    if body.full_name is not None:
+        current_user.full_name = body.full_name.strip() or None
+        # .strip() → xóa whitespace thừa
+        # or None → "" trở thành None (không lưu tên trống)
+    if body.notify_channel is not None:
+        current_user.notify_channel = body.notify_channel
+    await db.commit()
+    await db.refresh(current_user)    # reload từ DB để có giá trị mới nhất
+    data = UserResponse.model_validate(current_user)
+    data.has_password = current_user.hashed_password is not None
+    return data
+```
+
+### `PUT /me/password` → 204 No Content
+```python
+async def change_password(body: ChangePasswordRequest, current_user, db):
+    if not AuthService.verify_password(body.current_password, current_user.hashed_password):
+        raise HTTPException(400, "Mật khẩu hiện tại không đúng")
+    from app.core.security import hash_password
+    current_user.hashed_password = hash_password(body.new_password)
+    await db.commit()
+```
+Import `hash_password` inline để tránh circular import (auth_service cũng import từ security).
+
+### `DELETE /me` → 202 Accepted
+```python
+await AuthService.queue_deletion(db, current_user)  # is_active = False
+return {"detail": "Deletion request received. Data will be removed within 30 days."}
+```
+202 (Accepted) thay vì 204 (No Content) vì deletion chưa xảy ra ngay — chỉ queued.
+
+---
+
+## 12. `app/routers/charts.py`
+
+### `_get_owned_chart(db, chart_id, user_id) -> Chart` — private helper
+```python
+async def _get_owned_chart(db, chart_id, user_id):
+    result = await db.execute(select(Chart).where(Chart.chart_id == chart_id))
+    chart = result.scalar_one_or_none()
+    if not chart:
+        raise HTTPException(404, "Chart not found")
+    if chart.user_id != user_id:
+        raise HTTPException(403, "Forbidden")    # không reveal chart tồn tại hay không với user khác
+    return chart
+```
+**Pattern quan trọng:** Luôn fetch trước rồi check ownership sau. Không dùng `WHERE chart_id=? AND user_id=?` vì: nếu chart không tồn tại → 404, nếu không phải của mình → 403. Hai error code khác nhau giúp debug.
+
+### `_build_chart_response(chart) -> dict` — private helper
+```python
+def _build_chart_response(chart: Chart) -> dict:
+    return {
+        "chart_id": chart.chart_id,
+        ...
+        "dob_solar":  decrypt_field(chart.dob_solar_enc),    # LUÔN decrypt trước khi return
+        "birth_hour": decrypt_field(chart.birth_hour_enc),
+        "lunar_date": {
+            "year": chart.dob_lunar_year, "month": chart.dob_lunar_month,
+            "day": chart.dob_lunar_day,   "is_leap_month": chart.dob_lunar_leap,
+        },
+        "chart_matrix": chart.chart_matrix,
+        "ai_interpretation": chart.ai_interpretation,
+        "created_at": chart.created_at,
+    }
+```
+Không bao giờ return `dob_solar_enc` hay `birth_hour_enc` trực tiếp.
+
+### `GET /latest` — **phải đăng ký TRƯỚC `/{chart_id}`**
+```python
+@router.get("/latest", response_model=ChartResponse)
+async def get_latest_chart(current_user, db):
+    result = await db.execute(
+        select(Chart)
+        .where(Chart.user_id == current_user.user_id)
+        .order_by(Chart.created_at.desc())
+        .limit(1)
+    )
+    chart = result.scalar_one_or_none()
+    if not chart:
+        raise HTTPException(404, "No chart found")
+    return _build_chart_response(chart)
+```
+**Tại sao phải đặt trước `/{chart_id}`?** FastAPI match routes theo thứ tự đăng ký. Nếu `/{chart_id}` đăng ký trước, FastAPI sẽ cố parse "latest" như UUID → validation error.
+
+### `POST /` → `ChartResponse` (201)
+```python
+async def create_chart(body: ChartCreateRequest, current_user, db):
+    birth_hour = body.birth_hour or "12:00"    # default nếu không cung cấp
+    warned = body.birth_hour is None
+
+    lunar = ChartEngine.solar_to_lunar(body.dob_solar, body.timezone_offset)
+
+    chart = Chart(
+        user_id=current_user.user_id,
+        name=body.name, gender=body.gender,
+        dob_solar_enc=encrypt_field(str(body.dob_solar)),
+        birth_hour_enc=encrypt_field(birth_hour),
+        dob_lunar_year=lunar["year"],
+        dob_lunar_month=lunar["month"],
+        dob_lunar_day=lunar["day"],
+        dob_lunar_leap=lunar["is_leap_month"],
+        chart_matrix=body.chart_matrix,
+    )
+    db.add(chart)
+    await db.commit()
+    await db.refresh(chart)
+
+    response = _build_chart_response(chart)
+    if warned:
+        response["birth_hour_defaulted"] = True    # thông báo FE rằng đã dùng default
+    return response
+```
+**Tại sao lưu cả lunar date plaintext?** Để query/filter theo năm/tháng âm lịch mà không cần decrypt. Chỉ ngày dương lịch và giờ sinh mới nhạy cảm.
+
+**`db.refresh(chart)`**: Sau `commit()`, `chart.chart_id` và `chart.created_at` (server_default) chưa được load vào Python object. `refresh` trigger SELECT để lấy giá trị thật.
+
+---
+
+## 13. `app/routers/ai_interpretation.py`
+
+### `POST /{chart_id}/interpret`
+```python
+async def interpret_chart(chart_id, current_user, db):
+    # 1. Fetch + verify ownership
+    chart = ...
+    if chart.user_id != current_user.user_id:
+        raise HTTPException(403)
+
+    # 2. Cache check
+    if chart.ai_interpretation:
+        return {"interpretation": chart.ai_interpretation, "cached": True}
+
+    # 3. Call Gemini
+    interpretation = await AIService.interpret(chart.chart_matrix)
+
+    # 4. Persist cache
+    chart.ai_interpretation = interpretation
+    chart.ai_cached_at = datetime.utcnow()
+    await db.commit()
+
+    return {"interpretation": interpretation, "cached": False}
+```
+**Cache strategy:** Lưu mãi trong `charts.ai_interpretation`. Không expire — interpretation của lá số không thay đổi theo thời gian. Chỉ mất khi chart bị xóa.
+
+---
+
+## 14. `app/routers/chat.py`
+
+### Constants
+```python
+_GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent"
+
+_BASE_SYSTEM_PROMPT = """Bạn là chuyên gia Tử Vi Đẩu Số của YinYang...
+Luôn trả lời bằng tiếng Việt, ngắn gọn...
+Nếu câu hỏi không liên quan đến Tử Vi, hãy nhẹ nhàng hướng về chủ đề đó."""
+```
+
+### `_build_system_prompt(chart) -> str`
+```python
+def _build_system_prompt(chart: Chart | None) -> str:
+    if chart is None:
+        return _BASE_SYSTEM_PROMPT    # không personalized
+
+    parts = [_BASE_SYSTEM_PROMPT,
+             f"Bạn đang tư vấn cho: {chart.name} ({chart.gender}).",
+             "=== LÁ SỐ TỬ VI ===",
+             _summarise_matrix(chart.chart_matrix),   # từ ai_service
+             "=== KẾT THÚC ==="]
+
+    if chart.ai_interpretation:
+        ai = chart.ai_interpretation
+        if ai.get("overall"):
+            parts.append(f"Tóm tắt: {ai['overall']}")
+
+    parts.append("Hãy trả lời cá nhân hóa, đề cập sao/cung cụ thể khi phù hợp.")
+    return "\n".join(parts)
+```
+
+### `POST /` → `ChatResponse`
+```python
+async def chat(body: ChatRequest, current_user, db):
+    # 1. Load chart mới nhất (optional)
+    latest_chart = ...
+
+    # 2. Build system prompt
+    system_prompt = _build_system_prompt(latest_chart)
+
+    # 3. Xây contents: [system turn, model greeting, ...history[-10:], user message]
+    contents = [
+        {"role": "user", "parts": [{"text": system_prompt}]},
+        {"role": "model", "parts": [{"text": "Xin chào! Tôi là chuyên gia Tử Vi..."}]},
+    ]
+    for msg in body.history[-10:]:           # chỉ 10 messages gần nhất
+        contents.append({"role": msg.role, "parts": [{"text": msg.text}]})
+    contents.append({"role": "user", "parts": [{"text": body.message}]})
+
+    # 4. Call Gemini
+    resp = await httpx.AsyncClient(timeout=30.0).post(...)
+    reply = data["candidates"][0]["content"]["parts"][0]["text"]
+    return ChatResponse(reply=reply.strip())
+```
+
+**Tại sao giới hạn 10 messages?** Gemini có context window limit. 10 messages (~5 turns) đủ cho hội thoại tự nhiên mà không tốn nhiều token.
+
+**Gemini Conversation Format:** Gemini không có explicit "system" role — system prompt được truyền như role "user" đầu tiên, model reply như role "model". Sau đó conversation tiếp tục xen kẽ user/model.
+
+---
+
+## 15. `app/routers/daily_horoscope.py`
+
+Module phức tạp nhất — kết hợp lịch cổ học, Lưu Sao, lá số cá nhân, và Gemini.
+
+### Constants & Lookup Tables
+
+```python
+_CAN = ["Giáp","Ất","Bính","Đinh","Mậu","Kỷ","Canh","Tân","Nhâm","Quý"]  # 10 Thiên Can
+_CHI = ["Tý","Sửu","Dần","Mão","Thìn","Tỵ","Ngọ","Mùi","Thân","Dậu","Tuất","Hợi"]  # 12 Địa Chi
+_HANH = ["Mộc","Mộc","Hỏa","Hỏa","Thổ","Thổ","Kim","Kim","Thủy","Thủy"]   # ngũ hành theo Can
+_TRUC = ["Kiến","Trừ","Mãn","Bình","Định","Chấp","Phá","Nguy","Thành","Thu","Khai","Bế"]  # 12 trực
+
+_GIO_HOANG_DAO = {
+    0: [0,1,3,6,7,9],    # Chi ngày Tý → 6 giờ Hoàng Đạo
+    1: [1,2,4,7,8,10],   # Chi ngày Sửu
+    ...                  # pattern lặp lại theo chu kỳ
+}
+_GIO_NAMES = [
+    ("Tý","23:00–01:00"), ("Sửu","01:00–03:00"), ...  # 12 giờ Chi
+]
+_WEEKDAYS_VN = ["Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy","Chủ Nhật"]
+_BRANCH_ORDER_CN = ["巳","午","未","申","酉","戌","亥","子","丑","寅","卯","辰"]  # house 1–12
+```
+
+**`_TRUC` (12 Trực):** Còn gọi là "Kiến Trừ Thập Nhị Trực" — 12 thần cai quản từng ngày theo chu kỳ. Mỗi trực có đặc tính riêng (Kiến = khởi đầu tốt, Phá = phá hỏng, Thành = thành công...). Tính từ Chi ngày.
+
+**`_GIO_HOANG_DAO`:** Bảng giờ Hoàng Đạo theo Chi ngày. 6 giờ tốt cho hành động quan trọng. Mỗi ô là list index vào `_GIO_NAMES`.
+
+### `_jdn(y, m, d) -> int` — Julian Day Number
+```python
+def _jdn(y, m, d) -> int:
+    a = (14 - m) // 12
+    yy = y + 4800 - a
+    mm = m + 12 * a - 3
+    return d + (153*mm + 2)//5 + 365*yy + yy//4 - yy//100 + yy//400 - 32045
+```
+Proleptic Gregorian calendar formula. Trả số ngày liên tục từ 1/1/4713 BC. Nền tảng của tất cả tính toán lịch.
+
+**Xác minh:** `_jdn(2024,1,1) = 2460310`. `(2460310 + 49) % 60 = 359 % 60 = 59`. `59 % 10 = 9` → _CAN[9] = "Quý". `59 % 12 = 11` → _CHI[11] = "Hợi". Ngày 1/1/2024 = Quý Hợi ✓
+
+### `_get_day_metadata(d: date) -> dict`
+```python
+def _get_day_metadata(d):
+    pos = (_jdn(d.year, d.month, d.day) + 49) % 60
+    can_idx = pos % 10
+    chi_idx = pos % 12
+    hanh = _HANH[can_idx]
+    truc = _TRUC[chi_idx]          # trực ngày = _TRUC[chi_index]
+    gio_hd_indices = _GIO_HOANG_DAO[chi_idx]
+    gio_hd = [f"Giờ {_GIO_NAMES[i][0]} ({_GIO_NAMES[i][1]})" for i in gio_hd_indices[:4]]
+    return {
+        "thu": _WEEKDAYS_VN[d.weekday()],
+        "can_chi": f"{_CAN[can_idx]} {_CHI[chi_idx]}",
+        "hanh_can": hanh,
+        "truc": truc,
+        "gio_hoang_dao": gio_hd,    # 4 giờ đầu trong 6 giờ Hoàng Đạo
+    }
+```
+
+### `_map_sao_to_palaces(sao_nhat, chart_matrix) -> str`
+
+Đây là core logic của tính năng personalization:
+
+```python
+def _map_sao_to_palaces(sao_nhat, chart_matrix) -> str:
+    # 1. Build house → palace mapping từ chart
+    palaces = chart_matrix.get("palaces", [])
+    house_to_palace = {}
+    for p in palaces:
+        branch_cn = p.get("earthlyBranch", "")          # e.g. "寅"
+        if branch_cn in _BRANCH_ORDER_CN:
+            house_idx = _BRANCH_ORDER_CN.index(branch_cn) + 1   # 1–12
+            name_vi = _PALACE_VI.get(p.get("name"), p.get("name"))  # "命宫" → "Mệnh"
+            major = [s.get("name") for s in p.get("majorStars", [])]
+            minor = [...p.get("minorStars") + p.get("adjectiveStars")][:4]
+            house_to_palace[house_idx] = {"name": name_vi, "major": major, "minor": minor}
+
+    # 2. Map từng sao nhật → cung tương ứng
+    lines = [f"Sao Nhật ngày {sao_nhat['can']} {sao_nhat['chi']} chiếu vào lá số:"]
+    for key in ("Lưu Nhật Lộc Tồn", "Lưu Nhật Kình Dương", "Lưu Nhật Đà La",
+                "Lưu Nhật Thiên Mã", "Lưu Nhật Tang Môn", "Lưu Nhật Bạch Hổ"):
+        if key not in sao_nhat:
+            continue
+        house = sao_nhat[key]["house"]       # house index 1–12
+        chi   = sao_nhat[key]["chi"]
+        palace = house_to_palace.get(house, {})
+        palace_name = palace.get("name", f"nhà {house}")
+        major_str = ", ".join(palace.get("major", [])) or "không chính tinh"
+        lines.append(f"  • {key} tại {chi} (nhà {house}) → Cung {palace_name} [{major_str}]")
+
+    # 3. Thêm Tứ Hóa
+    if tu_hoa := sao_nhat.get("tu_hoa", {}):
+        hoa_str = "  |  ".join(f"{star} {hoa}" for star, hoa in tu_hoa.items())
+        lines.append(f"  • Tứ Hóa ngày: {hoa_str}")
+
+    return "\n".join(lines)
+```
+
+**Output ví dụ:**
+```
+Sao Nhật ngày Giáp Thìn chiếu vào lá số:
+  • Lưu Nhật Lộc Tồn tại Dần (nhà 10) → Cung Tài Bạch [Vũ Khúc, Thiên Phủ]
+  • Lưu Nhật Kình Dương tại Mão (nhà 11) → Cung Tử Tức [Thái Dương]
+  • Tứ Hóa ngày: Liêm Trinh Hóa Lộc  |  Phá Quân Hóa Quyền  |  ...
+```
+Gemini nhận text này và biết chính xác sao nào đang ảnh hưởng cung nào trong lá số của user.
+
+### `_build_prompt(chart, today) -> str`
+
+Prompt 3 tầng:
+1. **Metadata ngày:** Can Chi, trực, giờ Hoàng Đạo, sao nhật tóm tắt
+2. **Lá số:** `_summarise_matrix()` + `_map_sao_to_palaces()`
+3. **Rules cá nhân hóa:** Yêu cầu Gemini nêu tên cung cụ thể, Lộc Tồn đang ở cung nào, Kình Dương ở đâu
+
+```python
+personalized_rules = (
+    f"--- YÊU CẦU CÁ NHÂN HÓA ---\n"
+    f'• "nen_lam": Ưu tiên cung {loc_cung} (Lộc Tồn đóng đây hôm nay)...\n'
+    f'• "nen_tranh": Cung {kinh_cung} bị Kình Dương — cẩn thận...\n'
+    f"TUYỆT ĐỐI không viết chung chung."
+)
+```
+
+**Output JSON từ Gemini:**
+```json
+{
+  "tong_quan": "...",
+  "nen_lam": ["...", "...", "..."],
+  "nen_tranh": ["...", "...", "..."],
+  "gio_tot": ["Giờ Dần (03:00–05:00) — lý do...", ...],
+  "mau_may_man": "...",
+  "con_so_may_man": "...",
+  "loi_khuyen": "..."
 }
 ```
 
-Redis is used as both the **broker** (task queue) and **backend** (result storage).
+### Redis helpers
 
----
+```python
+_CACHE_VER = "v3"   # bump string này để invalidate toàn bộ cache cũ
 
-#### `jobs.py` — Task Implementations
+def _horoscope_key(user_id, date_str):
+    return f"horoscope:{_CACHE_VER}:{user_id}:{date_str}"   # unique per user per day
 
-**Task 1: `recalculate_luu_sao_all_users`**
-- Runs at 00:05 ICT daily
-- Creates its own async DB session (Celery tasks are sync, wrapped with `asyncio.get_event_loop().run_until_complete()`)
-- Calls `NotificationService.daily_recalculate_all(db)`
-- Retries up to 3 times with 5-minute delay on failure
+def _checkin_key(user_id, date_str):
+    return f"checkin:{user_id}:{date_str}"                  # dùng cho streak
 
-**Task 2: `send_appointment_reminders`**
-- Runs every minute
-- Finds all `confirmed` appointments with `scheduled_at` in the 14–16 minute future window
-- Sends notification to the expert via their preferred channel
-- Retries up to 2 times with 30-second delay
-
----
-
-### 4.10 Database Migrations (Alembic)
-
-Located in `backend/alembic/`.
-
-| File | Purpose |
-|------|---------|
-| `alembic.ini` | Points to `backend/alembic/` as the migration directory |
-| `alembic/env.py` | Connects Alembic to the async SQLAlchemy engine, imports all models |
-| `alembic/versions/5ee7f6aca042_init.py` | Initial migration — creates all tables |
-| `alembic/versions/add_full_name_to_users.py` | Adds `full_name` column to `users` |
-
-Run migrations: `alembic upgrade head` (done automatically on startup via `start.sh`).
-
----
-
-## 5. Frontend — File-by-File
-
-### 5.1 Entry & Routing
-
-#### `main.jsx`
-React entry point. Mounts `<App />` into `#root`.
-
-#### `App.jsx`
-
-Defines all routes:
-
-| Path | Component | Protected? |
-|------|-----------|-----------|
-| `/` | `HomePage` | No |
-| `/login` | `LoginPage` | No |
-| `/signup` | `SignUp` | No |
-| `/auth/callback` | `AuthCallback` | No |
-| `/major-stars` | `MajorStars` | No |
-| `/chatbot` | `Chatbot` | Yes |
-| `/la-so-tu-vi` | `LaSoTuVi` | Yes |
-| `*` | Redirect to `/` | — |
-
-**`ProtectedRoute`** — reads `user` from `AuthContext`. If loading (token validation in progress), renders nothing. If no user, redirects to `/login`.
-
----
-
-### 5.2 Auth Context
-
-#### `contexts/AuthContext.jsx`
-
-Global authentication state. Wraps the entire app.
-
-**State:**
-- `user` — current user object from `/api/v1/auth/me`, or `null`
-- `loading` — true only when there's a stored token being validated (not always true on page load)
-
-**Functions:**
-
-| Function | Purpose |
-|----------|---------|
-| `login(email, password, remember)` | POST to `/auth/login`, stores tokens in `localStorage` (remember=true) or `sessionStorage`, fetches `/auth/me` |
-| `loginWithTokens(access, refresh)` | Used after OAuth redirect — tokens come from URL params |
-| `logout()` | Clears all tokens from both storages, sets `user = null` |
-| `register(email, password, fullName)` | Delegates to `authService.register` |
-
-**Token storage logic:**
-- `remember=true` → `localStorage` (persists across browser sessions)
-- `remember=false` → `sessionStorage` (clears when tab closes)
-- On page load, if a token exists, validates it by calling `/auth/me`
-
----
-
-### 5.3 API Client (`config/api.js`)
-
-Central fetch wrapper.
-
-```javascript
-const api = {
-  get:    (path, opts) => request("GET", path, opts),
-  post:   (path, body, opts) => request("POST", path, { body, ...opts }),
-  patch:  (path, body, opts) => request("PATCH", path, { body, ...opts }),
-  delete: (path, opts) => request("DELETE", path, opts),
-}
+def _seconds_until_midnight_utc() -> int:
+    now = datetime.now(timezone.utc)
+    midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    return max(int((midnight - now).total_seconds()), 1)    # TTL = hết hạn lúc 00:00 UTC
 ```
 
-**`request(method, path, {body, auth=true})`:**
-1. Reads token from `localStorage` → `sessionStorage` (in that order)
-2. Adds `Authorization: Bearer <token>` header if `auth=true`
-3. Throws with `data.detail` on non-2xx responses
-4. Returns `null` on 204 No Content
+### `_update_streak(redis, db, user, today) -> int`
 
-`VITE_API_URL` env var sets the base URL (empty string in dev = same origin via Vite proxy).
+```python
+async def _update_streak(redis, db, user, today):
+    # 1. Check đã checkin hôm nay chưa
+    already = await redis.exists(_checkin_key(user.user_id, today))
+    if already:
+        return user.streak_count     # idempotent — không tăng lần 2
+
+    # 2. Check có checkin hôm qua không
+    yesterday = (date.fromisoformat(today) - timedelta(days=1)).isoformat()
+    had_yesterday = await redis.exists(_checkin_key(user.user_id, yesterday))
+
+    # 3. Tính streak mới
+    new_streak = (user.streak_count + 1) if had_yesterday else 1
+    # Reset về 1 nếu bỏ ngày, tăng nếu liên tục
+
+    # 4. Persist DB
+    db_user = await db.execute(select(User).where(User.user_id == user.user_id))
+    db_user.scalar_one().streak_count = new_streak
+    await db.commit()
+
+    # 5. Mark checkin Redis với TTL 48h (buffer qua midnight)
+    await redis.setex(_checkin_key(user.user_id, today), 48 * 3600, "1")
+
+    return new_streak
+```
+
+**Tại sao TTL 48h?** Nếu dùng 24h, key hết hạn đúng lúc midnight → có thể race condition với timezone. 48h an toàn hơn.
+
+### `HoroscopeResponse` schema
+```python
+class HoroscopeResponse(BaseModel):
+    date: str
+    needs_chart: bool = False      # True → user chưa có lá số
+    tong_quan: str = ""
+    nen_lam: list[str] = []
+    nen_tranh: list[str] = []
+    gio_tot: list[str] = []
+    mau_may_man: str = ""
+    con_so_may_man: str = ""
+    loi_khuyen: str = ""
+    cached: bool = False           # True → trả từ Redis cache
+    personalized: bool = False     # True → dựa trên lá số cá nhân
+    streak: int = 0                # số ngày liên tiếp checkin
+    sao_nhat: dict = {}            # Lưu Nhật data (hiển thị SaoNhatCard trên FE)
+```
+
+### `GET /` → `HoroscopeResponse` — luồng đầy đủ
+
+```python
+async def get_daily_horoscope(request, current_user, db):
+    if not settings.GEMINI_API_KEY:
+        raise HTTPException(503, "AI service not configured")
+
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    redis = request.app.state.redis
+    sao_nhat = calculate_luu_nhat(date.fromisoformat(today))
+
+    # 1. Update streak (idempotent)
+    streak = await _update_streak(redis, db, current_user, today)
+
+    # 2. Check Redis cache
+    cached_raw = await redis.get(_horoscope_key(current_user.user_id, today))
+    if cached_raw:
+        data = json.loads(cached_raw)
+        return HoroscopeResponse(**data, date=today, cached=True, streak=streak, sao_nhat=sao_nhat)
+
+    # 3. Load chart
+    latest_chart = ...  # SELECT * ORDER BY created_at DESC LIMIT 1
+
+    # 4. Không có chart → placeholder
+    if latest_chart is None:
+        return HoroscopeResponse(date=today, needs_chart=True, streak=streak, sao_nhat=sao_nhat)
+
+    # 5. Build prompt + call Gemini
+    prompt = _build_prompt(latest_chart, today)
+    resp = await httpx.AsyncClient(timeout=30.0).post(
+        f"{_GEMINI_URL}?key={GEMINI_API_KEY}",
+        json={
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.9, "maxOutputTokens": 1500},
+        }
+    )
+
+    # 6. Parse JSON từ response
+    text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    if text.startswith("```"):     # strip markdown code fence nếu có
+        text = text.split("```")[1]
+        if text.startswith("json"):
+            text = text[4:]
+    horoscope = json.loads(text.strip())
+
+    # 7. Fill defaults cho missing keys
+    defaults = {"tong_quan": "", "nen_lam": [], "nen_tranh": [], ...}
+    for k, v in defaults.items():
+        horoscope.setdefault(k, v)
+
+    # 8. Cache Redis cho đến 00:00 UTC
+    to_cache = {k: horoscope[k] for k in defaults} | {"personalized": True}
+    await redis.setex(cache_key, _seconds_until_midnight_utc(), json.dumps(to_cache))
+
+    return HoroscopeResponse(**horoscope, date=today, streak=streak, sao_nhat=sao_nhat)
+```
+
+**temperature=0.9** (cao hơn interpretation): Muốn horoscope sáng tạo, không lặp lại mỗi ngày. Interpretation dùng 0.7 (thấp hơn) để consistent.
 
 ---
 
-### 5.4 Services Layer
+## 16. `app/routers/journal.py`
 
-#### `services/authService.js`
-```javascript
-authService.register(email, password, fullName)  // POST /auth/register
-authService.login(email, password)               // POST /auth/login → {access_token, refresh_token}
-authService.me()                                 // GET /auth/me → user object
-authService.deleteMe()                           // DELETE /auth/me
-authService.googleLoginUrl()                     // Returns the Google OAuth redirect URL
+### `GET /stars` — **phải đăng ký TRƯỚC `/{log_date}`**
+
+```python
+@router.get("/stars", response_model=dict)
+async def get_stars_for_date(date_str: date, current_user):
+    return calculate_all_tiers(date_str)
 ```
 
-#### `services/chartService.js`
-```javascript
-chartService.save(payload)    // POST /charts/ — save chart from iztro
-chartService.list()           // GET /charts/
-chartService.get(id)          // GET /charts/{id}
-chartService.delete(id)       // DELETE /charts/{id}
-chartService.latest()         // GET /charts/latest
-chartService.interpret(id)    // POST /ai/{id}/interpret — trigger AI interpretation
+**Vấn đề routing:** Nếu `/{log_date}` đăng ký trước, FastAPI match `/stars?date_str=...` với route `/{log_date}` và cố parse `log_date` từ path. Vì không có path segment nào → 422. Giải pháp: `/stars` đăng ký trước. (Lưu ý: `date_str` là query param, không phải path param.)
+
+### `POST /` → `JournalLogResponse` (201) — upsert logic
+
+```python
+async def create_or_update_log(body: JournalLogCreate, current_user, db):
+    # 1. Check đã có entry hôm nay chưa
+    result = await db.execute(
+        select(JournalLog).where(
+            JournalLog.user_id == current_user.user_id,
+            JournalLog.log_date == body.log_date,
+        )
+    )
+    log = result.scalar_one_or_none()
+
+    # 2. Tính Lưu Sao
+    luu_sao = calculate_all_tiers(body.log_date)
+
+    # 3. Upsert
+    if log:
+        log.content = body.content
+        log.luu_sao_positions = luu_sao    # refresh Lưu Sao nếu đã có entry
+    else:
+        log = JournalLog(user_id=..., log_date=body.log_date, content=..., luu_sao_positions=luu_sao)
+        db.add(log)
+
+    await db.commit()
+    await db.refresh(log)
+    return log
 ```
 
-#### `services/iztroService.js` — `generateChartData(formData)`
+**Tại sao upsert thay vì tạo mới?** Mỗi ngày chỉ có 1 entry per user. Frontend gọi POST khi lần đầu lưu trong ngày, PATCH khi sửa.
 
-The main chart generation function. Runs entirely in the browser.
+### `_get_owned_log(db, log_date, user_id) -> JournalLog` — private helper
 
-1. Parses `birthDate` + `birthHour` into year/month/day/hour
-2. Calls `astro.bySolar(solarDate, branchHour, gender, false, "zh-CN")` from `iztro` library
-3. Converts the solar date to lunar using the `solarlunar` library
-4. Maps each palace to a UI-friendly structure:
-   ```javascript
-   {
-     StemBranch: "...",          // e.g., "Giáp Dần"
-     PalaceName: "...",          // e.g., "Mệnh"
-     majorStarsFull: [...],      // raw iztro star objects
-     minorStarsFull: [...],
-     adjectiveStarsFull: [...],
-     MainStars: ["Tử Vi", ...],  // translated names
-     LeftStars: [...],           // first 4 minor stars
-     RightStars: [...],          // next 4 minor stars
-   }
-   ```
-5. Builds `centerInfo` with birth details, element class, yin-yang
-
-**`convertHourToBranch(hour)`** — converts 24h clock hour to iztro's branch index (0-11). The mapping follows the 2-hour segments of the Chinese hour system.
-
-#### `services/interpretationService.js` — `generateInterpretations(palaceData)`
-
-Client-side rule-based interpretation (used before or instead of AI).
-
-**`specialRules`** — array of `{condition, result}` objects. Evaluated in order, first match wins. Examples:
-- Cung Mệnh tại Dần có Lộc Tồn → "Là người giàu khó và khéo giữ gìn"
-- Cung Tài Bạch có Lộc Tồn → specific wealth reading
-- Phu Thê có Hồng Loan + Thiên Hỷ → marriage blessing
-
-**`starInterpretations`** — nested object: `{palace_name: {star_name: "interpretation text"}}`. Covers the 12 palaces × 14 main stars.
-
-**`interpretPalace(palace, palaceName)`** — decision tree:
-1. Check special rules first
-2. If no main stars (vô chính diệu) → general message
-3. Look up star in `starInterpretations` table
-4. If found, check for bad stars (Kình Dương, Đà La, etc.) and append warning
-5. Fallback: list all stars generically
+```python
+async def _get_owned_log(db, log_date, user_id):
+    result = await db.execute(
+        select(JournalLog).where(
+            JournalLog.user_id == user_id,
+            JournalLog.log_date == log_date,
+        )
+    )
+    log = result.scalar_one_or_none()
+    if not log:
+        raise HTTPException(404, "Log not found")
+    return log
+```
+Không cần check ownership riêng vì query đã `WHERE user_id = ?` — không thể access log của người khác.
 
 ---
 
-### 5.5 Pages
+## 17. `app/routers/annotations.py`
 
-#### `pages/Home.jsx`
-Landing page. Features sections, call-to-action buttons, navigation to login/signup.
+### `PATCH /{annotation_id}` — partial update pattern
 
-#### `pages/Login.jsx`
-Login form with email/password + "Remember me" checkbox + Google OAuth button. Uses `useAuth().login()` and `authService.googleLoginUrl()`.
+```python
+async def update_annotation(annotation_id, body: AnnotationUpdateRequest, current_user, db):
+    annotation = await _get_owned_annotation(db, annotation_id, current_user.user_id)
+    for field, value in body.model_dump(exclude_none=True).items():
+        setattr(annotation, field, value)    # chỉ update các field có giá trị
+    await db.commit()
+    await db.refresh(annotation)
+    return annotation
+```
 
-#### `pages/SignUp.jsx`
-Registration form. Calls `useAuth().register()`.
+`body.model_dump(exclude_none=True)`: Convert Pydantic model → dict, bỏ qua các field là `None`. Dùng `setattr` để update ORM object động thay vì hard-code từng field.
 
-#### `pages/AuthCallback.jsx`
-OAuth landing page. Reads `access_token` + `refresh_token` from URL params, calls `loginWithTokens()`, then navigates to `/la-so-tu-vi`.
+### `_get_owned_annotation(db, annotation_id, user_id)` — private helper
 
-#### `pages/LaSoTuVi.jsx`
-The main chart page. Core flow:
-1. User fills birth form (date, hour, gender, target year)
-2. `generateChartData()` from `iztroService` runs in-browser
-3. `ChartLayout` renders the 4×4 palace grid
-4. `AnalysisSection` shows interpretations
-5. "Lưu Lá Số" button → calls `chartService.save()` with the matrix
-6. "Luận Giải AI" button → calls `chartService.interpret(id)` for Gemini reading
-
-#### `pages/Chatbot.jsx`
-Chat interface. Maintains conversation `history` array. Sends messages to `/api/v1/chat/`. Displays streaming replies in a chat bubble UI.
-
-#### `pages/MajorStars.jsx`
-Static educational page describing the 14 major stars of Tử Vi.
+```python
+result = await db.execute(select(Annotation).where(Annotation.annotation_id == annotation_id))
+annotation = result.scalar_one_or_none()
+if not annotation:
+    raise HTTPException(404, "Annotation not found")
+if annotation.user_id != user_id:
+    raise HTTPException(403, "Forbidden")    # biết annotation tồn tại nhưng không phải của mình
+return annotation
+```
 
 ---
 
-### 5.6 Components
+## 18. `app/routers/notifications.py`
 
-#### `components/ChartLayout.jsx`
-Renders the 4×4 grid layout. Places 12 `PalaceCell` components at fixed grid positions + the `CenterInfo` in the 2×2 center span.
+### `GET /unread-count` → `{"count": int}`
 
-**Grid mapping (counter-clockwise from top-left):**
+```python
+result = await db.execute(
+    select(func.count()).where(
+        Notification.user_id == current_user.user_id,
+        Notification.is_read == False,
+    )
+)
+count = result.scalar_one()
+return {"count": count}
 ```
-palace[0]  palace[1]  palace[2]  palace[3]   ← top row
-palace[4]  [CENTER--][CENTER--]  palace[6]   ← left, center, right
-palace[5]  [CENTER--][CENTER--]  palace[7]
-palace[8]  palace[9]  palace[10] palace[11]  ← bottom row
+
+`func.count()` → `SELECT COUNT(*) ...` — hiệu quả hơn fetch toàn bộ records rồi `len()`.
+
+### `PATCH /read-all`
+
+```python
+await db.execute(
+    update(Notification)
+    .where(Notification.user_id == ..., Notification.is_read == False)
+    .values(is_read=True)
+)
+await db.commit()
 ```
 
-#### `components/PalaceCell.jsx`
-Single palace cell. Displays:
-- `StemBranch` (can-chi)
-- `PalaceName`
-- `MainStars` (major stars)
-- `LeftStars` / `RightStars` (minor stars)
-- Age range (`Age`)
+Bulk UPDATE thay vì loop từng record — 1 SQL statement thay vì N.
 
-#### `components/CenterCell.jsx` / `CenterInfo`
-Center 2×2 cell. Displays:
-- Gender, solar date, lunar date
-- Birth hour
-- Yin-yang, element class (Cục)
-- Target year for annual chart (Lưu Niên)
+### `POST /test-email` — debug endpoint
 
-#### `components/AnalysisSection.jsx`
-Renders the list of palace interpretations below the chart. Each section has a `title` (palace name) and `content` (interpretation text) rendered as cards.
+```python
+async def test_daily_email(current_user, db):
+    today = datetime.now(timezone.utc).date()
+    luu_sao = calculate_all_tiers(today)
+    date_str = today.strftime("%d/%m/%Y")
+    subject = f"[TEST] YinYang — Sao lưu hôm nay {date_str}"
+    html = _build_email_html(current_user.full_name or current_user.email, date_str, luu_sao)
+    await _send_email(current_user.email, subject, html)
+    return {"message": f"Email đã gửi đến {current_user.email}"}
+```
+
+Không tạo notification record, không check notify_channel — gửi thẳng đến user đang đăng nhập để test template.
 
 ---
 
-## 6. Data Flow Diagrams
+## 19. `app/routers/calendar.py`
 
-### Chart Creation Flow
-
+### `POST /solar-to-lunar`
+```python
+async def solar_to_lunar(body: {"date": "YYYY-MM-DD", "timezone_offset": int}):
+    return CalendarService.solar_to_lunar(date, timezone_offset)
 ```
-User enters birth data
-        │
-        ▼
-iztroService.generateChartData()    ← runs in browser
-  calls iztro library (astro.bySolar)
-  calls solarlunar library
-        │
-        ▼
-palaceData + centerInfo (12 palaces, stars, lunar date)
-        │
-        ▼ (user clicks "Save")
-chartService.save({
-  name, gender, dob_solar, birth_hour,
-  chart_matrix: {palaces data},
-  timezone_offset: 7
+Không cần auth. Dùng trên Home page widget.
+
+### `POST /lunar-to-solar`
+```python
+async def lunar_to_solar(body: {"year", "month", "day", "is_leap", "timezone_offset"}):
+    return CalendarService.lunar_to_solar(...)
+```
+
+---
+
+## 20. `app/services/auth_service.py`
+
+### `AuthService.verify_password(plain, hashed) -> bool`
+```python
+if not hashed:
+    return False    # OAuth users không có hashed_password — không cho đăng nhập bằng password
+return verify_password(plain, hashed)
+```
+
+### `AuthService.register(db, email, password, full_name) -> User`
+```python
+user = User(email=email, hashed_password=hash_password(password), full_name=full_name)
+db.add(user)
+await db.commit()
+await db.refresh(user)    # load user_id, created_at (server_default fields)
+return user
+```
+
+### `AuthService.create_tokens(user_id: str) -> TokenResponse`
+Wrapper gọi `create_access_token` + `create_refresh_token`.
+
+### `AuthService.google_auth_url() -> str`
+Build URL:
+```
+https://accounts.google.com/o/oauth2/v2/auth
+  ?client_id=...
+  &redirect_uri=...
+  &response_type=code
+  &scope=openid email profile
+```
+
+### `AuthService.google_callback(db, code) -> User`
+
+```python
+# 1. Đổi authorization code lấy access token
+token_resp = await httpx.post("https://oauth2.googleapis.com/token", data={
+    "code": code,
+    "client_id": ..., "client_secret": ...,
+    "redirect_uri": ..., "grant_type": "authorization_code"
 })
-        │
-        ▼ POST /api/v1/charts/
-backend/charts.py → create_chart()
-  encrypt dob_solar → dob_solar_enc
-  encrypt birth_hour → birth_hour_enc
-  convert solar → lunar (CalendarService)
-  store Chart in PostgreSQL
-        │
-        ▼
-Returns chart with chart_id
+
+# 2. Lấy user info từ Google
+userinfo_resp = await httpx.get("https://www.googleapis.com/oauth2/v3/userinfo",
+    headers={"Authorization": f"Bearer {token_resp.json()['access_token']}"})
+info = userinfo_resp.json()  # {sub: "google_id", email: "...", name: "..."}
+
+# 3. Upsert logic (3 trường hợp):
+#    a. Tìm theo google_id → user đã link Google trước đó
+result = await db.execute(select(User).where(User.google_id == info["sub"]))
+user = result.scalar_one_or_none()
+
+#    b. Tìm theo email → user đã có tài khoản email/password, merge
+if not user:
+    result2 = await db.execute(select(User).where(User.email == info["email"]))
+    user = result2.scalar_one_or_none()
+
+#    c. Tạo mới hoàn toàn
+if user:
+    user.google_id = info["sub"]    # link Google ID vào existing account
+else:
+    user = User(email=info["email"], google_id=info["sub"])
+    db.add(user)
+
+user.last_login = datetime.utcnow()
+await db.commit()
+await db.refresh(user)
+return user
 ```
 
-### AI Interpretation Flow
-
+### `AuthService.queue_deletion(db, user) -> None`
+```python
+user.is_active = False
+await db.commit()
 ```
-User clicks "Luận Giải AI"
-        │
-        ▼ POST /api/v1/ai/{chart_id}/interpret
-backend checks: chart.ai_interpretation exists?
-  YES → return cached {"cached": true}
-  NO  → call AIService.interpret(chart_matrix)
-           _summarise_matrix() → Vietnamese text
-           _build_prompt() → structured prompt
-           POST to Gemini API
-           Parse JSON response
-           Store in chart.ai_interpretation
-           Return {"cached": false}
+Soft-delete. Background job xóa data thật sau 30 ngày (chưa implement).
+
+---
+
+## 21. `app/services/ai_service.py`
+
+### `_PALACE_VI` — dict
+```python
+{
+    "命宫": "Mệnh", "兄弟": "Huynh Đệ", "夫妻": "Phu Thê",
+    "子女": "Tử Tức", "财帛": "Tài Bạch", "疾厄": "Tật Ách",
+    "迁移": "Thiên Di", "仆役": "Nô Bộc", "官禄": "Quan Lộc",
+    "田宅": "Điền Trạch", "福德": "Phúc Đức", "父母": "Phụ Mẫu",
+}
+```
+iztro library (zh-CN) trả tên cung bằng Hán tự. Dùng map này ở nhiều nơi: `_summarise_matrix`, `daily_horoscope._map_sao_to_palaces`, chatbot system prompt.
+
+### `_summarise_matrix(matrix: dict) -> str`
+
+```python
+def _summarise_matrix(matrix):
+    palaces = matrix.get("palaces", [])
+    lines = []
+    for p in palaces:
+        name_cn = p.get("name", "")
+        name_vi = _PALACE_VI.get(name_cn, name_cn)
+        branch = p.get("earthlyBranch", "")
+        major = [s.get("name") for s in p.get("majorStars", [])]
+        minor = [s.get("name") for s in p.get("minorStars", []) + p.get("adjectiveStars", [])]
+        decadal = p.get("decadal", {})
+        age_range = decadal.get("range", [])
+
+        line = f"  [{name_vi} / {branch}]"
+        if major: line += f"  Chính tinh: {', '.join(major)}"
+        if minor: line += f"  |  Phụ tinh: {', '.join(minor[:6])}"
+        if age_range: line += f"  |  Đại hạn: {age_range[0]}–{age_range[1]}"
+        lines.append(line)
+
+    soul = matrix.get("soul", "")
+    body = matrix.get("body", "")
+    element = matrix.get("fiveElementsClass", "")
+    header = f"Mệnh chủ: {soul}  |  Thân chủ: {body}  |  Cục: {element}\n"
+    return header + "\n".join(lines)
 ```
 
-### Daily Horoscope Flow
-
+**Output ví dụ:**
 ```
-User opens app / clicks horoscope
-        │
-        ▼ GET /api/v1/daily-horoscope/
-Check Redis key: "horoscope:{user_id}:{today}"
-  HIT → return immediately (cached=true)
-  MISS →
-    Load user's latest chart from DB
-    Build personalized prompt (or generic if no chart)
-    Call Gemini API
-    Store in Redis with TTL = seconds until midnight UTC
-    Return horoscope (cached=false)
+Mệnh chủ: Tử Vi  |  Thân chủ: Thiên Cơ  |  Cục: Thủy Nhị Cục
+  [Mệnh / 寅]  Chính tinh: Tử Vi, Thiên Cơ  |  Phụ tinh: Lộc Tồn  |  Đại hạn: 2–11
+  [Tài Bạch / 申]  Chính tinh: Vũ Khúc, Thiên Phủ  |  ...
+  ...
+```
+
+### `_build_prompt(matrix) -> str`
+
+Yêu cầu Gemini trả JSON 7 fields, không markdown:
+```
+{
+  "overall": "3-4 đoạn tổng quan",
+  "cung_menh": "phân tích Cung Mệnh",
+  "cung_tai_bach": "phân tích Tài Bạch",
+  "cung_quan_loc": "phân tích Quan Lộc",
+  "cung_phu_the": "phân tích Phu Thê",
+  "dai_han": "đại hạn",
+  "luu_y": "lời khuyên"
+}
+```
+
+### `AIService.interpret(chart_matrix) -> dict`
+
+```python
+@staticmethod
+async def interpret(chart_matrix):
+    if not settings.GEMINI_API_KEY:
+        return _fallback()
+
+    prompt = _build_prompt(chart_matrix)
+
+    async with httpx.AsyncClient(timeout=60.0) as client:    # timeout 60s cho response dài
+        resp = await client.post(
+            f"{_GEMINI_URL}?key={GEMINI_API_KEY}",
+            json={
+                "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": 0.7,       # thấp hơn = consistent hơn
+                    "maxOutputTokens": 8192,  # cao vì response dài (7 fields chi tiết)
+                },
+            }
+        )
+
+    # Parse: bóc JSON từ markdown code fence nếu Gemini wrap
+    text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    if text.startswith("```"):
+        text = text.split("```")[1]
+        if text.startswith("json"):
+            text = text[4:]
+    return json.loads(text.strip())
+```
+
+**Tại sao `maxOutputTokens: 8192` cho interpretation nhưng 1500 cho horoscope?**  
+Interpretation cần phân tích 7 cung chi tiết → dài. Horoscope cần ngắn gọn, actionable → 1500 tokens đủ.
+
+### `_fallback() -> dict`
+```python
+return {
+    "overall": "Dịch vụ AI tạm thời không khả dụng. Vui lòng thử lại sau.",
+    "cung_menh": "", "cung_tai_bach": "", "cung_quan_loc": "",
+    "cung_phu_the": "", "dai_han": "", "luu_y": "",
+    "_fallback": True,
+}
+```
+Trả stub khi Gemini lỗi — app không crash, user thấy message thay vì 500.
+
+---
+
+## 22. `app/services/luu_sao_utils.py`
+
+### Lookup Tables
+
+```python
+_CAN = ["Giáp","Ất","Bính","Đinh","Mậu","Kỷ","Canh","Tân","Nhâm","Quý"]  # index 0–9
+_CHI = ["Tý","Sửu","Dần","Mão","Thìn","Tỵ","Ngọ","Mùi","Thân","Dậu","Tuất","Hợi"]  # index 0–11
+
+_CHI_TO_HOUSE = {"Tỵ":1,"Ngọ":2,"Mùi":3,"Thân":4,"Dậu":5,"Tuất":6,
+                 "Hợi":7,"Tý":8,"Sửu":9,"Dần":10,"Mão":11,"Thìn":12}
+# Mapping Chi → house number theo chuẩn BRANCH_ORDER iztro:
+# 巳(Tỵ)=1, 午(Ngọ)=2, ..., 辰(Thìn)=12
+# Dùng để cross-reference với chart_matrix của iztro
+
+_LOC_BY_CAN = {
+    "Giáp":"Dần","Ất":"Mão","Bính":"Tỵ","Đinh":"Ngọ",
+    "Mậu":"Tỵ","Kỷ":"Ngọ","Canh":"Thân","Tân":"Dậu","Nhâm":"Hợi","Quý":"Tý"
+}
+# Lộc Tồn an theo nguyên tắc: Giáp Lộc tại Dần, Ất Lộc tại Mão, ...
+
+_THIEN_MA_BY_CHI = {
+    "Thân":"Dần","Tý":"Dần","Thìn":"Dần",     # nhóm Tứ Xung Thân-Tý-Thìn → Mã tại Dần
+    "Dần":"Thân","Ngọ":"Thân","Tuất":"Thân",   # nhóm Dần-Ngọ-Tuất → Mã tại Thân
+    "Tỵ":"Hợi","Dậu":"Hợi","Sửu":"Hợi",       # nhóm Tỵ-Dậu-Sửu → Mã tại Hợi
+    "Hợi":"Tỵ","Mão":"Tỵ","Mùi":"Tỵ",         # nhóm Hợi-Mão-Mùi → Mã tại Tỵ
+}
+# 4 tam hợp cục: mỗi cục có Thiên Mã đóng ở cung đối
+
+_TU_HOA_BY_CAN = {
+    "Giáp": ("Liêm Trinh","Phá Quân","Vũ Khúc","Thái Dương"),  # Lộc, Quyền, Khoa, Kỵ
+    "Ất":   ("Thiên Cơ","Thiên Lương","Tử Vi","Thái Âm"),
+    "Bính": ("Thiên Đồng","Thiên Cơ","Văn Xương","Liêm Trinh"),
+    "Đinh": ("Thái Âm","Thiên Đồng","Thiên Cơ","Cự Môn"),
+    "Mậu":  ("Tham Lang","Thái Âm","Hữu Bật","Thiên Cơ"),
+    "Kỷ":   ("Vũ Khúc","Tham Lang","Thiên Lương","Văn Khúc"),
+    "Canh": ("Thái Dương","Vũ Khúc","Thái Âm","Thiên Đồng"),
+    "Tân":  ("Cự Môn","Thái Dương","Văn Khúc","Văn Xương"),
+    "Nhâm": ("Thiên Lương","Tử Vi","Tả Phụ","Vũ Khúc"),
+    "Quý":  ("Phá Quân","Cự Môn","Thái Âm","Tham Lang"),
+}
+# Phi Tinh Tứ Hóa — bảng chuẩn trong Tử Vi Đẩu Số
+
+_2026_MONTH_STARTS = [
+    date(2026,2,17), date(2026,3,18), date(2026,4,17), date(2026,5,17),
+    date(2026,6,15), date(2026,7,15), date(2026,8,13), date(2026,9,12),
+    date(2026,10,11), date(2026,11,10), date(2026,12,9), date(2027,1,7),
+]
+# Ngày dương lịch bắt đầu mỗi tháng âm lịch năm 2026 (Bính Ngọ)
+# Tháng 12 âm lịch kéo dài đến 2027 nên entry cuối là date(2027,1,7)
+```
+
+### `_jdn(y, m, d) -> int` — Julian Day Number
+
+```python
+def _jdn(y, m, d):
+    a = (14 - m) // 12       # = 1 nếu tháng 1 hoặc 2, = 0 nếu tháng 3–12
+    yy = y + 4800 - a         # điều chỉnh năm để tháng 1-2 thuộc năm trước
+    mm = m + 12*a - 3         # normalize tháng về 0–11
+    return d + (153*mm+2)//5 + 365*yy + yy//4 - yy//100 + yy//400 - 32045
+```
+Proleptic Gregorian calendar algorithm (Jean Meeus). Nhanh hơn `datetime` → số học thuần túy.
+
+**Xác minh:**
+- `_jdn(2024,1,1) = 2460310`. `(2460310 + 49) % 60 = 59`. `59%10=9` → Quý. `59%12=11` → Hợi. **Ngày Quý Hợi ✓**
+- `_jdn(2026,5,30) = 2461211`. `(2461211 + 49) % 60 = 0`. `0%10=0` → Giáp. `0%12=0` → Tý. **Ngày Giáp Tý**
+
+### `_can_chi_of_date(d) -> tuple(can, chi)`
+```python
+pos = (_jdn(d.year, d.month, d.day) + 49) % 60
+return _CAN[pos % 10], _CHI[pos % 12]
+```
+Tại sao `+49`? Offset để `pos=0` ứng với Giáp Tý (đầu chu kỳ 60). Giá trị 49 được chọn sao cho formula khớp với lịch vạn niên chuẩn.
+
+### `_chi_shift(chi, n) -> str`
+```python
+return _CHI[(_CHI.index(chi) + n) % 12]
+```
+Dịch chi theo vòng tròn 12. `n=+1` → chi tiếp theo, `n=-1` → chi trước.
+
+### `_year_can_chi(year) -> tuple`
+```python
+can = _CAN[(year % 10 + 6) % 10]
+chi = _CHI[(year % 12 + 8) % 12]
+```
+**Xác minh 2026:** `(2026%10+6)%10 = (6+6)%10 = 2` → Bính. `(2026%12+8)%12 = (10+8)%12 = 6` → Ngọ. **2026 = Bính Ngọ ✓**
+
+### `_month_can_chi(year, lunar_month) -> tuple`
+```python
+year_can_idx = (year % 10 + 6) % 10
+month_can_start = (year_can_idx * 2 + 2) % 10   # Can tháng 1 âm lịch
+can = _CAN[(month_can_start + lunar_month - 1) % 10]
+chi = _CHI[(2 + lunar_month - 1) % 12]   # tháng 1 âm lịch = Dần (index 2)
+```
+**Quy tắc:** Tháng 1 âm lịch năm Giáp/Kỷ bắt đầu bằng Bính Dần. Năm Bính: `(2*2+2)%10 = 6` → Canh. Tháng 1 âm 2026 = Canh Dần.
+
+### `_build_star_block(prefix, can, chi) -> dict`
+
+Core function tính tất cả sao từ Can Chi:
+
+```python
+def _build_star_block(prefix, can, chi):
+    loc  = _LOC_BY_CAN[can]           # tra bảng Can → Chi Lộc Tồn
+    kinh = _chi_shift(loc, +1)         # Kình Dương = Lộc + 1
+    da   = _chi_shift(loc, -1)         # Đà La = Lộc - 1
+    ma   = _THIEN_MA_BY_CHI[chi]       # Thiên Mã tra bảng theo Chi
+    tang = _chi_shift(chi, +2)         # Tang Môn = Chi + 2
+    bach = _chi_shift(chi, +6)         # Bạch Hổ = Chi + 6
+    tu_hoa = _TU_HOA_BY_CAN[can]       # tuple(Lộc, Quyền, Khoa, Kỵ)
+
+    return {
+        "can": can, "chi": chi,
+        f"{prefix} Lộc Tồn":   {"chi": loc,  "house": _CHI_TO_HOUSE[loc]},
+        f"{prefix} Kình Dương": {"chi": kinh, "house": _CHI_TO_HOUSE[kinh]},
+        f"{prefix} Đà La":      {"chi": da,   "house": _CHI_TO_HOUSE[da]},
+        f"{prefix} Thiên Mã":   {"chi": ma,   "house": _CHI_TO_HOUSE[ma]},
+        f"{prefix} Thái Tuế":   {"chi": chi,  "house": _CHI_TO_HOUSE[chi]},   # Thái Tuế = Chi ngày/tháng/năm
+        f"{prefix} Tang Môn":   {"chi": tang, "house": _CHI_TO_HOUSE[tang]},
+        f"{prefix} Bạch Hổ":    {"chi": bach, "house": _CHI_TO_HOUSE[bach]},
+        "tu_hoa": {
+            tu_hoa[0]: "Hóa Lộc",
+            tu_hoa[1]: "Hóa Quyền",
+            tu_hoa[2]: "Hóa Khoa",
+            tu_hoa[3]: "Hóa Kỵ",
+        },
+    }
+```
+
+**Tại sao Thái Tuế = Chi ngày/tháng/năm?** Thái Tuế luôn an tại Chi của thời gian đang tính (Chi ngày cho Lưu Nhật, Chi năm cho Lưu Niên). Đây là quy tắc cổ học Tử Vi.
+
+**Tại sao Tang Môn = Chi + 2, Bạch Hổ = Chi + 6?** Tang Môn (sao tang chế) an cách Thái Tuế 2 cung. Bạch Hổ (sao sát) an đối xung với Tang Môn (6 = nửa vòng 12).
+
+### `calculate_luu_nhat(d: date) -> dict`
+```python
+can, chi = _can_chi_of_date(d)
+return _build_star_block("Lưu Nhật", can, chi)
+```
+
+### `calculate_luu_nien(year: int) -> dict`
+```python
+can, chi = _year_can_chi(year)
+block = _build_star_block("Lưu Niên", can, chi)
+block["year"] = year
+return block
+```
+
+### `calculate_luu_nguyet(d: date) -> dict`
+
+```python
+if d.year != 2026:
+    return {"placeholder": True, "message": f"Sao Lưu Nguyệt năm {d.year} chưa được tính..."}
+
+lm = _get_lunar_month_2026(d)
+if lm is None:
+    return {"placeholder": True, "message": "Ngày này nằm trước Tết Bính Ngọ..."}
+
+can, chi = _month_can_chi(2026, lm)
+block = _build_star_block("Lưu Nguyệt", can, chi)
+block["year"] = 2026
+block["lunar_month"] = lm
+return block
+```
+
+Frontend `TierCard` kiểm tra `tier.placeholder === true` để hiển thị message thay vì danh sách sao.
+
+### `calculate_all_tiers(d: date) -> dict`
+```python
+return {
+    "luu_nhat":   calculate_luu_nhat(d),
+    "luu_nguyet": calculate_luu_nguyet(d),
+    "luu_nien":   calculate_luu_nien(d.year),
+}
+```
+Entry point duy nhất. Được gọi từ: `journal.py`, `daily_horoscope.py`, `notification_service.py`.
+
+---
+
+## 23. `app/services/notification_service.py`
+
+### `NotificationService.recalculate_luu_sao(db, user_id) -> dict`
+```python
+today = datetime.now(timezone.utc).date()
+luu_sao = calculate_all_tiers(today)
+
+result = await db.execute(
+    select(JournalLog).where(
+        JournalLog.user_id == user_id,
+        JournalLog.log_date == today,
+    )
+)
+log = result.scalar_one_or_none()
+
+if log:
+    log.luu_sao_positions = luu_sao    # update nếu đã có entry
+else:
+    log = JournalLog(user_id=user_id, log_date=today, luu_sao_positions=luu_sao)
+    db.add(log)                        # tạo entry mới với luu_sao nhưng content=None
+
+await db.commit()
+return {"log_date": today.isoformat(), "luu_sao_positions": luu_sao}
+```
+
+### `NotificationService.send_daily_horoscope_emails(db) -> int`
+
+```python
+# 1. Load tất cả user active
+all_users = (await db.execute(select(User).where(User.is_active == True))).scalars().all()
+
+# 2. Tính sao lưu MỘT LẦN cho tất cả (cùng ngày)
+today = datetime.now(timezone.utc).date()
+luu_sao = calculate_all_tiers(today)
+
+# 3. Build preview text cho in-app notification
+nhat = luu_sao["luu_nhat"]
+stars_preview = ", ".join(s_name for s_key, s_val in nhat.items()
+                           if isinstance(s_val, dict) and "house" in s_val
+                           for s_name in [s_key])[:3]   # tên 3 sao đầu
+notif_body = f"Ngày {nhat['can']} {nhat['chi']} — {stars_preview}"
+
+sent = 0
+for user in all_users:
+    # 4. Tạo in-app notification cho TẤT CẢ user
+    db.add(Notification(
+        user_id=user.user_id,
+        title=f"Sao lưu hôm nay · {date_str}",
+        body=notif_body,
+        notif_type="luu_sao",
+    ))
+
+    # 5. Gửi email chỉ với user opt-in
+    if user.notify_channel in ("email", "both"):
+        html = _build_email_html(user.full_name or user.email, date_str, luu_sao)
+        try:
+            await _send_email(user.email, subject, html)
+            sent += 1
+        except Exception:
+            pass    # không abort batch vì 1 email lỗi
+
+await db.commit()    # commit TẤT CẢ notifications trong 1 transaction
+return sent
+```
+
+### `_send_email(to, subject, html_body)` — private async
+
+```python
+async def _send_email(to, subject, html_body):
+    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+        return    # silently skip nếu chưa configure
+
+    from_addr = settings.SMTP_FROM or settings.SMTP_USER   # alias nếu có
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"YinYang Astrology <{from_addr}>"
+    msg["To"] = to
+    msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+    await aiosmtplib.send(
+        msg,
+        hostname=settings.SMTP_HOST,   # smtp.gmail.com
+        port=settings.SMTP_PORT,        # 587
+        username=settings.SMTP_USER,
+        password=settings.SMTP_PASSWORD.replace(" ", ""),   # strip spaces từ App Password format
+        start_tls=True,                 # STARTTLS: bắt đầu plaintext, upgrade lên TLS
+    )
+```
+
+**STARTTLS vs SSL:** Port 587 dùng STARTTLS (upgrade mid-connection). Port 465 dùng SSL ngay từ đầu (SMTPS). Gmail hỗ trợ cả hai; 587+STARTTLS là chuẩn RFC khuyến nghị.
+
+**`.replace(" ", "")`:** Google hiển thị App Password dạng "xxxx xxxx xxxx xxxx" với spaces, nhưng thực tế là 16 ký tự liền. Strip để tránh auth failure.
+
+### `_build_email_html(name, date_str, luu_sao) -> str`
+
+Template HTML với:
+- **Header:** gradient `#2d1b4e → #1a0d35`, chữ "YinYang" màu `#edb1ff`
+- **Greeting:** "Chào {name}," + mô tả ngày
+- **3 sections:** Lưu Nhật / Nguyệt / Niên — mỗi section là HTML `<table>` với:
+  - Icon + màu riêng per sao (từ `_STAR_META`)
+  - Column: tên sao | house số
+  - Tứ Hóa chips màu
+- **CTA button:** "Viết nhật ký hôm nay" → `/journal`
+- **Footer:** link `/profile` để manage notification settings
+
+### `_star_style(star_name) -> tuple(emoji, color)`
+```python
+_STAR_META = {
+    "Lộc Tồn":   {"icon": "💰", "color": "#4ade80"},  # xanh lá
+    "Kình Dương": {"icon": "⚔",  "color": "#f87171"},  # đỏ
+    "Đà La":      {"icon": "🌑", "color": "#a78bfa"},  # tím
+    "Thiên Mã":   {"icon": "🐎", "color": "#67e8f9"},  # cyan
+    "Thái Tuế":   {"icon": "☀",  "color": "#fbbf24"},  # vàng
+    "Tang Môn":   {"icon": "🪦", "color": "#94a3b8"},  # xám
+    "Bạch Hổ":    {"icon": "🐯", "color": "#fb923c"},  # cam
+}
+# Tìm key nào là substring của star_name
+for key, meta in _STAR_META.items():
+    if key in star_name:    # "Lộc Tồn" in "Lưu Nhật Lộc Tồn" → True
+        return meta["icon"], meta["color"]
+return "✦", "#c4b5fd"    # fallback
 ```
 
 ---
 
-## 7. Security Architecture
+## 24. `app/services/calendar_service.py`
 
-| Concern | Implementation |
-|---------|---------------|
-| **Password storage** | bcrypt, cost factor 12 |
-| **Authentication** | JWT HS256, 60-min access token, 30-day refresh token |
-| **Birth data at rest** | AES-256-GCM encrypted (`dob_solar_enc`, `birth_hour_enc`) |
-| **Authorization** | Role-based guards via `require_role()` FastAPI dependency |
-| **Rate limiting** | Sliding window, 100 req/60s per user, enforced in Redis |
-| **CORS** | Explicit origin allowlist |
-| **File validation** | MIME type + size checked before accepting uploads |
-| **Download links** | HMAC-SHA256 signed tokens with 24h TTL |
-| **OAuth** | Google OAuth2 code flow, no client-side secrets exposed |
-| **Error messages** | Registration errors are generic ("Registration failed") to avoid user enumeration |
-| **Account deletion** | Soft-delete via `is_active=False`, hard deletion within 30 days |
+Tính lịch âm lịch thiên văn Việt Nam. Hợp lệ 1900–2100.
+
+### `_solar_to_jd(dd, mm, yy) -> float`
+Gregorian → Julian Day Number. Dùng trong tất cả tính toán thiên văn.
+
+### `_jd_to_solar(jd) -> tuple(day, month, year)`
+JDN → ngày dương lịch.
+
+### `_new_moon(k) -> float`
+JDN của kỳ trăng mới thứ `k` (k=0 là trăng mới đầu năm 2000). Dùng công thức Jean Meeus "Astronomical Algorithms". Trung bình 29.5306 ngày/tháng âm.
+
+### `_sun_longitude(jd, tz) -> float`
+Kinh độ Mặt Trời (0°–360°) tại JDN, theo timezone. Mỗi 30° = 1 "tiết khí" (solar term). Dùng để tìm Đông Chí (270°) và tháng nhuận.
+
+### `_get_lunar_month_11(yy, tz) -> float`
+JDN của đầu tháng 11 âm lịch năm `yy`. Tháng 11 là tháng chứa Đông Chí (kinh độ MT = 270°). Đây là mốc anchor để đếm các tháng âm lịch.
+
+### `_find_leap_month(a11, tz) -> int`
+Năm nhuận có 13 tháng âm lịch (thêm 1 tháng nhuận). Tháng nhuận là tháng không có "trung khí" (multiple of 30°). Return index của tháng nhuận (0–11) hoặc -1.
+
+### `_jd_to_lunar(jd, tz) -> dict`
+```python
+# 1. Tìm tháng 11 của 2 năm liên tiếp
+a11 = _get_lunar_month_11(year, tz)
+b11 = _get_lunar_month_11(year+1, tz)
+
+# 2. Đếm số kỳ trăng mới giữa a11 và b11
+# Nếu >= 13 → năm nhuận
+
+# 3. Tìm tháng nhuận
+leap = _find_leap_month(a11, tz)
+
+# 4. Map JDN vào tháng âm lịch
+# Return: {year, month, day, is_leap_month}
+```
+
+### `CalendarService.solar_to_lunar(solar_date, timezone_offset) -> dict`
+```python
+# solar_date: "YYYY-MM-DD"
+# return: {"year": 2026, "month": 4, "day": 14, "is_leap_month": False}
+```
+
+### `CalendarService.lunar_to_solar(lunar_year, month, day, is_leap, tz) -> dict`
+```python
+# return: {"solar_date": "2026-05-30"}
+```
 
 ---
 
-## 8. Glossary — Tử Vi Terms
+## 25. `app/services/chart_engine.py`
 
-| Term | Vietnamese | Meaning |
-|------|-----------|---------|
-| Lá Số | Lá Số Tử Vi | Astrology chart / natal chart |
-| Cung | Cung | Palace (one of 12 houses in the chart) |
-| Chính Tinh | Chính Tinh | Main/major stars (14 total) |
-| Phụ Tinh | Phụ Tinh | Auxiliary/minor stars |
-| Lưu Sao | Lưu Sao | Moving stars — daily positions that shift year to year |
-| Lưu Niên | Lưu Niên | Annual chart — the chart for a specific target year |
-| Đại Hạn | Đại Hạn | Decadal cycle — 10-year period of influence |
-| Can | Thiên Can | Heavenly Stem (10 stems: Giáp, Ất, Bính…) |
-| Chi | Địa Chi | Earthly Branch (12 branches: Tý, Sửu, Dần…) |
-| Cục | Cục | "Element class" — one of 5 elemental types that sets the chart's foundational energy |
-| Cung Mệnh | Cung Mệnh | Life Palace — the palace that defines core personality |
-| Cung Thân | Cung Thân | Body Palace — the palace of physical/worldly manifestation |
-| Vô Chính Diệu | Vô Chính Diệu | "No main star" — a palace with no major stars |
-| Sát Tinh | Sát Tinh | Malefic stars (Kình Dương, Đà La, Hỏa Tinh, Linh Tinh, etc.) |
-| Lộc Tồn | Lộc Tồn | Wealth-retaining star |
-| Thiên Mã | Thiên Mã | Travel/movement star |
+### `ChartEngine.solar_to_lunar(solar_date, tz) -> dict`
+Delegate sang `CalendarService.solar_to_lunar`.
+
+### `ChartEngine.calculate(lunar, birth_hour, gender) -> dict`
+Server-side chart calculation (14 chính tinh + 45+ phụ tinh). **Trong thực tế, iztro chạy ở browser** và gửi kết quả lên. Backend `ChartEngine` dùng cho các feature server-side như compare.
+
+### `ChartEngine.compare(matrix_a, matrix_b, view) -> dict`
+So sánh 2 lá số. `view="side_by_side"` hoặc `"merged"`. Return `compatibility_score` (0.0–1.0) dựa trên overlap sao.
+
+---
+
+## 26. `app/tasks/celery_app.py`
+
+```python
+celery_app = Celery(
+    "tuvi",
+    broker=settings.REDIS_URL,    # Redis làm message broker (task queue)
+    backend=settings.REDIS_URL,   # Redis lưu kết quả task
+    include=["app.tasks.jobs"],    # module chứa task definitions
+)
+
+celery_app.conf.timezone = "Asia/Ho_Chi_Minh"
+celery_app.conf.broker_connection_retry_on_startup = True  # retry nếu Redis chưa sẵn sàng
+
+celery_app.conf.beat_schedule = {
+    "daily-luu-sao-recalculation": {
+        "task": "app.tasks.jobs.recalculate_luu_sao_all_users",
+        "schedule": crontab(hour=0, minute=5),   # 00:05 ICT hàng ngày
+    },
+    "daily-horoscope-email": {
+        "task": "app.tasks.jobs.send_daily_horoscope_emails",
+        "schedule": crontab(hour=7, minute=0),   # 07:00 ICT hàng ngày
+    },
+}
+```
+
+**Tại sao Redis làm cả broker và backend?** Đơn giản hóa infrastructure — không cần RabbitMQ riêng. Với scale nhỏ-vừa, Redis đủ tốt làm cả hai vai trò.
+
+**`timezone = "Asia/Ho_Chi_Minh"`:** Celery beat dùng timezone này để interpret crontab. `hour=7` = 07:00 ICT (UTC+7).
+
+---
+
+## 27. `app/tasks/jobs.py`
+
+### `_run(coro)` — sync wrapper
+
+```python
+def _run(coro):
+    return asyncio.get_event_loop().run_until_complete(coro)
+```
+Celery tasks là **synchronous** (chạy trong thread pool). Service layer của app là **async**. `_run` bridge giữa hai thế giới: wrap coroutine trong event loop để chạy synchronously.
+
+### `send_daily_horoscope_emails` task
+
+```python
+@celery_app.task(name="app.tasks.jobs.send_daily_horoscope_emails", bind=True, max_retries=3)
+def send_daily_horoscope_emails(self):
+    async def _inner():
+        # Tạo async DB session riêng cho Celery worker (process riêng biệt với FastAPI)
+        engine = create_async_engine(settings.DATABASE_URL)
+        Session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async with Session() as db:
+            count = await NotificationService.send_daily_horoscope_emails(db)
+            return count
+
+    try:
+        count = _run(_inner())
+        return {"emails_sent": count}
+    except Exception as exc:
+        raise self.retry(exc=exc, countdown=60 * 5)    # retry sau 5 phút
+```
+
+**`bind=True`:** Task có access `self` → gọi `self.retry()`.  
+**`max_retries=3`:** Fail 3 lần liên tiếp → task mark failed, không retry nữa.  
+**Tại sao tạo engine riêng?** Celery worker là process riêng, không share SQLAlchemy engine với FastAPI process. Cần tạo connection pool mới.
+
+### `recalculate_luu_sao_all_users` task
+
+```python
+@celery_app.task(name="app.tasks.jobs.recalculate_luu_sao_all_users", bind=True, max_retries=3)
+def recalculate_luu_sao_all_users(self):
+    # Tương tự pattern trên
+    # Gọi NotificationService.daily_recalculate_all(db)
+    # Return {"recalculated": count}
+    # retry sau 5 phút nếu fail
+```
+
+---
+
+## 28. Alembic Migrations
+
+**Location:** `backend/alembic/`  
+**Auto-run:** `start.sh` chạy `alembic upgrade head` trước khi start uvicorn.
+
+### Migration Chain (theo thứ tự)
+
+```
+5ee7f6aca042_init
+    └── a1b2c3d4e5f6 — add_full_name_to_users
+            └── b3c4d5e6f7a8 — drop_roles_and_configurations
+                    └── c5d6e7f8a9b0 — add_notifications_table  ← HEAD
+```
+
+### Tạo migration mới
+
+```bash
+cd backend
+alembic revision --autogenerate -m "mô tả ngắn"
+# Sửa file vừa tạo:
+# down_revision = "c5d6e7f8a9b0"   ← phải là HEAD hiện tại
+# Kiểm tra upgrade()/downgrade() được auto-generate đúng
+alembic upgrade head
+```
+
+### `add_notifications_table.py` — migration mới nhất
+
+```python
+revision = "c5d6e7f8a9b0"
+down_revision = "b3c4d5e6f7a8"
+
+def upgrade():
+    op.create_table("notifications",
+        sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("user_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("title", sa.String(255), nullable=False),
+        sa.Column("body", sa.Text(), nullable=False),
+        sa.Column("notif_type", sa.String(50), nullable=False, server_default="info"),
+        sa.Column("is_read", sa.Boolean(), nullable=False, server_default="false"),
+        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
+        sa.ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
+        sa.PrimaryKeyConstraint("id"),
+    )
+    op.create_index("ix_notifications_user_id", "notifications", ["user_id"])
+
+def downgrade():
+    op.drop_index("ix_notifications_user_id")
+    op.drop_table("notifications")
+```
+
+---
+
+## 29. Environment Variables
+
+| Variable | Required | Default | Mô tả |
+|----------|----------|---------|-------|
+| `DATABASE_URL` | ✅ | — | `postgresql+asyncpg://user:pass@host:5432/db` |
+| `REDIS_URL` | ✅ | — | `redis://host:6379/0` |
+| `SECRET_KEY` | ✅ | — | JWT signing key. Tạo: `python3 -c "import secrets; print(secrets.token_hex(32))"` |
+| `FIELD_ENCRYPTION_KEY` | ✅ | — | 64-char hex (32 bytes AES-256). Tạo: `python3 -c "import secrets; print(secrets.token_hex(32))"` |
+| `ALGORITHM` | | HS256 | JWT algorithm |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | | 60 | |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | | 30 | |
+| `GEMINI_API_KEY` | AI | "" | Google Gemini. Thiếu → horoscope/chat trả 503 |
+| `GOOGLE_CLIENT_ID` | OAuth | "" | |
+| `GOOGLE_CLIENT_SECRET` | OAuth | "" | |
+| `GOOGLE_REDIRECT_URI` | OAuth | localhost | `https://domain/api/v1/auth/google/callback` |
+| `ALLOWED_ORIGINS` | ✅ | localhost | JSON array: `["https://yinyang.io.vn"]` |
+| `FRONTEND_URL` | ✅ | localhost | Dùng trong OAuth redirect sau callback |
+| `DEBUG` | | False | `true` → print SQL, verbose |
+| `DOCS_USERNAME` | Prod | "" | Basic auth user cho /api/docs. Trống = no auth |
+| `DOCS_PASSWORD` | Prod | "" | Basic auth password |
+| `SMTP_HOST` | Email | smtp.gmail.com | |
+| `SMTP_PORT` | Email | 587 | STARTTLS port |
+| `SMTP_USER` | Email | "" | Gmail account xác thực. Trống → skip email |
+| `SMTP_PASSWORD` | Email | "" | Gmail App Password (16 ký tự, spaces tự strip) |
+| `SMTP_FROM` | Email | "" | From address (alias). Fallback = SMTP_USER |
+| `RATE_LIMIT_REQUESTS` | | 100 | Max requests per window |
+| `RATE_LIMIT_WINDOW_SECONDS` | | 60 | Window size (giây) |
