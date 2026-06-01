@@ -16,7 +16,6 @@ import {
   timeToIndex,
   TIME_RANGES,
   translateStemBranch,
-  translateChineseDate,
   MAJOR_BRIGHTNESS_COLOR,
   getMinorStarColor,
   calcTuanKhong,
