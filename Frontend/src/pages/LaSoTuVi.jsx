@@ -5,6 +5,7 @@ import { GlobalStyles } from "./Login";
 import { useAuth } from "../contexts/AuthContext";
 import { chartService } from "../services/chartService";
 import { annotationService } from "../services/annotationService";
+import { calendarService } from "../services/calendarService";
 import NotificationBell from "../components/NotificationBell";
 
 import {
@@ -15,7 +16,6 @@ import {
   timeToIndex,
   TIME_RANGES,
   translateStemBranch,
-  translateChineseDate,
   MAJOR_BRIGHTNESS_COLOR,
   getMinorStarColor,
   calcTuanKhong,
@@ -119,24 +119,29 @@ const generateChartData = (name, dob, time, gender) => {
 // ============================================================
 
 const PalaceCell = ({
-  palace, isMenh, isBody, tuanKhong,
-  rawBranch, isCurrentYear, rawPalace, onAnnotate,
+  palace,
+  isMenh,
+  isBody,
+  tuanKhong,
+  rawBranch,
+  isCurrentYear,
+  rawPalace,
+  onAnnotate,
 }) => {
   if (!palace) return <div style={newPaletteStyles.cell} />;
 
-  const isTuan   = tuanKhong?.has(rawBranch);
-  const month    = BRANCH_MONTH[rawBranch];
-  const majorStars = palace.majorStars || [];
-  const allMinor   = [...(palace.minorStars || []), ...(palace.adjectiveStars || [])];
-  const half       = Math.ceil(allMinor.length / 2);
-  const leftMinor  = allMinor.slice(0, half);
-  const rightMinor = allMinor.slice(half);
+  const isTuan = tuanKhong?.has(rawBranch);
+  const month = BRANCH_MONTH[rawBranch];
 
-  const firstLine = [
-    EARTHLY_BRANCHES[rawBranch] || rawBranch,
-    palace.changsheng12Vi,
-    month ? `Tháng ${month}` : null,
-  ].filter(Boolean).join(" - ");
+  const majorStars = palace.majorStars || [];
+  const allMinor = [
+    ...(palace.minorStars || []),
+    ...(palace.adjectiveStars || []),
+  ];
+
+  const half = Math.ceil(allMinor.length / 2);
+  const leftMinor = allMinor.slice(0, half);
+  const rightMinor = allMinor.slice(half);
 
   return (
     <div
@@ -153,93 +158,301 @@ const PalaceCell = ({
         {/* Header */}
         <div style={newPaletteStyles.Header}>
           <span style={newPaletteStyles.StemBranch}>
-            {translateStemBranch(rawPalace?.heavenlyStem, rawBranch)}
+            {translateStemBranch(
+              rawPalace?.heavenlyStem,
+              rawBranch
+            )}
           </span>
+
           <span style={newPaletteStyles.PalaceName}>
             {isMenh && (
-              <span style={{ fontSize:"10px", background:"#edb1ff", color:"#4c1d95", borderRadius:4, padding:"0 3px", marginRight:3 }}>M</span>
+              <span
+                style={{
+                  fontSize: "10px",
+                  background: "#edb1ff",
+                  color: "#4c1d95",
+                  borderRadius: 4,
+                  padding: "0 3px",
+                  marginRight: 3,
+                }}
+              >
+                M
+              </span>
             )}
+
             {isBody && (
-              <span style={{ fontSize:"10px", background:"#a5f3fc", color:"#0c4a6e", borderRadius:4, padding:"0 3px", marginRight:3 }}>T</span>
+              <span
+                style={{
+                  fontSize: "10px",
+                  background: "#a5f3fc",
+                  color: "#0c4a6e",
+                  borderRadius: 4,
+                  padding: "0 3px",
+                  marginRight: 3,
+                }}
+              >
+                T
+              </span>
             )}
+
             {isTuan && (
-              <span style={{ fontSize:"10px", background:"#6ee7b7", color:"#064e3b", borderRadius:4, padding:"0 3px", marginRight:3 }}>Tuần</span>
+              <span
+                style={{
+                  fontSize: "10px",
+                  background: "#6ee7b7",
+                  color: "#064e3b",
+                  borderRadius: 4,
+                  padding: "0 3px",
+                  marginRight: 3,
+                }}
+              >
+                Tuần
+              </span>
             )}
+
             {palace.name}
           </span>
+
           <span style={newPaletteStyles.Age}>
             {palace.decadal?.range
-              ? `${palace.decadal.range[0]}-${palace.decadal.range[1]}`
+              ? `${palace.decadal.range[0]}`
               : palace.ageRange || ""}
           </span>
         </div>
 
-        {/* Main stars */}
+        {/* Chính tinh */}
         <div style={newPaletteStyles.MainStars}>
           {majorStars.length > 0 ? (
             majorStars.map((star, i) => (
               <div key={i}>
-                <span style={{ color: MAJOR_BRIGHTNESS_COLOR[star.brightnessAbbr] || "#47A0A5", fontWeight:700 }}>
+                <span
+                  style={{
+                    color:
+                      MAJOR_BRIGHTNESS_COLOR[
+                        star.brightnessAbbr
+                      ] || "#47A0A5",
+                    fontWeight: 700,
+                  }}
+                >
                   {star.name}
                 </span>
+
                 {star.brightnessAbbr && (
-                  <span style={{ fontSize:"11px", opacity:0.7, marginLeft:3, color: MAJOR_BRIGHTNESS_COLOR[star.brightnessAbbr] || "#888" }}>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      opacity: 0.7,
+                      marginLeft: 3,
+                      color:
+                        MAJOR_BRIGHTNESS_COLOR[
+                          star.brightnessAbbr
+                        ] || "#888",
+                    }}
+                  >
                     ({star.brightnessAbbr})
                   </span>
                 )}
+
                 {star.mutagen && (
-                  <span style={{ fontSize:"10px", color:"#f0abfc", background:"#f0abfc18", padding:"0 3px", borderRadius:3, marginLeft:3 }}>
+                  <span
+                    style={{
+                      fontSize: "10px",
+                      color: "#f0abfc",
+                      background: "#f0abfc18",
+                      padding: "0 3px",
+                      borderRadius: 3,
+                      marginLeft: 3,
+                    }}
+                  >
                     {star.mutagen}
                   </span>
                 )}
               </div>
             ))
           ) : (
-            <div style={{ fontSize:"14px", color:"#aaa", fontStyle:"italic" }}>— không chính tinh —</div>
+            <div
+              style={{
+                fontSize: "14px",
+                color: "#aaa",
+                fontStyle: "italic",
+              }}
+            >
+              — không chính tinh —
+            </div>
           )}
         </div>
 
-        {/* Minor stars */}
+        {/* Phụ tinh */}
         {allMinor.length > 0 && (
           <div style={newPaletteStyles.sideContainer}>
             <div style={newPaletteStyles.LeftStars}>
               {leftMinor.map((star, i) => (
-                <div key={i} style={{ color: getMinorStarColor(star.name) }}>
+                <div
+                  key={i}
+                  style={{
+                    color: getMinorStarColor(star.name),
+                  }}
+                >
                   {star.name}
-                  {star.brightnessAbbr && <span style={{ fontSize:"9px", opacity:0.6, marginLeft:2 }}>({star.brightnessAbbr})</span>}
-                  {star.mutagen && <span style={{ fontSize:"9px", color:"#f0abfc", marginLeft:2 }}>{star.mutagen}</span>}
+
+                  {star.brightnessAbbr && (
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        opacity: 0.6,
+                        marginLeft: 2,
+                      }}
+                    >
+                      ({star.brightnessAbbr})
+                    </span>
+                  )}
+
+                  {star.mutagen && (
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        color: "#f0abfc",
+                        marginLeft: 2,
+                      }}
+                    >
+                      {star.mutagen}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
+
             <div style={newPaletteStyles.RightStars}>
               {rightMinor.map((star, i) => (
-                <div key={i} style={{ color: getMinorStarColor(star.name) }}>
+                <div
+                  key={i}
+                  style={{
+                    color: getMinorStarColor(star.name),
+                  }}
+                >
                   {star.name}
-                  {star.brightnessAbbr && <span style={{ fontSize:"9px", opacity:0.6, marginLeft:2 }}>({star.brightnessAbbr})</span>}
-                  {star.mutagen && <span style={{ fontSize:"9px", color:"#f0abfc", marginLeft:2 }}>{star.mutagen}</span>}
+
+                  {star.brightnessAbbr && (
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        opacity: 0.6,
+                        marginLeft: 2,
+                      }}
+                    >
+                      ({star.brightnessAbbr})
+                    </span>
+                  )}
+
+                  {star.mutagen && (
+                    <span
+                      style={{
+                        fontSize: "9px",
+                        color: "#f0abfc",
+                        marginLeft: 2,
+                      }}
+                    >
+                      {star.mutagen}
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* Footer info */}
-        <div style={{ marginTop:"auto", display:"flex", flexDirection:"column", gap:2, fontSize:"10px", color:"#5D277B", fontFamily:"Manrope, sans-serif", paddingTop:4 }}>
-          {firstLine && <div>{firstLine}</div>}
-          {palace.boshi12Vi   && <div>{palace.boshi12Vi}</div>}
-          {palace.jiangqian12Vi && <div>{palace.jiangqian12Vi}</div>}
+        {/* Footer */}
+        <div
+          style={{
+            marginTop: "auto",
+            paddingTop: 4,
+            fontSize: "10px",
+            color: "#5D277B",
+            fontFamily: "Manrope, sans-serif",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              width: "100%",
+              fontWeight: 500,
+            }}
+          >
+            <span>
+              {EARTHLY_BRANCHES[rawBranch] || rawBranch}
+            </span>
+
+            <span
+              style={{
+                flex: 1,
+                textAlign: "center",
+              }}
+            >
+              {palace.changsheng12Vi}
+            </span>
+
+            <span
+              style={{
+                textAlign: "right",
+              }}
+            >
+              {month ? `Tháng ${month}` : ""}
+            </span>
+          </div>
+
           {isCurrentYear && (
-            <div style={{ background:"#fbbf2420", border:"1px solid #fbbf2460", borderRadius:4, padding:"1px 5px", width:"fit-content", color:"#b45309", fontWeight:700 }}>
+            <div
+              style={{
+                marginTop: 4,
+                background: "#fbbf2420",
+                border: "1px solid #fbbf2460",
+                borderRadius: 4,
+                padding: "1px 5px",
+                width: "fit-content",
+                color: "#b45309",
+                fontWeight: 700,
+              }}
+            >
               TH {CURRENT_YEAR}
             </div>
           )}
+
           {onAnnotate && (
             <div
-              onClick={e => { e.stopPropagation(); onAnnotate(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAnnotate();
+              }}
               title="Ghi chú cho cung này"
-              style={{ marginTop:4, alignSelf:"flex-end", fontSize:"0.62rem", color:"rgba(237,177,255,0.55)", cursor:"pointer", padding:"2px 6px", borderRadius:4, userSelect:"none", border:"1px solid rgba(237,177,255,0.2)" }}
-              onMouseEnter={e => { e.currentTarget.style.color="#edb1ff"; e.currentTarget.style.borderColor="rgba(237,177,255,0.5)"; e.currentTarget.style.background="rgba(237,177,255,0.08)"; }}
-              onMouseLeave={e => { e.currentTarget.style.color="rgba(237,177,255,0.55)"; e.currentTarget.style.borderColor="rgba(237,177,255,0.2)"; e.currentTarget.style.background="none"; }}
+              style={{
+                marginTop: 4,
+                alignSelf: "flex-end",
+                fontSize: "0.62rem",
+                color: "rgba(237,177,255,0.55)",
+                cursor: "pointer",
+                padding: "2px 6px",
+                borderRadius: 4,
+                userSelect: "none",
+                border:
+                  "1px solid rgba(237,177,255,0.2)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#edb1ff";
+                e.currentTarget.style.borderColor =
+                  "rgba(237,177,255,0.5)";
+                e.currentTarget.style.background =
+                  "rgba(237,177,255,0.08)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color =
+                  "rgba(237,177,255,0.55)";
+                e.currentTarget.style.borderColor =
+                  "rgba(237,177,255,0.2)";
+                e.currentTarget.style.background =
+                  "none";
+              }}
             >
               ✎ ghi chú
             </div>
@@ -257,19 +470,13 @@ const CRow = ({ label, value, highlight }) => (
   </div>
 );
 
-const CenterCell = ({ personal, astrolabe, raw }) => {
-  const { soul, body, fiveElementsClass, chineseDate } = astrolabe;
+const CenterCell = ({ personal, astrolabe, raw, displaySolarDate, displayLunarDate }) => {
+  const { soul, body, fiveElementsClass } = astrolabe;
   const nayin    = raw?.chineseDateName || raw?.nayin || "";
   const nayinVi  = translateNayin(nayin) || nayin;
-  const lunarDate = chineseDate ? translateChineseDate(chineseDate) : "";
   const timeIdx  = timeToIndex(personal.time);
   const timeName = TIME_RANGES[timeIdx];
   const nguHanh  = fiveElementsClass || "";
-
-  const formatDob = (dob) => {
-    const [y, m, d] = dob.split("-");
-    return `${d.padStart(2,"0")}/${m.padStart(2,"0")}/${y}`;
-  };
 
   return (
     <div style={{ ...styles.centerCell, background:"#FEFBFF", border:"1.5px solid #9C46BE", borderRadius:"10px", boxShadow:"none", backdropFilter:"none" }}>
@@ -281,8 +488,8 @@ const CenterCell = ({ personal, astrolabe, raw }) => {
       </div>
 
       <div style={{ width:"100%", background:"#FFF8FD", border:"1px solid #E7C7F3", borderRadius:10, padding:"10px 12px", marginBottom:10, fontSize:"0.65rem" }}>
-        <CRow label="Dương lịch" value={formatDob(personal.dob)} />
-        <CRow label="Âm lịch"    value={lunarDate || "—"} />
+        <CRow label="Dương lịch" value={displaySolarDate || "—"} />
+        <CRow label="Âm lịch"    value={displayLunarDate  || "—"} />
         <CRow label="Giờ sinh"   value={`${personal.time} · ${timeName}`} />
         <CRow label="Giới tính"  value={personal.gender} />
       </div>
@@ -393,7 +600,7 @@ function ChartNav() {
     { label:"Nhật ký",        to:"/journal" },
     { label:"Chatbot",        to:"/chatbot" },
     { label:"14 Chính tinh",  to:"/major-stars" },
-    { label:"12 con giáp",    to:"/zodiac" },
+    { label:"12 con giáp",    to:"zodiac" },
     { label:"Liên hệ",        to:"contact" },
   ];
 
@@ -674,6 +881,8 @@ export default function LaSoTuVi() {
   const [chartId,         setChartId]         = useState(null);
   const [selectedHouse,   setSelectedHouse]   = useState(null);
   const [annotationsKey,  setAnnotationsKey]  = useState(0);
+  const [displaySolarDate, setDisplaySolarDate] = useState(null); // dd/mm/yyyy
+  const [displayLunarDate, setDisplayLunarDate] = useState(null); // dd/mm/yyyy
 
   // Ref trỏ vào wrapper grid gốc (không bị scale) để html2canvas capture đúng kích thước
   const chartNativeRef = useRef(null);
@@ -687,11 +896,36 @@ export default function LaSoTuVi() {
     setChartData(chart);
   };
 
+  // Helper: "yyyy-mm-dd" hoặc "yyyy-m-d" → "dd/mm/yyyy"
+  const toDisplayDate = (isoStr) => {
+    if (!isoStr) return "";
+    const [y, m, d] = isoStr.split("-");
+    return `${String(d).padStart(2,"0")}/${String(m).padStart(2,"0")}/${y}`;
+  };
+
   useEffect(() => {
     const formData = location.state;
+
     if (formData) {
-      const { name, birthDate, birthHour, gender } = formData;
+      const { name, birthDate, birthHour, gender, calMode, lunarDateInput } = formData;
+      // birthDate luôn là solar date (Home đã convert nếu cần)
       buildChart(name, birthDate, birthHour, gender);
+
+      if (calMode === "lunar" && lunarDateInput) {
+        // Người dùng nhập âm lịch: hiển thị âm lịch gốc, solar là birthDate đã convert
+        setDisplayLunarDate(toDisplayDate(lunarDateInput));
+        setDisplaySolarDate(toDisplayDate(birthDate));
+      } else {
+        // Người dùng nhập dương lịch: hiển thị solar ngay, gọi API lấy âm lịch
+        setDisplaySolarDate(toDisplayDate(birthDate));
+        calendarService.solarToLunar(birthDate)
+          .then(res => {
+            const ld = res.data?.lunar_date ?? res.data?.date ?? res.data?.dob_lunar;
+            if (ld) setDisplayLunarDate(toDisplayDate(ld));
+          })
+          .catch(() => {}); // âm lịch không hiển thị nếu lỗi — không block chart
+      }
+
       setInterpreting(true);
       chartService
         .save({ name, gender, dob_solar:birthDate, birth_hour:birthHour,
@@ -704,12 +938,21 @@ export default function LaSoTuVi() {
         .then(res => { if (!res.interpretation?._fallback) setInterpretation(res.interpretation); })
         .catch(err => console.warn("AI unavailable:", err))
         .finally(() => setInterpreting(false));
+
     } else {
       chartService.latest()
         .then(saved => {
           setChartId(saved.chart_id);
           buildChart(saved.name, saved.dob_solar, saved.birth_hour, saved.gender);
           if (saved.ai_interpretation && !saved.ai_interpretation._fallback) setInterpretation(saved.ai_interpretation);
+          // Lá số cũ: dob_solar có sẵn, gọi API lấy âm lịch
+          setDisplaySolarDate(toDisplayDate(saved.dob_solar));
+          calendarService.solarToLunar(saved.dob_solar)
+            .then(res => {
+              const ld = res.data?.lunar_date ?? res.data?.date ?? res.data?.dob_lunar;
+              if (ld) setDisplayLunarDate(toDisplayDate(ld));
+            })
+            .catch(() => {});
         })
         .catch(() => setError("Chưa có lá số nào. Hãy tạo lá số từ trang chủ."));
     }
@@ -803,7 +1046,7 @@ export default function LaSoTuVi() {
         const isCenter = (row === 1 || row === 2) && (col === 1 || col === 2);
         if (isCenter) {
           if (row === 1 && col === 1) {
-            cells.push(<CenterCell key="center" personal={personal} astrolabe={astrolabe} raw={raw} />);
+            cells.push(<CenterCell key="center" personal={personal} astrolabe={astrolabe} raw={raw} displaySolarDate={displaySolarDate} displayLunarDate={displayLunarDate} />);
           }
           continue;
         }
