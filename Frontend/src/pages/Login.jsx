@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate} from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { authService } from "../services/authService";
 import NotificationBell from "../components/NotificationBell";
-
 
 /* ═══════════ DESIGN TOKENS  — mirrors HomePage.jsx exactly ═══════════ */
 const C = {
@@ -26,7 +25,7 @@ const C = {
   tertiary:               "#d3bcfc",
 };
 
-/* GLOBAL STYLES */
+/* GLOBAL STYLES — thêm class responsive của header Home */
 const GlobalStyles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Manrope:wght@200..800&display=swap');
@@ -194,31 +193,30 @@ const GlobalStyles = () => (
       pointer-events: none;
     }
 
-    /* ── Nav link ── */
-    .nl {
-      color: ${C.onSurfaceVariant}; font-size: 14px;
-      text-decoration: none; transition: color .25s;
+    /* ── Nav link (header home style) ── */
+    .nav-link {
+      color: ${C.onSurfaceVariant}; font-family: 'Manrope', sans-serif;
+      font-size: 0.8rem; text-decoration: none; transition: color 0.3s;
+      white-space: nowrap;
     }
-    .nl:hover { color: ${C.primary}; }
+    .nav-link:hover { color: ${C.primary}; }
 
-    /* ── Strength bar ── */
-    .sbar-track {
-      height: 3px; border-radius: 99px;
-      background: ${C.surfaceHighest};
-      overflow: hidden; flex: 1;
+    .btn-outline {
+      background: transparent; color: ${C.primary};
+      border: 2px solid rgba(237,177,255,0.2);
+      border-radius: 0.75rem; font-weight: 700; cursor: pointer;
+      transition: background 0.2s;
+      font-family: 'Manrope', sans-serif;
     }
-    .sbar-fill {
-      height: 100%; border-radius: 99px;
-      transition: width .35s, background .35s;
-    }
+    .btn-outline:hover { background: rgba(237,177,255,0.08); }
+    .btn-outline:active { transform: scale(0.97); }
 
-    /* ── Success pulse ── */
-    @keyframes successPulse {
-      0%   { box-shadow: 0 0 0 0 rgba(237,177,255,.5); }
-      70%  { box-shadow: 0 0 0 14px rgba(237,177,255,0); }
-      100% { box-shadow: 0 0 0 0 rgba(237,177,255,0); }
+    /* ── Header responsive (giống home) ── */
+    .hp-mobile-btn { display: none; }
+    @media (max-width: 900px) {
+      .hp-desktop-nav { display: none !important; }
+      .hp-mobile-btn  { display: block !important; }
     }
-    .pulse { animation: successPulse .7s ease-out; }
 
     /* ── Spinner ── */
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -240,35 +238,9 @@ const GlobalStyles = () => (
     .fade-up-2 { animation-delay: .12s; }
     .fade-up-3 { animation-delay: .20s; }
 
-    /* ── Responsive hide ── */
+    /* ── Responsive hide for left panel ── */
     @media (max-width: 800px) { .hide-sm { display: none !important; } }
     @media (max-width: 480px) { .card-pad { padding: 2rem 1.5rem !important; } }
-    /* ── Login header responsive ── */
-    .lp-mobile-btn { display: none; }
-    @media (max-width: 640px) {
-      .lp-desktop-nav { display: none !important; }
-      .lp-mobile-btn  { display: block !important; }
-    }
-    /* ── Chart Header Responsive ── */
-    .chart-mobile-btn {
-      display: none;
-    }
-
-    @media (max-width: 900px) {
-      .chart-desktop-nav {
-        display: none !important;
-      }
-
-      .chart-mobile-btn {
-        display: block !important;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .chart-logo-text {
-        font-size: 1.25rem !important;
-      }
-    }
   `}</style>
 );
 
@@ -306,16 +278,38 @@ const Background = () => (
   </div>
 );
 
+/* ── Header giống home.jsx, ẩn nút Đăng nhập ── */
 const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = [
-    { label: "Tra cứu",       to: "/" },
-    { label: "Chatbot",       to: "/chatbot" },
-    { label: "14 Chính tinh", to: "/major-stars" },
+    { label: "Tra cứu",       to: "/",               activePath: "/" },
+    { label: "Dịch vụ",       to: "services",         activePath: null },
+    { label: "Lá số",         to: "/la-so",           activePath: "/la-so" },
+    { label: "Tử vi hôm nay", to: "/daily-horoscope", activePath: "/daily-horoscope" },
+    { label: "Nhật ký",       to: "/journal",         activePath: "/journal" },
+    { label: "Chatbot",       to: "/chatbot",         activePath: "/chatbot" },
+    { label: "14 Chính tinh", to: "/major-stars",     activePath: "/major-stars" },
+    { label: "12 con giáp",   to: "zodiac",           activePath: null },
+    { label: "Liên hệ",       to: "contact",          activePath: null },
   ];
+
+  const handleNav = (item) => {
+    if (["contact", "services", "zodiac"].includes(item.to)) {
+      // Về Home và scroll tới section
+      navigate("/");
+      setTimeout(() => {
+        const el = document.getElementById(item.to);
+        if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
+      }, 100);
+    } else {
+      navigate(item.to);
+    }
+    setMobileOpen(false);
+  };
 
   const userInitials = (user?.full_name || user?.email || "?")
     .split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
@@ -323,78 +317,94 @@ const Header = () => {
   return (
     <nav style={{
       position: "fixed", top: 0, width: "100%", zIndex: 50,
-      background: "rgba(15,19,28,.82)",
-      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-      borderBottom: "1px solid rgba(77,67,81,.12)",
+      background: "rgba(15,19,28,0.88)",
+      backdropFilter: "blur(20px)",
+      WebkitBackdropFilter: "blur(20px)",
+      boxShadow: "0 1px 0 rgba(255,255,255,0.06)",
     }}>
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
         padding: "0.65rem clamp(1rem, 4vw, 1.5rem)",
-        maxWidth: "1200px", margin: "0 auto", gap: "1rem",
+        maxWidth: "80rem", margin: "0 auto", gap: "1rem",
       }}>
-
         {/* Logo */}
         <div
           onClick={() => navigate("/")}
           style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", flexShrink: 0 }}
         >
           <img src="/favicon3.png" alt="logo" style={{ width: "36px", height: "36px", objectFit: "contain" }} />
-          <div className="font-headline" style={{ fontFamily: "Cinzel, serif", fontSize: "clamp(1.1rem, 3vw, 1.65rem)", color: C.onSurface }}>
+          <span style={{
+            fontFamily: "Cinzel, serif",
+            fontSize: "clamp(1.1rem, 3vw, 1.65rem)",
+            color: C.onSurface, lineHeight: 1,
+          }}>
             YinYang
-          </div>
+          </span>
         </div>
 
         {/* Desktop nav */}
-        <div className="lp-desktop-nav" style={{ display: "flex", alignItems: "center", gap: "28px" }}>
-          {navItems.map(item => (
-            <span
-              key={item.label}
-              className="nl"
-              style={{ cursor: "pointer" }}
-              onClick={() => navigate(item.to)}
-            >
-              {item.label}
-            </span>
-          ))}
-
-          {user ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <NotificationBell />
-              <div
-                onClick={() => navigate("/profile")}
-                title={user.full_name || user.email}
+        <div
+          className="hp-desktop-nav"
+          style={{ display: "flex", gap: "clamp(0.6rem, 1.2vw, 1.15rem)", alignItems: "center", flex: 1, justifyContent: "center" }}
+        >
+          {navItems.map(item => {
+            const isActive = item.activePath && location.pathname === item.activePath;
+            return (
+              <span
+                key={item.label}
+                className="nav-link"
                 style={{
-                  width: "30px", height: "30px", borderRadius: "50%", flexShrink: 0,
-                  background: "linear-gradient(135deg,#edb1ff,#6d208c)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "0.7rem", fontWeight: 700, color: "#111", cursor: "pointer",
+                  cursor: "pointer",
+                  fontWeight: isActive ? 700 : 400,
+                  color: isActive ? C.primary : C.onSurfaceVariant,
+                  fontSize: "clamp(0.68rem, 1vw, 0.8rem)",
                 }}
+                onClick={() => handleNav(item)}
               >
-                {userInitials}
-              </div>
-              <button
-                className="btn-pri"
-                style={{ padding: "6px 16px", fontSize: "0.82rem", borderRadius: "8px", width: "auto" }}
-                onClick={logout}
-              >
-                Đăng xuất
-              </button>
-            </div>
-          ) : (
-            <span
-              onClick={() => navigate("/")}
-              className="nl"
-              style={{ display: "flex", alignItems: "center", gap: 4, color: C.onSurfaceVariant, cursor: "pointer" }}
-            >
-              <span className="mso" style={{ fontSize: 16 }}>arrow_back</span>
-              <span style={{ fontSize: 13 }}>Trang chủ</span>
-            </span>
-          )}
+                {item.label}
+              </span>
+            );
+          })}
         </div>
+
+        {/* Desktop user / thay nút "Đăng nhập" bằng "Trang chủ" */}
+        {user ? (
+          <div className="hp-desktop-nav" style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexShrink: 0 }}>
+            <NotificationBell />
+            <div
+              onClick={() => navigate("/profile")}
+              title={user.full_name || user.email}
+              style={{
+                width: "30px", height: "30px", borderRadius: "50%",
+                background: "linear-gradient(135deg,#edb1ff,#6d208c)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "0.7rem", fontWeight: 700, color: "#111", cursor: "pointer",
+              }}
+            >
+              {userInitials}
+            </div>
+            <button
+              className="btn-outline"
+              style={{ padding: "0.4rem 1rem", fontSize: "0.78rem", fontFamily: "'Manrope', sans-serif" }}
+              onClick={logout}
+            >
+              Đăng xuất
+            </button>
+          </div>
+        ) : (
+          <button
+            className="btn-outline hp-desktop-nav"
+            style={{ padding: "0.45rem 1.25rem", fontSize: "0.85rem", fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}
+            onClick={() => navigate("/")}
+          >
+            <span className="mso" style={{ fontSize: 16, marginRight: 4 }}>arrow_back</span>
+            Trang chủ
+          </button>
+        )}
 
         {/* Hamburger */}
         <button
-          className="lp-mobile-btn"
+          className="hp-mobile-btn"
           onClick={() => setMobileOpen(o => !o)}
           style={{ background: "none", border: "none", color: C.onSurface, fontSize: "1.6rem", cursor: "pointer", lineHeight: 1, padding: "4px", flexShrink: 0 }}
           aria-label={mobileOpen ? "Đóng menu" : "Mở menu"}
@@ -419,15 +429,23 @@ const Header = () => {
             Điều hướng
           </span>
 
-          {navItems.map(item => (
-            <span
-              key={item.label}
-              style={{ cursor: "pointer", color: C.onSurfaceVariant, fontSize: "0.9rem", fontFamily: "'Manrope', sans-serif" }}
-              onClick={() => { navigate(item.to); setMobileOpen(false); }}
-            >
-              {item.label}
-            </span>
-          ))}
+          {navItems.map(item => {
+            const isActive = item.activePath && location.pathname === item.activePath;
+            return (
+              <span
+                key={item.label}
+                style={{
+                  cursor: "pointer",
+                  color: isActive ? C.primary : C.onSurfaceVariant,
+                  fontWeight: isActive ? 700 : 400,
+                  fontSize: "0.9rem", fontFamily: "'Manrope', sans-serif",
+                }}
+                onClick={() => handleNav(item)}
+              >
+                {item.label}
+              </span>
+            );
+          })}
 
           {/* User row */}
           <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px", display: "flex", alignItems: "center", gap: "0.6rem" }}>
@@ -445,21 +463,22 @@ const Header = () => {
                   {user.full_name || user.email}
                 </span>
                 <button
-                  className="btn-pri"
-                  style={{ padding: "5px 12px", fontSize: "0.75rem", borderRadius: "8px", width: "auto" }}
+                  className="btn-outline"
+                  style={{ padding: "0.3rem 0.8rem", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif" }}
                   onClick={() => { logout(); setMobileOpen(false); }}
                 >
                   Đăng xuất
                 </button>
               </>
             ) : (
-              <span
-                style={{ display: "flex", alignItems: "center", gap: 6, color: C.onSurfaceVariant, cursor: "pointer", fontSize: "0.9rem" }}
+              <button
+                className="btn-outline"
+                style={{ width: "100%", padding: "0.6rem", fontSize: "0.9rem", fontFamily: "'Manrope', sans-serif" }}
                 onClick={() => { navigate("/"); setMobileOpen(false); }}
               >
-                <span className="mso" style={{ fontSize: 16 }}>arrow_back</span>
+                <span className="mso" style={{ fontSize: 16, marginRight: 4 }}>arrow_back</span>
                 Trang chủ
-              </span>
+              </button>
             )}
           </div>
         </div>
@@ -467,6 +486,7 @@ const Header = () => {
     </nav>
   );
 };
+
 /* PASSWORD STRENGTH METER */
 const getStrength = pw => {
   if (!pw) return { score: 0, label: "", color: "transparent" };
@@ -500,7 +520,7 @@ const StrengthMeter = ({ password }) => {
   );
 };
 
-/* ══════════════ GOOGLE ICON ═════════════════ */
+/* GOOGLE ICON */
 const GoogleIcon = () => (
   <svg width="16" height="16" viewBox="0 0 48 48" style={{ flexShrink:0 }}>
     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -510,7 +530,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-/* ══════════  FIELD — reusable labeled input wrapper ═════════════════ */
+/* FIELD */
 const Field = ({ label, icon, error, children }) => (
   <div>
     <label style={{
@@ -535,7 +555,7 @@ const Field = ({ label, icon, error, children }) => (
   </div>
 );
 
-/* ════════════  LOGIN CARD ══════════════ */
+/* LOGIN CARD */
 const LoginCard = () => {
   const navigate = useNavigate();
   const { login, user } = useAuth();
@@ -548,7 +568,6 @@ const LoginCard = () => {
   const [errors,   setErrors]   = useState({});
   const btnRef = useRef(null);
 
-  // Redirect already-authenticated users
   useEffect(() => {
     if (user) navigate("/", { replace: true });
   }, [user, navigate]);
@@ -588,8 +607,6 @@ const LoginCard = () => {
       overflow:"hidden",
       position:"relative",
     }}>
-
-      {/* Top glow accent */}
       <div style={{
         position:"absolute", top:-70, left:"50%", transform:"translateX(-50%)",
         width:280, height:140,
@@ -598,8 +615,6 @@ const LoginCard = () => {
       }}/>
 
       <div className="card-pad" style={{ padding:"2.5rem 2.25rem" }}>
-
-        {/* ── Brand ── */}
         <div className="fade-up-1" style={{ textAlign:"center", marginBottom:"1.75rem" }}>
           <div className="hn" style={{
             fontSize:"2rem", fontWeight:700, color:C.primary,
@@ -610,7 +625,6 @@ const LoginCard = () => {
           </p>
         </div>
 
-        {/* ── Social login ── */}
         <div className="fade-up-1" style={{ marginBottom:"1.25rem" }}>
           <button
             className="btn-soc"
@@ -623,7 +637,6 @@ const LoginCard = () => {
 
         <div className="divider fade-up-2" style={{ marginBottom:"1.25rem" }}>Hoặc dùng email</div>
 
-        {/* ── Email ── */}
         <div className="fade-up-2" style={{ marginBottom:"1.1rem" }}>
           <Field label="Email" icon="alternate_email" error={errors.email}>
             <input
@@ -637,7 +650,6 @@ const LoginCard = () => {
           </Field>
         </div>
 
-        {/* ── Password ── */}
         <div className="fade-up-2" style={{ marginBottom:"0.6rem" }}>
           <Field label="Mật khẩu" icon="lock" error={errors.pw}>
             <input
@@ -669,7 +681,6 @@ const LoginCard = () => {
           <StrengthMeter password={pw}/>
         </div>
 
-        {/* ── Remember + Forgot ── */}
         <div className="fade-up-3" style={{
           display:"flex", justifyContent:"space-between", alignItems:"center",
           marginBottom:"1.5rem",
@@ -683,7 +694,6 @@ const LoginCard = () => {
           <button className="btn-ghost">Quên mật khẩu?</button>
         </div>
 
-        {/* ── Submit ── */}
         <button
           ref={btnRef}
           className="btn-pri fade-up-3"
@@ -704,10 +714,8 @@ const LoginCard = () => {
           </div>
         )}
 
-        {/* ── Divider ── */}
         <div className="divider" style={{ marginBottom:"1.4rem" }}>Chưa có tài khoản?</div>
 
-        {/* ── Register CTA ── */}
         <button
           className="btn-soc"
           style={{ borderColor:`rgba(237,177,255,.2)`, color:C.primary }}
@@ -718,23 +726,18 @@ const LoginCard = () => {
           <span className="mso" style={{ fontSize:16 }}>person_add</span>
           Tạo tài khoản miễn phí
         </button>
-
       </div>
     </div>
   );
 };
 
-/* ════════════════════════════════════════════════
-   LEFT PANEL — editorial sidebar (desktop only)
-════════════════════════════════════════════════ */
+/* LEFT PANEL */
 const LeftPanel = () => (
   <div className="hide-sm" style={{
     flex:1, maxWidth:440,
     display:"flex", flexDirection:"column", justifyContent:"center",
     padding:"2rem 3rem 2rem 0",
   }}>
-
-    {/* Chip */}
     <div style={{
       display:"inline-flex", alignItems:"center", gap:6,
       background:"rgba(88,61,95,.35)",
@@ -748,7 +751,6 @@ const LeftPanel = () => (
       Tử Vi Đẩu Số · AI
     </div>
 
-    {/* Headline */}
     <h1 className="hn" style={{
       fontSize:"clamp(2.2rem,3.5vw,3.4rem)",
       color:C.onSurface, lineHeight:1.14,
@@ -766,7 +768,6 @@ const LeftPanel = () => (
       Đăng nhập để truy cập lá số tử vi cá nhân, nhận phân tích chuyên sâu từ AI và khám phá hành trình vận mệnh riêng của bạn.
     </p>
 
-    {/* Feature list */}
     {[
       { icon:"star",             label:"Lá số Tử Vi cá nhân hóa" },
       { icon:"psychology",       label:"Phân tích AI chuyên sâu" },
@@ -786,7 +787,6 @@ const LeftPanel = () => (
       </div>
     ))}
 
-    {/* Testimonial chip */}
     <div style={{
       marginTop:"2rem",
       padding:"1rem 1.25rem",
@@ -807,9 +807,7 @@ const LeftPanel = () => (
   </div>
 );
 
-/* ════════════════════════════════════════════════
-   ROOT — LoginPage
-════════════════════════════════════════════════ */
+/* ROOT */
 export default function LoginPage() {
   return (
     <>

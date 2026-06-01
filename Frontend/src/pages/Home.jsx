@@ -142,175 +142,60 @@ const FontLoader = () => (
       .insights-grid { grid-template-columns: 1fr !important; }
     }
 
-    /* ── Zodiac section ── */
-    @media (max-width: 600px) {
-      .zodiac-section { padding: 3rem 0 !important; }
-      .zodiac-title { font-size: 2rem !important; }
-      .zodiac-card { padding: 0.75rem !important; }
-      .zodiac-card img { margin-bottom: 0.5rem !important; }
-      .zodiac-label { font-size: 0.85rem !important; }
-    }
-
-    /* ── Footer ── */
-    @media (max-width: 600px) {
-      .footer-logo-wrap { margin-left: 0 !important; }
-      .footer-social { padding-left: 0 !important; }
-      .footer-grid { gap: 1.5rem !important; }
-    }
     .zodiac-grid {
       display: grid;
       gap: 1rem;
-      grid-template-columns: repeat(6, 1fr);
+      grid-template-columns: repeat(6, 1fr); /* laptop: 2 hàng × 6 */
     }
 
-    /* Tablet */
     @media (max-width: 1024px) {
       .zodiac-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(4, 1fr); /* 3 hàng × 4 */
       }
     }
 
-    /* Mobile */
     @media (max-width: 768px) {
       .zodiac-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(3, 1fr); /* 4 hàng × 3 */
       }
     }
 
-    /* Mobile nhỏ */
     @media (max-width: 480px) {
       .zodiac-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, 1fr); /* 6 hàng × 2 */
       }
     }
-/* Modal con giáp mobile */
-@media (max-width: 600px) {
-  .zodiac-modal-header {
-    flex-direction: column;
-    gap: 0.75rem !important;
-  }
-
-  .zodiac-modal-header h3 {
-    font-size: 2rem !important;
-    text-align: center;
-  }
-
-  .zodiac-modal-header img {
-    width: 64px !important;
-    height: 64px !important;
-  }
-
-  .zodiac-modal-text {
-    font-size: 0.95rem !important;
-    line-height: 1.7 !important;
-  }
-}
-  
     /* ================= FOOTER ================= */
-
     .footer-grid {
       display: grid;
       grid-template-columns: 1.5fr 1fr 1fr;
       gap: 3rem;
     }
-
-    .footer-brand {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .footer-logo-wrap {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .footer-social {
-      display: flex;
-      gap: 1rem;
-    }
-
-    /* Tablet */
+    .footer-brand { display: flex; flex-direction: column; }
+    .footer-logo-wrap { display: flex; align-items: center; gap: 0.75rem; }
+    .footer-social { display: flex; gap: 1rem; }
     @media (max-width: 1024px) {
-
-      .footer-grid {
-        grid-template-columns: 1fr 1fr;
-        gap: 2.5rem;
-      }
-
-      .footer-brand {
-        grid-column: 1 / -1;
-        align-items: center;
-        text-align: center;
-      }
-
-      .footer-social {
-        justify-content: center;
-      }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 2.5rem; }
+      .footer-brand { grid-column: 1 / -1; align-items: center; text-align: center; }
+      .footer-social { justify-content: center; }
     }
-
-    /* Mobile */
     @media (max-width: 768px) {
-
-      .footer-grid {
-        grid-template-columns: 1fr;
-        gap: 2rem;
-        text-align: center;
-      }
-
-      .footer-brand {
-        align-items: center;
-      }
-
-      .footer-logo-wrap {
-        justify-content: center;
-      }
-
-      .footer-social {
-        justify-content: center;
-      }
-
-      .footer-link {
-        width: 100%;
-      }
+      .footer-grid { grid-template-columns: 1fr; gap: 2rem; text-align: center; }
+      .footer-brand { align-items: center; }
+      .footer-logo-wrap { justify-content: center; }
+      .footer-social { justify-content: center; }
+      .footer-link { width: 100%; }
     }
-
-    /* Mobile nhỏ */
     @media (max-width: 480px) {
-
-      footer {
-        padding: 3rem 1rem !important;
-      }
-
-      .footer-logo-wrap img {
-        width: 42px !important;
-        height: 42px !important;
-      }
-
-      .footer-logo-wrap div {
-        font-size: 2rem !important;
-      }
-
-      .footer-social a {
-        width: 3rem !important;
-        height: 3rem !important;
-      }
-
+      footer { padding: 3rem 1rem !important; }
+      .footer-logo-wrap img { width: 42px !important; height: 42px !important; }
+      .footer-logo-wrap div { font-size: 2rem !important; }
+      .footer-social a { width: 3rem !important; height: 3rem !important; }
+    }
     @media (max-width: 768px) {
-  .hero-top {
-    flex-direction: column !important;
-    text-align: center;
-  }
-
-  .hero-top > div:first-child {
-    text-align: center !important;
-  }
-
-  .hero-top img {
-    width: 180px !important;
-    margin-top: 1rem;
-  }
-}  
+      .hero-top { flex-direction: column !important; text-align: center; }
+      .hero-top > div:first-child { text-align: center !important; }
+      .hero-top img { width: 180px !important; margin-top: 1rem; }
     }
   `}</style>
 );
@@ -323,33 +208,39 @@ const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = [
-    { label: "Tra cứu",       to: "/",               activePath: "/" },
+    { label: "Tra cứu",       to: "/",                activePath: "/" },
     { label: "Dịch vụ",       to: "services",         activePath: null },
     { label: "Lá số",         to: "/la-so",           activePath: "/la-so" },
     { label: "Tử vi hôm nay", to: "/daily-horoscope", activePath: "/daily-horoscope" },
     { label: "Nhật ký",       to: "/journal",         activePath: "/journal" },
     { label: "Chatbot",       to: "/chatbot",         activePath: "/chatbot" },
     { label: "14 Chính tinh", to: "/major-stars",     activePath: "/major-stars" },
-    { label: "12 con giáp", to: "zodiac", activePath: null },
+    { label: "12 con giáp",   to: "zodiac",           activePath: null },
     { label: "Liên hệ",       to: "contact",          activePath: null },
   ];
 
   const handleNav = (item) => {
-    if (["contact", "services", "zodiac"].includes(item.to)) {
+  if (["contact", "services", "zodiac"].includes(item.to)) {
+    const scrollToSection = () => {
       const el = document.getElementById(item.to);
-
       if (el) {
-        window.scrollTo({
-          top: el.offsetTop - 80,
-          behavior: "smooth",
-        });
+        window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
       }
-    } else {
-      navigate(item.to);
-    }
+    };
 
-    setMobileOpen(false);
-  };
+    if (location.pathname !== "/") {
+      navigate("/");
+      // Đợi trang render xong rồi mới scroll
+      setTimeout(scrollToSection, 300);
+    } else {
+      scrollToSection();
+    }
+  } else {
+    navigate(item.to);
+  }
+
+  setMobileOpen(false);
+};
 
   const userInitials = (user?.full_name || user?.email || "?")
     .split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
@@ -541,8 +432,8 @@ const HeroSection = () => {
   const currentYear = new Date().getFullYear();
   const [calMode, setCalMode] = useState("solar");
   const [form, setForm] = useState({
-    name: "", dob: "", time: "", gender: "Nam", year: currentYear.toString(),
-    lunarDay: "", lunarMonth: "", lunarYear: "", lunarLeap: false,
+    name: "", dob: "",lunarDate: "", time: "", gender: "Nam", year: currentYear.toString(), 
+    lunarLeap: false,
   });
   const [converting, setConverting] = useState(false);
 
@@ -567,24 +458,35 @@ const HeroSection = () => {
     let birthDate = form.dob;
 
     if (calMode === "lunar") {
-      if (!form.lunarDay || !form.lunarMonth || !form.lunarYear) {
-        alert("Vui lòng nhập đầy đủ ngày, tháng, năm âm lịch");
+      if (!form.lunarDate) {
+        alert("Vui lòng nhập ngày sinh âm lịch");
         return;
       }
+
       setConverting(true);
+
       try {
+        const [year, month, day] = form.lunarDate
+          .split("-")
+          .map(Number);
+
         const res = await calendarService.lunarToSolar(
-          parseInt(form.lunarYear),
-          parseInt(form.lunarMonth),
-          parseInt(form.lunarDay),
-          form.lunarLeap,
+          year,
+          month,
+          day,
+          form.lunarLeap
         );
-        birthDate = res.solar_date ?? res.date ?? res.dob_solar;
+
+        birthDate =
+          res.data?.solar_date ??
+          res.data?.date ??
+          res.data?.dob_solar;
       } catch {
         alert("Không thể chuyển đổi ngày âm lịch. Vui lòng kiểm tra lại ngày nhập.");
         setConverting(false);
         return;
       }
+
       setConverting(false);
     } else {
       if (!form.dob) {
@@ -595,15 +497,17 @@ const HeroSection = () => {
 
     navigate("/la-so", {
       state: {
-        name:       form.name,
+        name: form.name,
         birthDate,
-        birthHour:  form.time,
-        gender:     form.gender === "Nữ" ? "female" : "male",
+        birthHour: form.time,
+        gender: form.gender === "Nữ" ? "female" : "male",
         targetYear: Number(form.year),
+        calMode,
+        lunarDateInput: calMode === "lunar" ? form.lunarDate : null,
+        lunarLeap: calMode === "lunar" ? form.lunarLeap : false,
       },
     });
   };
-
   return (
     <section
       className="hero-section-padding"
@@ -727,25 +631,19 @@ const HeroSection = () => {
             </div>
 
             {/* Ngày sinh */}
-            {calMode === "solar" ? (
-              <div>
-                <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Ngày sinh</label>
-                <input className="field-input" type="date" name="dob" value={form.dob} onChange={handleChange} style={{ colorScheme: "dark" }} />
-              </div>
-            ) : (
-              <div>
-                <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Ngày sinh</label>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <input className="field-input" type="number" name="lunarDay" placeholder="Ngày" min={1} max={30} value={form.lunarDay} onChange={handleChange} style={{ width: "33%" }} />
-                  <input className="field-input" type="number" name="lunarMonth" placeholder="Tháng" min={1} max={12} value={form.lunarMonth} onChange={handleChange} style={{ width: "33%" }} />
-                  <input className="field-input" type="number" name="lunarYear" placeholder="Năm" min={1900} max={2100} value={form.lunarYear} onChange={handleChange} style={{ width: "34%" }} />
-                </div>
-                <label style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: "0.72rem", color: "rgba(237,177,255,0.6)", cursor: "pointer" }}>
+            <div>
+              <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem"}}>
+                Ngày sinh
+              </label>
+              <input className="field-input" type="date" name={calMode === "solar" ? "dob" : "lunarDate"} value={calMode === "solar" ? form.dob : form.lunarDate} onChange={handleChange} style={{ colorScheme: "dark" }}/>
+              {calMode === "lunar" && (
+                <label
+                  style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: "0.72rem", color: "rgba(237,177,255,0.6)", cursor: "pointer"}} >
                   <input type="checkbox" name="lunarLeap" checked={form.lunarLeap} onChange={handleChange} style={{ accentColor: "#edb1ff" }} />
                   Tháng nhuận
                 </label>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Giờ sinh */}
             <div>
@@ -1134,7 +1032,7 @@ const ZodiacSection = () => {
           </p>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "1.5rem", marginBottom: "4rem" }}>
+        <div className="zodiac-grid" style={{ marginBottom: "4rem" }}>
           {zodiacData.map(({ name, src }) => (
             <div
               key={name}

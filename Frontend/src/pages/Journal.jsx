@@ -1,468 +1,848 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { journalService } from "../services/journalService";
-import { GlobalStyles } from "./Login";
+import { authService } from "../services/authService";
 import NotificationBell from "../components/NotificationBell";
 
-// ─── constants ───────────────────────────────────────────────────────────────
-
-const DOW_LABELS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-
-const STAR_META = {
-  // Lưu Nhật
-  "Lưu Nhật Lộc Tồn":    { icon:"💰", color:"#4ade80"  },
-  "Lưu Nhật Kình Dương":  { icon:"⚔",  color:"#f87171"  },
-  "Lưu Nhật Đà La":       { icon:"🌑", color:"#a78bfa"  },
-  "Lưu Nhật Thiên Mã":    { icon:"🐎", color:"#67e8f9"  },
-  "Lưu Nhật Tang Môn":    { icon:"🪦", color:"#94a3b8"  },
-  "Lưu Nhật Bạch Hổ":     { icon:"🐯", color:"#fb923c"  },
-  // Lưu Nguyệt
-  "Lưu Nguyệt Lộc Tồn":   { icon:"💰", color:"#4ade80"  },
-  "Lưu Nguyệt Kình Dương": { icon:"⚔",  color:"#f87171"  },
-  "Lưu Nguyệt Đà La":      { icon:"🌑", color:"#a78bfa"  },
-  "Lưu Nguyệt Thiên Mã":   { icon:"🐎", color:"#67e8f9"  },
-  "Lưu Nguyệt Tang Môn":   { icon:"🪦", color:"#94a3b8"  },
-  "Lưu Nguyệt Bạch Hổ":    { icon:"🐯", color:"#fb923c"  },
-  // Lưu Niên
-  "Lưu Niên Lộc Tồn":     { icon:"💰", color:"#4ade80"  },
-  "Lưu Niên Kình Dương":   { icon:"⚔",  color:"#f87171"  },
-  "Lưu Niên Đà La":        { icon:"🌑", color:"#a78bfa"  },
-  "Lưu Niên Thiên Mã":     { icon:"🐎", color:"#67e8f9"  },
-  "Lưu Niên Thái Tuế":     { icon:"☀", color:"#fbbf24"  },
-  "Lưu Niên Tang Môn":     { icon:"🪦", color:"#94a3b8"  },
-  "Lưu Niên Bạch Hổ":      { icon:"🐯", color:"#fb923c"  },
-};
-const HOA_COLORS = {
-  "Hóa Lộc":"#4ade80","Hóa Quyền":"#fbbf24","Hóa Khoa":"#67e8f9","Hóa Kỵ":"#f87171",
+/* ═══════════ DESIGN TOKENS  — mirrors HomePage.jsx exactly ═══════════ */
+const C = {
+  bg:                     "#0f131c",
+  surface:                "#0f131c",
+  surfaceLowest:          "#0a0e17",
+  surfaceLow:             "#181b25",
+  surfaceContainer:       "#1c1f29",
+  surfaceHigh:            "#262a34",
+  surfaceHighest:         "#31353f",
+  primary:                "#edb1ff",
+  primaryContainer:       "#6d208c",
+  onPrimary:              "#520070",
+  onSurface:              "#dfe2ef",
+  onSurfaceVariant:       "#d0c2d3",
+  outline:                "#998d9d",
+  outlineVariant:         "#4d4351",
+  secondaryContainer:     "#583d5f",
+  error:                  "#ffb4ab",
+  tertiary:               "#d3bcfc",
 };
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
+/* GLOBAL STYLES — thêm class responsive của header Home */
+const GlobalStyles = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Manrope:wght@200..800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel&display=swap');
+    .font-headline { font-family: 'Cinzel', serif; }
 
-function toISO(year, month, day) {
-  return `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
-}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Manrope', sans-serif;
+      background: ${C.bg};
+      color: ${C.onSurface};
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+    .hn { font-family: 'Newsreader', serif; }
+    .mso {
+      font-family: 'Material Symbols Outlined';
+      font-variation-settings: 'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;
+      line-height: 1; display: inline-block; vertical-align: middle;
+    }
 
-function todayISO() {
-  const d = new Date();
-  return toISO(d.getFullYear(), d.getMonth() + 1, d.getDate());
-}
+    /* ── Glass panel (identical to hero form) ── */
+    .glass {
+      background: rgba(15,19,28,0.75);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+    }
 
-function buildCalendarDays(year, month) {
-  const firstDow = new Date(year, month - 1, 1).getDay(); // 0=Sun
-  const offset = firstDow === 0 ? 6 : firstDow - 1;       // Mon-based
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const cells = [];
-  for (let i = 0; i < offset; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  return cells;
-}
+    /* ── Input ── */
+    .inp {
+      width: 100%;
+      background: ${C.surfaceLowest};
+      border: 1.5px solid transparent;
+      border-radius: 12px;
+      padding: 13px 14px 13px 44px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 15px;
+      color: ${C.onSurface};
+      outline: none;
+      transition: border-color .22s, box-shadow .22s;
+      color-scheme: dark;
+    }
+    .inp::placeholder { color: rgba(208,194,211,.38); }
+    .inp:focus {
+      border-color: rgba(237,177,255,.4);
+      box-shadow: 0 0 0 3px rgba(237,177,255,.10);
+    }
+    .inp.err {
+      border-color: rgba(255,180,171,.5);
+      box-shadow: 0 0 0 3px rgba(255,180,171,.08);
+    }
 
-const MONTH_NAMES = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Tháng 6",
-  "Tháng 7","Tháng 8","Tháng 9","Tháng 10","Tháng 11","Tháng 12"];
+    /* ── Primary gradient button ── */
+    .btn-pri {
+      width: 100%;
+      background: linear-gradient(135deg, ${C.primary} 0%, ${C.primaryContainer} 100%);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      cursor: pointer;
+      transition: box-shadow .3s, transform .15s, opacity .2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-pri:hover { box-shadow: 0 0 40px -6px rgba(237,177,255,.42); }
+    .btn-pri:active { transform: scale(.98); }
+    .btn-pri:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
-// ─── sao luu display ─────────────────────────────────────────────────────────
+    /* ── Social / outline button ── */
+    .btn-soc {
+      width: 100%;
+      background: ${C.surfaceLow};
+      border: 1.5px solid rgba(77,67,81,.3);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: ${C.onSurfaceVariant};
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: background .2s, border-color .2s;
+    }
+    .btn-soc:hover {
+      background: ${C.surfaceHigh};
+      border-color: rgba(237,177,255,.22);
+    }
 
-function StarRow({ name, data }) {
-  const meta = STAR_META[name] || { icon:"✦", color:"#c4b5fd" };
-  return (
-    <div style={{ display:"flex", alignItems:"center", gap:8, padding:"5px 8px",
-      borderRadius:6, background:"rgba(255,255,255,0.02)" }}>
-      <span style={{ fontSize:"0.85rem", flexShrink:0 }}>{meta.icon}</span>
-      <span style={{ fontWeight:700, fontSize:"0.72rem", color:meta.color, flex:1 }}>{name}</span>
-      <span style={{ fontSize:"0.65rem", color:"rgba(255,255,255,0.3)" }}>
-        {data.chi} · cung {data.house}
-      </span>
-    </div>
-  );
-}
+    /* ── Ghost link-style button ── */
+    .btn-ghost {
+      background: none; border: none;
+      color: ${C.primary}; opacity: .85;
+      font-family: 'Manrope', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: opacity .2s;
+      padding: 0;
+    }
+    .btn-ghost:hover { opacity: 1; }
 
-function TuHoaChips({ tuHoa }) {
-  if (!tuHoa || !Object.keys(tuHoa).length) return null;
-  return (
-    <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:6 }}>
-      {Object.entries(tuHoa).map(([star, hoa]) => (
-        <span key={star} style={{
-          fontSize:"0.62rem", padding:"2px 7px", borderRadius:999,
-          background:`${HOA_COLORS[hoa]||"#fff"}18`,
-          border:`1px solid ${HOA_COLORS[hoa]||"#fff"}35`,
-          color: HOA_COLORS[hoa]||"#fff", fontWeight:600,
-        }}>{star} {hoa}</span>
-      ))}
-    </div>
-  );
-}
+    /* ── Custom checkbox ── */
+    .cb-wrap {
+      display: flex; align-items: center; gap: 9px;
+      cursor: pointer; user-select: none;
+    }
+    .cb-box {
+      width: 17px; height: 17px; flex-shrink: 0;
+      border-radius: 4px;
+      border: 1.5px solid ${C.outlineVariant};
+      background: ${C.surfaceLowest};
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color .2s, background .2s;
+    }
+    .cb-box.on { background: ${C.primaryContainer}; border-color: ${C.primary}; }
 
-function TierCard({ title, subtitle, data, starPrefix }) {
-  if (!data) return null;
-  if (data.placeholder) {
-    return (
-      <div style={{ padding:"10px 12px", borderRadius:10,
-        background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ fontSize:"0.68rem", fontWeight:700, color:"rgba(237,177,255,0.5)",
-          letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:5 }}>{title}</div>
-        <div style={{ fontSize:"0.72rem", color:"rgba(255,255,255,0.25)", lineHeight:1.6 }}>
-          {data.message}
-        </div>
-      </div>
-    );
-  }
-  const starKeys = Object.keys(data).filter(k => k.startsWith(starPrefix) && typeof data[k] === "object" && data[k].chi);
-  return (
-    <div style={{ padding:"10px 12px", borderRadius:10,
-      background:"rgba(255,255,255,0.02)", border:"1px solid rgba(255,255,255,0.06)" }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
-        <div style={{ fontSize:"0.68rem", fontWeight:700, color:"rgba(237,177,255,0.55)",
-          letterSpacing:"0.1em", textTransform:"uppercase" }}>{title}</div>
-        <div style={{ fontSize:"0.62rem", color:"rgba(255,255,255,0.25)" }}>{subtitle}</div>
-      </div>
-      <div style={{ display:"flex", flexDirection:"column", gap:3 }}>
-        {starKeys.map(k => <StarRow key={k} name={k} data={data[k]} />)}
-      </div>
-      <TuHoaChips tuHoa={data.tu_hoa} />
-    </div>
-  );
-}
+    /* ── Divider ── */
+    .divider {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+      color: ${C.onSurfaceVariant}; opacity: .45;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: ${C.outlineVariant}; opacity: .3;
+    }
 
-function LuuSaoTiers({ luuSao }) {
-  if (!luuSao) return (
-    <div style={{ fontSize:"0.75rem", color:"rgba(255,255,255,0.2)", padding:"0.5rem 0" }}>
-      Lưu ghi chú để xem thông tin sao Lưu.
-    </div>
-  );
-  const nhat   = luuSao.luu_nhat;
-  const nguyet = luuSao.luu_nguyet;
-  const nien   = luuSao.luu_nien;
-  const nhatSub = nhat ? `${nhat.can} ${nhat.chi}` : "";
-  const nguyetSub = nguyet && !nguyet.placeholder ? `T.${nguyet.lunar_month} · ${nguyet.can} ${nguyet.chi}` : "";
-  const nienSub  = nien ? `${nien.can} ${nien.chi} · ${nien.year}` : "";
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:"0.7rem" }}>
-      <TierCard title="Sao Nhật" subtitle={nhatSub} data={nhat} starPrefix="Lưu Nhật" />
-      <TierCard title="Sao Nguyệt" subtitle={nguyetSub} data={nguyet} starPrefix="Lưu Nguyệt" />
-      <TierCard title="Sao Niên" subtitle={nienSub} data={nien} starPrefix="Lưu Niên" />
-    </div>
-  );
-}
+    /* ── Error text ── */
+    .err-txt {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 12px; color: ${C.error};
+      margin-top: 6px; margin-left: 2px;
+    }
 
-// ─── components ──────────────────────────────────────────────────────────────
+    /* ── Floating particle stars ── */
+    @keyframes twinkle {
+      0%,100% { opacity: .12; transform: scale(1); }
+      50%     { opacity: .65; transform: scale(1.5); }
+    }
+    .star {
+      position: absolute; border-radius: 50%;
+      background: ${C.primary};
+      animation: twinkle var(--d,3s) ease-in-out infinite;
+      animation-delay: var(--dl,0s);
+      pointer-events: none;
+    }
 
-function NavBar() {
+    /* ── Ambient floating orbs ── */
+    @keyframes floatY {
+      0%,100% { transform: translateY(0) scale(1); }
+      50%     { transform: translateY(-18px) scale(1.04); }
+    }
+    .orb {
+      position: absolute; border-radius: 50%;
+      filter: blur(72px);
+      animation: floatY var(--d,7s) ease-in-out infinite;
+      animation-delay: var(--dl,0s);
+      pointer-events: none;
+    }
+
+    /* ── Nav link (header home style) ── */
+    .nav-link {
+      color: ${C.onSurfaceVariant}; font-family: 'Manrope', sans-serif;
+      font-size: 0.8rem; text-decoration: none; transition: color 0.3s;
+      white-space: nowrap;
+    }
+    .nav-link:hover { color: ${C.primary}; }
+
+    .btn-outline {
+      background: transparent; color: ${C.primary};
+      border: 2px solid rgba(237,177,255,0.2);
+      border-radius: 0.75rem; font-weight: 700; cursor: pointer;
+      transition: background 0.2s;
+      font-family: 'Manrope', sans-serif;
+    }
+    .btn-outline:hover { background: rgba(237,177,255,0.08); }
+    .btn-outline:active { transform: scale(0.97); }
+
+    /* ── Header responsive (giống home) ── */
+    .hp-mobile-btn { display: none; }
+    @media (max-width: 900px) {
+      .hp-desktop-nav { display: none !important; }
+      .hp-mobile-btn  { display: block !important; }
+    }
+
+    /* ── Spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 16px; height: 16px; flex-shrink: 0;
+      border: 2px solid rgba(255,255,255,.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    /* ── Fade-in entrance ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .55s ease both; }
+    .fade-up-1 { animation-delay: .05s; }
+    .fade-up-2 { animation-delay: .12s; }
+    .fade-up-3 { animation-delay: .20s; }
+
+    /* ── Responsive hide for left panel ── */
+    @media (max-width: 800px) { .hide-sm { display: none !important; } }
+    @media (max-width: 480px) { .card-pad { padding: 2rem 1.5rem !important; } }
+  `}</style>
+);
+
+/*PARTICLES / BACKGROUND*/
+const STARS = Array.from({ length: 30 }, (_, i) => ({
+  id: i,
+  s:  Math.random() * 2.5 + 1,
+  t:  `${Math.random() * 100}%`,
+  l:  `${Math.random() * 100}%`,
+  d:  `${(Math.random() * 4 + 2).toFixed(1)}s`,
+  dl: `${(Math.random() * 4).toFixed(1)}s`,
+}));
+
+const Background = () => (
+  <div style={{ position:"fixed", inset:0, zIndex:0, overflow:"hidden" }}>
+    <img
+      src="https://lh3.googleusercontent.com/aida-public/AB6AXuAw8NoRR53N9kVzjPIXE5O763r_RODFkTje0VJ-pFHLXZFu750gjYin8lmfGchTK8f-UqaFxGKoZpokS5kee28ndaH0NZQMFcbXM3zvYeeFg_BUPh3BLjvj5PcdPS9oaq7HHBXJ0imlvFyBGzCHB6Ude7ACgx7kTSUx5d_nKWvTTKBI4N7VbU93AJDZ36v9sF5LqVW7sTJ7Rhhb1x0U44DGe2BKv_nP02Dchiniq-AQwgHnlovz99kGL2_bICYi0QKxN3v_Sjxw6xM"
+      alt=""
+      style={{ position:"absolute", inset:0, width:"100%", height:"100%", objectFit:"cover", opacity:.16 }}
+    />
+    <div style={{
+      position:"absolute", inset:0,
+      background:`linear-gradient(to bottom,${C.bg} 0%,transparent 35%,transparent 65%,${C.bg} 100%)`,
+    }}/>
+
+    {/* Glow orbs */}
+    <div className="orb" style={{ width:420, height:420, background:"rgba(109,32,140,.2)",  top:"-100px", left:"-120px", "--d":"8s", "--dl":"0s" }}/>
+    <div className="orb" style={{ width:280, height:280, background:"rgba(237,177,255,.07)", bottom:"80px",  right:"-60px",  "--d":"10s","--dl":"2s" }}/>
+    <div className="orb" style={{ width:160, height:160, background:"rgba(83,60,115,.28)",  top:"42%",     right:"18%",    "--d":"5s", "--dl":"1s" }}/>
+
+    {/* Stars */}
+    {STARS.map(s => (
+      <div key={s.id} className="star" style={{ width:s.s, height:s.s, top:s.t, left:s.l, "--d":s.d, "--dl":s.dl }}/>
+    ))}
+  </div>
+);
+
+/* ── Header giống home.jsx, ẩn nút Đăng nhập ── */
+const Header = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
-  const navLinks = [
-    { label: "Tra cứu", to: "/" },
-    { label: "Lá số", to: "/la-so" },
-    { label: "Tử vi hôm nay", to: "/daily-horoscope" },
-    { label: "Chatbot", to: "/chatbot" },
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navItems = [
+    { label: "Tra cứu",       to: "/",               activePath: "/" },
+    { label: "Dịch vụ",       to: "services",         activePath: null },
+    { label: "Lá số",         to: "/la-so",           activePath: "/la-so" },
+    { label: "Tử vi hôm nay", to: "/daily-horoscope", activePath: "/daily-horoscope" },
+    { label: "Nhật ký",       to: "/journal",         activePath: "/journal" },
+    { label: "Chatbot",       to: "/chatbot",         activePath: "/chatbot" },
+    { label: "14 Chính tinh", to: "/major-stars",     activePath: "/major-stars" },
+    { label: "12 con giáp",   to: "zodiac",           activePath: null },
+    { label: "Liên hệ",       to: "contact",          activePath: null },
   ];
+
+  const handleNav = (item) => {
+    if (["contact", "services", "zodiac"].includes(item.to)) {
+      // Về Home và scroll tới section
+      navigate("/");
+      setTimeout(() => {
+        const el = document.getElementById(item.to);
+        if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
+      }, 100);
+    } else {
+      navigate(item.to);
+    }
+    setMobileOpen(false);
+  };
+
+  const userInitials = (user?.full_name || user?.email || "?")
+    .split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+
   return (
     <nav style={{
       position: "fixed", top: 0, width: "100%", zIndex: 50,
-      background: "rgba(15,19,28,0.88)", backdropFilter: "blur(20px)",
-      borderBottom: "1px solid rgba(255,255,255,0.05)",
+      background: "rgba(15,19,28,0.88)",
+      backdropFilter: "blur(20px)",
+      WebkitBackdropFilter: "blur(20px)",
+      boxShadow: "0 1px 0 rgba(255,255,255,0.06)",
     }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
-        padding:"0.65rem 1.5rem", maxWidth:"1400px", margin:"0 auto" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:"0.5rem", cursor:"pointer", flexShrink:0 }}
-          onClick={() => navigate("/")}>
-          <img src="/favicon3.png" alt="logo" style={{ width:"36px", height:"36px", objectFit:"contain" }} />
-          <span style={{ fontFamily:"Cinzel,serif", fontSize:"1.65rem", color:"#fff" }}>YinYang</span>
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        padding: "0.65rem clamp(1rem, 4vw, 1.5rem)",
+        maxWidth: "80rem", margin: "0 auto", gap: "1rem",
+      }}>
+        {/* Logo */}
+        <div
+          onClick={() => navigate("/")}
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", flexShrink: 0 }}
+        >
+          <img src="/favicon3.png" alt="logo" style={{ width: "36px", height: "36px", objectFit: "contain" }} />
+          <span style={{
+            fontFamily: "Cinzel, serif",
+            fontSize: "clamp(1.1rem, 3vw, 1.65rem)",
+            color: C.onSurface, lineHeight: 1,
+          }}>
+            YinYang
+          </span>
         </div>
-        <div style={{ display:"flex", gap:"1.5rem", alignItems:"center" }}>
-          {navLinks.map(({ label, to }) => (
-            <span key={label} onClick={() => navigate(to)}
-              style={{ color:"#d0c2d3", fontFamily:"Manrope,sans-serif", fontSize:"0.9rem",
-                cursor:"pointer", textDecoration:"none" }}>
-              {label}
-            </span>
-          ))}
+
+        {/* Desktop nav */}
+        <div
+          className="hp-desktop-nav"
+          style={{ display: "flex", gap: "clamp(0.6rem, 1.2vw, 1.15rem)", alignItems: "center", flex: 1, justifyContent: "center" }}
+        >
+          {navItems.map(item => {
+            const isActive = item.activePath && location.pathname === item.activePath;
+            return (
+              <span
+                key={item.label}
+                className="nav-link"
+                style={{
+                  cursor: "pointer",
+                  fontWeight: isActive ? 700 : 400,
+                  color: isActive ? C.primary : C.onSurfaceVariant,
+                  fontSize: "clamp(0.68rem, 1vw, 0.8rem)",
+                }}
+                onClick={() => handleNav(item)}
+              >
+                {item.label}
+              </span>
+            );
+          })}
         </div>
-        <div style={{ display:"flex", gap:"0.75rem", alignItems:"center" }}>
-          {user && <NotificationBell />}
-          {user && (
-            <div onClick={() => navigate("/profile")} title={user.full_name || user.email} style={{
-              width:"30px", height:"30px", borderRadius:"50%", flexShrink:0,
-              background:"linear-gradient(135deg,#edb1ff,#6d208c)",
-              display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize:"0.7rem", fontWeight:700, color:"#111", cursor:"pointer",
-            }}>
-              {(user.full_name || user.email || "?").split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()}
+
+        {/* Desktop user / thay nút "Đăng nhập" bằng "Trang chủ" */}
+        {user ? (
+          <div className="hp-desktop-nav" style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexShrink: 0 }}>
+            <NotificationBell />
+            <div
+              onClick={() => navigate("/profile")}
+              title={user.full_name || user.email}
+              style={{
+                width: "30px", height: "30px", borderRadius: "50%",
+                background: "linear-gradient(135deg,#edb1ff,#6d208c)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "0.7rem", fontWeight: 700, color: "#111", cursor: "pointer",
+              }}
+            >
+              {userInitials}
             </div>
-          )}
-          <button onClick={() => { logout(); navigate("/"); }}
-            style={{ background:"linear-gradient(135deg,#edb1ff,#6d208c)", border:"none",
-              borderRadius:"0.75rem", color:"#fff", fontWeight:700, cursor:"pointer",
-              padding:"0.45rem 1.2rem", fontSize:"0.85rem", fontFamily:"Manrope,sans-serif" }}>
-            Đăng xuất
+            <button
+              className="btn-outline"
+              style={{ padding: "0.4rem 1rem", fontSize: "0.78rem", fontFamily: "'Manrope', sans-serif" }}
+              onClick={logout}
+            >
+              Đăng xuất
+            </button>
+          </div>
+        ) : (
+          <button
+            className="btn-outline hp-desktop-nav"
+            style={{ padding: "0.45rem 1.25rem", fontSize: "0.85rem", fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}
+            onClick={() => navigate("/")}
+          >
+            <span className="mso" style={{ fontSize: 16, marginRight: 4 }}>arrow_back</span>
+            Trang chủ
           </button>
-        </div>
+        )}
+
+        {/* Hamburger */}
+        <button
+          className="hp-mobile-btn"
+          onClick={() => setMobileOpen(o => !o)}
+          style={{ background: "none", border: "none", color: C.onSurface, fontSize: "1.6rem", cursor: "pointer", lineHeight: 1, padding: "4px", flexShrink: 0 }}
+          aria-label={mobileOpen ? "Đóng menu" : "Mở menu"}
+        >
+          {mobileOpen ? "✕" : "☰"}
+        </button>
       </div>
+
+      {/* Mobile dropdown */}
+      {mobileOpen && (
+        <div style={{
+          background: "rgba(15,19,28,0.98)",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+          padding: "1rem 1.25rem",
+          display: "flex", flexDirection: "column", gap: "0.85rem",
+        }}>
+          <span style={{
+            fontSize: "11px", color: "rgba(237,177,255,0.5)",
+            textTransform: "uppercase", letterSpacing: "0.08em",
+            borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "6px",
+          }}>
+            Điều hướng
+          </span>
+
+          {navItems.map(item => {
+            const isActive = item.activePath && location.pathname === item.activePath;
+            return (
+              <span
+                key={item.label}
+                style={{
+                  cursor: "pointer",
+                  color: isActive ? C.primary : C.onSurfaceVariant,
+                  fontWeight: isActive ? 700 : 400,
+                  fontSize: "0.9rem", fontFamily: "'Manrope', sans-serif",
+                }}
+                onClick={() => handleNav(item)}
+              >
+                {item.label}
+              </span>
+            );
+          })}
+
+          {/* User row */}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            {user ? (
+              <>
+                <div style={{
+                  width: "28px", height: "28px", borderRadius: "50%",
+                  background: "linear-gradient(135deg,#edb1ff,#6d208c)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: "0.65rem", fontWeight: 700, color: "#111", flexShrink: 0,
+                }}>
+                  {userInitials}
+                </div>
+                <span style={{ color: C.onSurfaceVariant, fontSize: "0.82rem", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {user.full_name || user.email}
+                </span>
+                <button
+                  className="btn-outline"
+                  style={{ padding: "0.3rem 0.8rem", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif" }}
+                  onClick={() => { logout(); setMobileOpen(false); }}
+                >
+                  Đăng xuất
+                </button>
+              </>
+            ) : (
+              <button
+                className="btn-outline"
+                style={{ width: "100%", padding: "0.6rem", fontSize: "0.9rem", fontFamily: "'Manrope', sans-serif" }}
+                onClick={() => { navigate("/"); setMobileOpen(false); }}
+              >
+                <span className="mso" style={{ fontSize: 16, marginRight: 4 }}>arrow_back</span>
+                Trang chủ
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
-}
+};
 
-// ─── main ─────────────────────────────────────────────────────────────────────
+/* PASSWORD STRENGTH METER */
+const getStrength = pw => {
+  if (!pw) return { score: 0, label: "", color: "transparent" };
+  let s = 0;
+  if (pw.length >= 8)          s++;
+  if (/[A-Z]/.test(pw))        s++;
+  if (/[0-9]/.test(pw))        s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  const map = [
+    { label:"",      color:"transparent" },
+    { label:"Yếu",   color:"#ffb4ab" },
+    { label:"Tạm",   color:"#f9a825" },
+    { label:"Tốt",   color:C.tertiary },
+    { label:"Mạnh",  color:"#81c784" },
+  ];
+  return { score: s, ...map[s] };
+};
 
-export default function Journal() {
-  const today = todayISO();
-  const [year, setYear]           = useState(() => new Date().getFullYear());
-  const [month, setMonth]         = useState(() => new Date().getMonth() + 1);
-  const [selectedDate, setSelectedDate] = useState(today);
-  const [logsMap, setLogsMap]         = useState({}); // dateStr → log
-  const [text, setText]               = useState("");
-  const [saving, setSaving]           = useState(false);
-  const [saved, setSaved]             = useState(false);
-  const [luuSao, setLuuSao]           = useState(null);
-  const [loadingEntry, setLoadingEntry] = useState(false);
-  const [loadingStars, setLoadingStars] = useState(false);
-  const saveTimer = useRef(null);
+const StrengthMeter = ({ password }) => {
+  const { score, label, color } = getStrength(password);
+  if (!password) return null;
+  return (
+    <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:8 }}>
+      {[1,2,3,4].map(i => (
+        <div key={i} className="sbar-track">
+          <div className="sbar-fill" style={{ width: score >= i ? "100%" : "0%", background: color }}/>
+        </div>
+      ))}
+      <span style={{ fontSize:11, color, fontWeight:600, minWidth:36, textAlign:"right" }}>{label}</span>
+    </div>
+  );
+};
 
-  // load month logs
+/* GOOGLE ICON */
+const GoogleIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 48 48" style={{ flexShrink:0 }}>
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+  </svg>
+);
+
+/* FIELD */
+const Field = ({ label, icon, error, children }) => (
+  <div>
+    <label style={{
+      display:"block", fontSize:11, fontWeight:700,
+      letterSpacing:".12em", textTransform:"uppercase",
+      color:C.primary, marginBottom:8, marginLeft:2,
+    }}>{label}</label>
+    <div style={{ position:"relative" }}>
+      <span className="mso" style={{
+        position:"absolute", left:14, top:"50%", transform:"translateY(-50%)",
+        fontSize:18, color:C.onSurfaceVariant, opacity:.5,
+        pointerEvents:"none", transition:"color .2s, opacity .2s",
+      }}>{icon}</span>
+      {children}
+    </div>
+    {error && (
+      <div className="err-txt">
+        <span className="mso" style={{ fontSize:13 }}>error</span>
+        {error}
+      </div>
+    )}
+  </div>
+);
+
+/* LOGIN CARD */
+const LoginCard = () => {
+  const navigate = useNavigate();
+  const { login, user } = useAuth();
+  const [email,    setEmail]    = useState("");
+  const [pw,       setPw]       = useState("");
+  const [showPw,   setShowPw]   = useState(false);
+  const [remember, setRemember] = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [success,  setSuccess]  = useState(false);
+  const [errors,   setErrors]   = useState({});
+  const btnRef = useRef(null);
+
   useEffect(() => {
-    journalService.listMonth(year, month)
-      .then((logs) => {
-        const map = {};
-        logs.forEach((l) => { map[l.log_date] = l; });
-        setLogsMap(map);
-      })
-      .catch(() => {});
-  }, [year, month]);
+    if (user) navigate("/", { replace: true });
+  }, [user, navigate]);
 
-  // load stars whenever selected date changes — independent of entry existence
-  useEffect(() => {
-    setLuuSao(null);
-    setLoadingStars(true);
-    journalService.getStars(selectedDate)
-      .then(setLuuSao)
-      .catch(() => setLuuSao(null))
-      .finally(() => setLoadingStars(false));
-  }, [selectedDate]);
+  const validate = () => {
+    const e = {};
+    if (!email.trim())                      e.email = "Vui lòng nhập email.";
+    else if (!/\S+@\S+\.\S+/.test(email))   e.email = "Email không hợp lệ.";
+    if (!pw)                                e.pw    = "Vui lòng nhập mật khẩu.";
+    else if (pw.length < 6)                 e.pw    = "Mật khẩu tối thiểu 6 ký tự.";
+    return e;
+  };
 
-  // load entry content for selected date
-  useEffect(() => {
-    setLoadingEntry(true);
-    setSaved(false);
-    const log = logsMap[selectedDate];
-    if (log) {
-      setText(log.content ?? "");
-      setLoadingEntry(false);
-    } else {
-      journalService.getDay(selectedDate)
-        .then((log) => { setText(log.content ?? ""); })
-        .catch(() => { setText(""); })
-        .finally(() => setLoadingEntry(false));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate]);
+  const handleLogin = async () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
 
-  const handleSave = useCallback(async (value) => {
-    const content = value ?? text;
-    setSaving(true);
+    setErrors({});
+    setLoading(true);
     try {
-      const existing = logsMap[selectedDate];
-      let log;
-      if (existing) {
-        log = await journalService.update(selectedDate, content);
-      } else {
-        log = await journalService.save(selectedDate, content);
-      }
-      setLogsMap((m) => ({ ...m, [selectedDate]: log }));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (e) {
-      console.error(e);
+      await login(email, pw, remember);
+      setSuccess(true);
+      setTimeout(() => navigate("/"), 500);
+    } catch (err) {
+      setErrors({ general: err.message });
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
-  }, [text, selectedDate, logsMap]);
-
-  // auto-save 1.5s after user stops typing
-  const handleChange = (e) => {
-    const val = e.target.value;
-    setText(val);
-    setSaved(false);
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => handleSave(val), 1500);
   };
-
-  const prevMonth = () => {
-    if (month === 1) { setYear(y => y - 1); setMonth(12); }
-    else setMonth(m => m - 1);
-  };
-  const nextMonth = () => {
-    if (month === 12) { setYear(y => y + 1); setMonth(1); }
-    else setMonth(m => m + 1);
-  };
-
-  const calCells = buildCalendarDays(year, month);
-  const hasNote = (day) => day && !!logsMap[toISO(year, month, day)]?.content;
 
   return (
-    <>
-      <GlobalStyles />
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&display=swap');
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #0f131c; color: #dfe2ef; font-family: 'Manrope', sans-serif; }
-        .journal-textarea {
-          width: 100%; min-height: 220px; resize: vertical;
-          background: rgba(255,255,255,0.04); border: 1px solid rgba(237,177,255,0.2);
-          border-radius: 12px; color: #e2d9f3; padding: 14px 16px;
-          font-size: 0.9rem; font-family: 'Manrope', sans-serif; line-height: 1.7;
-          outline: none; transition: border-color 0.2s;
-        }
-        .journal-textarea:focus { border-color: rgba(237,177,255,0.5); }
-        .cal-day {
-          aspect-ratio: 1; display: flex; flex-direction: column;
-          align-items: center; justify-content: center;
-          border-radius: 8px; cursor: pointer; font-size: 0.82rem;
-          color: rgba(255,255,255,0.55); transition: all 0.15s; position: relative;
-          border: 1px solid transparent;
-        }
-        .cal-day:hover { background: rgba(237,177,255,0.08); color: #edb1ff; }
-        .cal-day.today { color: #fbbf24; font-weight: 700; }
-        .cal-day.selected { background: rgba(237,177,255,0.15); border-color: rgba(237,177,255,0.4); color: #edb1ff; font-weight: 700; }
-        .cal-day.has-note::after {
-          content: ''; position: absolute; bottom: 4px;
-          width: 4px; height: 4px; border-radius: 50%; background: #edb1ff;
-        }
-      `}</style>
+    <div className="glass fade-up" style={{
+      width:"100%", maxWidth:430,
+      borderRadius:28,
+      border:`1px solid rgba(77,67,81,.18)`,
+      boxShadow:"0 48px 120px rgba(0,0,0,.55), 0 0 80px rgba(109,32,140,.12)",
+      overflow:"hidden",
+      position:"relative",
+    }}>
+      <div style={{
+        position:"absolute", top:-70, left:"50%", transform:"translateX(-50%)",
+        width:280, height:140,
+        background:"radial-gradient(ellipse,rgba(237,177,255,.13) 0%,transparent 70%)",
+        pointerEvents:"none",
+      }}/>
 
-      <NavBar />
-
-      <div style={{ minHeight:"100vh", background:"linear-gradient(to bottom, #10131B 0%, #3D2352 55%, #5D277B 100%)",
-        paddingTop:"100px", paddingBottom:"80px" }}>
-        <div style={{ maxWidth:"1100px", margin:"0 auto", padding:"0 1.5rem" }}>
-
-          {/* Page header */}
-          <div style={{ textAlign:"center", marginBottom:"2.5rem" }}>
-            <h1 style={{ fontFamily:"Cormorant Garamond, serif", fontSize:"clamp(2.5rem,5vw,4rem)",
-              fontWeight:700, color:"#fff", letterSpacing:"4px",
-              textShadow:"0 0 40px rgba(237,177,255,0.25)" }}>
-              NHẬT KÝ
-            </h1>
-            <p style={{ color:"rgba(230,216,240,0.65)", fontSize:"0.9rem", marginTop:"0.5rem" }}>
-              Ghi lại cảm nhận mỗi ngày, kết hợp với vị trí sao Lưu
-            </p>
-          </div>
-
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1.4fr", gap:"2rem", alignItems:"start" }}>
-
-            {/* ── CALENDAR ──────────────────────────────────── */}
-            <div style={{ background:"rgba(15,17,28,0.75)", border:"1px solid rgba(100,80,130,0.25)",
-              borderRadius:14, padding:"1.5rem", backdropFilter:"blur(12px)" }}>
-
-              {/* month nav */}
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.2rem" }}>
-                <button onClick={prevMonth} style={{ background:"none", border:"none", color:"rgba(237,177,255,0.6)",
-                  cursor:"pointer", fontSize:"1.2rem", lineHeight:1, padding:"4px 8px", borderRadius:6 }}>‹</button>
-                <span style={{ fontFamily:"Manrope,sans-serif", fontWeight:700, color:"#edb1ff", fontSize:"0.95rem" }}>
-                  {MONTH_NAMES[month-1]} {year}
-                </span>
-                <button onClick={nextMonth} style={{ background:"none", border:"none", color:"rgba(237,177,255,0.6)",
-                  cursor:"pointer", fontSize:"1.2rem", lineHeight:1, padding:"4px 8px", borderRadius:6 }}>›</button>
-              </div>
-
-              {/* day-of-week header */}
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, marginBottom:4 }}>
-                {DOW_LABELS.map(d => (
-                  <div key={d} style={{ textAlign:"center", fontSize:"0.65rem", color:"rgba(255,255,255,0.25)",
-                    fontWeight:700, letterSpacing:"0.08em", padding:"4px 0" }}>{d}</div>
-                ))}
-              </div>
-
-              {/* calendar grid */}
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4 }}>
-                {calCells.map((day, i) => {
-                  if (!day) return <div key={`e-${i}`} />;
-                  const iso = toISO(year, month, day);
-                  const isToday = iso === today;
-                  const isSel = iso === selectedDate;
-                  const noteExists = hasNote(day);
-                  return (
-                    <div key={iso}
-                      className={`cal-day${isToday ? " today" : ""}${isSel ? " selected" : ""}${noteExists ? " has-note" : ""}`}
-                      onClick={() => setSelectedDate(iso)}>
-                      {day}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div style={{ marginTop:"1.2rem", display:"flex", gap:"1rem", fontSize:"0.65rem",
-                color:"rgba(255,255,255,0.3)", justifyContent:"center" }}>
-                <span style={{ display:"flex", alignItems:"center", gap:5 }}>
-                  <span style={{ width:4, height:4, borderRadius:"50%", background:"#edb1ff", display:"inline-block" }} />
-                  Có ghi chú
-                </span>
-                <span style={{ color:"#fbbf24" }}>Hôm nay</span>
-              </div>
-            </div>
-
-            {/* ── EDITOR PANEL ──────────────────────────────── */}
-            <div style={{ display:"flex", flexDirection:"column", gap:"1.2rem" }}>
-
-              {/* date heading */}
-              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                <div>
-                  <div style={{ fontSize:"0.6rem", color:"rgba(237,177,255,0.4)", letterSpacing:"0.14em",
-                    textTransform:"uppercase", marginBottom:3 }}>Ghi chú ngày</div>
-                  <div style={{ fontSize:"1.1rem", fontWeight:700, color:"#edb1ff", fontFamily:"Manrope,sans-serif" }}>
-                    {(() => {
-                      const [y,m,d] = selectedDate.split("-");
-                      return `${parseInt(d)}/${parseInt(m)}/${y}`;
-                    })()}
-                  </div>
-                </div>
-                <div style={{ fontSize:"0.75rem", color: saved ? "#4ade80" : saving ? "#a78bfa" : "rgba(255,255,255,0.2)",
-                  transition:"color 0.3s" }}>
-                  {saved ? "✓ Đã lưu" : saving ? "Đang lưu..." : "Tự động lưu"}
-                </div>
-              </div>
-
-              {/* textarea */}
-              <div>
-                {loadingEntry
-                  ? <div style={{ color:"rgba(237,177,255,0.3)", fontSize:"0.8rem", padding:"1rem 0" }}>Đang tải...</div>
-                  : <textarea
-                      className="journal-textarea"
-                      placeholder={`Ghi lại cảm nhận của bạn ngày hôm nay...`}
-                      value={text}
-                      onChange={handleChange}
-                    />
-                }
-                <div style={{ display:"flex", justifyContent:"flex-end", marginTop:8 }}>
-                  <button onClick={() => handleSave()}
-                    disabled={saving}
-                    style={{ background:"linear-gradient(135deg,#edb1ff,#6d208c)", border:"none",
-                      borderRadius:8, color:"#fff", fontSize:"0.8rem", fontWeight:700,
-                      padding:"7px 18px", cursor:"pointer", opacity: saving ? 0.5 : 1,
-                      fontFamily:"Manrope,sans-serif" }}>
-                    Lưu
-                  </button>
-                </div>
-              </div>
-
-              {/* Sao Lưu 3 tầng */}
-              <div style={{ background:"rgba(15,17,28,0.75)", border:"1px solid rgba(100,80,130,0.25)",
-                borderRadius:14, padding:"1.2rem 1.5rem", backdropFilter:"blur(12px)" }}>
-                <div style={{ fontSize:"0.6rem", letterSpacing:"0.14em", color:"rgba(237,177,255,0.4)",
-                  textTransform:"uppercase", marginBottom:"0.9rem" }}>
-                  Sao Lưu · {selectedDate.split("-")[0]}
-                </div>
-                {loadingStars
-                  ? <div style={{ color:"rgba(237,177,255,0.3)", fontSize:"0.75rem" }}>Đang tải...</div>
-                  : <LuuSaoTiers luuSao={luuSao} />
-                }
-              </div>
-            </div>
-
-          </div>
+      <div className="card-pad" style={{ padding:"2.5rem 2.25rem" }}>
+        <div className="fade-up-1" style={{ textAlign:"center", marginBottom:"1.75rem" }}>
+          <div className="hn" style={{
+            fontSize:"2rem", fontWeight:700, color:C.primary,
+            letterSpacing:"-.02em", marginBottom:6,
+          }}>YinYang</div>
+          <p style={{ color:C.onSurfaceVariant, fontSize:13.5, opacity:.78, lineHeight:1.55 }}>
+            Chào mừng trở lại — đăng nhập để tiếp tục hành trình
+          </p>
         </div>
+
+        <div className="fade-up-1" style={{ marginBottom:"1.25rem" }}>
+          <button
+            className="btn-soc"
+            onClick={() => { window.location.href = authService.googleLoginUrl(); }}
+          >
+            <GoogleIcon/>
+            Tiếp tục với Google
+          </button>
+        </div>
+
+        <div className="divider fade-up-2" style={{ marginBottom:"1.25rem" }}>Hoặc dùng email</div>
+
+        <div className="fade-up-2" style={{ marginBottom:"1.1rem" }}>
+          <Field label="Email" icon="alternate_email" error={errors.email}>
+            <input
+              className={`inp${errors.email ? " err" : ""}`}
+              type="email"
+              placeholder="example@email.com"
+              value={email}
+              autoComplete="email"
+              onChange={e => { setEmail(e.target.value); setErrors(p => ({...p, email:""})); }}
+            />
+          </Field>
+        </div>
+
+        <div className="fade-up-2" style={{ marginBottom:"0.6rem" }}>
+          <Field label="Mật khẩu" icon="lock" error={errors.pw}>
+            <input
+              className={`inp${errors.pw ? " err" : ""}`}
+              type={showPw ? "text" : "password"}
+              placeholder="••••••••"
+              value={pw}
+              autoComplete="current-password"
+              style={{ paddingRight:44 }}
+              onChange={e => { setPw(e.target.value); setErrors(p => ({...p, pw:""})); }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPw(v => !v)}
+              style={{
+                position:"absolute", right:14, top:"50%", transform:"translateY(-50%)",
+                background:"none", border:"none", cursor:"pointer",
+                color:C.onSurfaceVariant, opacity:.55, padding:0, lineHeight:1,
+                transition:"opacity .2s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.opacity="1")}
+              onMouseLeave={e => (e.currentTarget.style.opacity=".55")}
+            >
+              <span className="mso" style={{ fontSize:18 }}>
+                {showPw ? "visibility_off" : "visibility"}
+              </span>
+            </button>
+          </Field>
+          <StrengthMeter password={pw}/>
+        </div>
+
+        <div className="fade-up-3" style={{
+          display:"flex", justifyContent:"space-between", alignItems:"center",
+          marginBottom:"1.5rem",
+        }}>
+          <label className="cb-wrap" onClick={() => setRemember(v => !v)}>
+            <div className={`cb-box${remember ? " on" : ""}`}>
+              {remember && <span className="mso" style={{ fontSize:12, color:"#fff" }}>check</span>}
+            </div>
+            <span style={{ fontSize:13, color:C.onSurfaceVariant }}>Ghi nhớ đăng nhập</span>
+          </label>
+          <button className="btn-ghost">Quên mật khẩu?</button>
+        </div>
+
+        <button
+          ref={btnRef}
+          className="btn-pri fade-up-3"
+          disabled={loading}
+          onClick={handleLogin}
+          style={{ marginBottom:"1.4rem" }}
+        >
+          {loading ? (
+            <><div className="spinner"/> Đang xử lý...</>
+          ) : success ? (
+            <><span className="mso" style={{ fontSize:17 }}>check_circle</span> Đăng nhập thành công!</>
+          ) : "Đăng nhập"}
+        </button>
+
+        {errors.general && (
+          <div style={{ color: "#ff6b6b", marginBottom: 14, fontSize: 13 }}>
+            {errors.general}
+          </div>
+        )}
+
+        <div className="divider" style={{ marginBottom:"1.4rem" }}>Chưa có tài khoản?</div>
+
+        <button
+          className="btn-soc"
+          style={{ borderColor:`rgba(237,177,255,.2)`, color:C.primary }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor=`rgba(237,177,255,.45)`; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor=`rgba(237,177,255,.2)`; }}
+          onClick={() => navigate("/signup")}
+        >
+          <span className="mso" style={{ fontSize:16 }}>person_add</span>
+          Tạo tài khoản miễn phí
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* LEFT PANEL */
+const LeftPanel = () => (
+  <div className="hide-sm" style={{
+    flex:1, maxWidth:440,
+    display:"flex", flexDirection:"column", justifyContent:"center",
+    padding:"2rem 3rem 2rem 0",
+  }}>
+    <div style={{
+      display:"inline-flex", alignItems:"center", gap:6,
+      background:"rgba(88,61,95,.35)",
+      border:`1px solid rgba(237,177,255,.16)`,
+      borderRadius:9999, padding:"5px 14px",
+      fontSize:11, fontWeight:700, letterSpacing:".1em",
+      color:C.primary, textTransform:"uppercase",
+      marginBottom:"1.75rem", alignSelf:"flex-start",
+    }}>
+      <span className="mso" style={{ fontSize:14 }}>auto_awesome</span>
+      Tử Vi Đẩu Số · AI
+    </div>
+
+    <h1 className="hn" style={{
+      fontSize:"clamp(2.2rem,3.5vw,3.4rem)",
+      color:C.onSurface, lineHeight:1.14,
+      letterSpacing:"-.02em", marginBottom:"1.4rem",
+    }}>
+      Khám phá<br/>
+      <span style={{ color:C.primary }}>vận mệnh</span><br/>
+      của bạn
+    </h1>
+
+    <p style={{
+      color:C.onSurfaceVariant, fontSize:15, lineHeight:1.8,
+      maxWidth:"26rem", marginBottom:"2.2rem",
+    }}>
+      Đăng nhập để truy cập lá số tử vi cá nhân, nhận phân tích chuyên sâu từ AI và khám phá hành trình vận mệnh riêng của bạn.
+    </p>
+
+    {[
+      { icon:"star",             label:"Lá số Tử Vi cá nhân hóa" },
+      { icon:"psychology",       label:"Phân tích AI chuyên sâu" },
+      { icon:"self_improvement", label:"12 Cung mệnh chi tiết"   },
+      { icon:"chat_bubble",      label:"Chatbot tư vấn 24/7"     },
+    ].map(({ icon, label }) => (
+      <div key={label} style={{ display:"flex", alignItems:"center", gap:12, marginBottom:"1rem" }}>
+        <div style={{
+          width:34, height:34, borderRadius:9, flexShrink:0,
+          background:"rgba(88,61,95,.32)",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          color:C.primary,
+        }}>
+          <span className="mso" style={{ fontSize:17 }}>{icon}</span>
+        </div>
+        <span style={{ color:C.onSurfaceVariant, fontSize:14 }}>{label}</span>
+      </div>
+    ))}
+
+    <div style={{
+      marginTop:"2rem",
+      padding:"1rem 1.25rem",
+      background:"rgba(88,61,95,.18)",
+      border:`1px solid rgba(237,177,255,.1)`,
+      borderRadius:16,
+    }}>
+      <div style={{ display:"flex", gap:3, marginBottom:8 }}>
+        {[...Array(5)].map((_,i) => (
+          <span key={i} className="mso" style={{ fontSize:14, color:"#f9a825" }}>star</span>
+        ))}
+      </div>
+      <p style={{ color:C.onSurfaceVariant, fontSize:13, lineHeight:1.6, fontStyle:"italic" }}>
+        "Lá số tử vi trên YinYang chính xác đến kinh ngạc. AI giải mã rất chi tiết và dễ hiểu."
+      </p>
+      <p style={{ marginTop:8, fontSize:12, color:C.outline }}>— Nguyễn Thị M., Hà Nội</p>
+    </div>
+  </div>
+);
+
+/* ROOT */
+export default function LoginPage() {
+  return (
+    <>
+      <GlobalStyles/>
+      <div style={{ minHeight:"100vh", background:C.bg, position:"relative" }}>
+        <Background/>
+        <Header/>
+
+        <main style={{
+          position:"relative", zIndex:10,
+          minHeight:"100vh",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          padding:"88px 24px 48px",
+        }}>
+          <div style={{
+            display:"flex", alignItems:"center", justifyContent:"center",
+            gap:"4rem", width:"100%", maxWidth:880,
+          }}>
+            <LeftPanel/>
+            <div style={{ flex:"0 0 auto", width:"100%", maxWidth:430 }}>
+              <LoginCard/>
+            </div>
+          </div>
+        </main>
+
+        <footer style={{
+          position:"relative", zIndex:10,
+          textAlign:"center", padding:"1.25rem",
+          color:C.onSurfaceVariant, fontSize:12, opacity:.35,
+        }}>
+          © 2024 YinYang Astrology · All rights reserved.
+        </footer>
       </div>
     </>
   );
 }
+
+export { C, GlobalStyles, Background, Header, Field, StrengthMeter, LeftPanel };
