@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useSEO } from "../hooks/useSEO";
-import { calendarService } from "../services/calendarService";
 import NotificationBell from "../components/NotificationBell";
 import { lunarToSolarLocal } from "../services/lunarConverter";
 
