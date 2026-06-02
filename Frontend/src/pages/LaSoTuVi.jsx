@@ -7,6 +7,7 @@ import { chartService } from "../services/chartService";
 import { annotationService } from "../services/annotationService";
 import { calendarService } from "../services/calendarService";
 import NotificationBell from "../components/NotificationBell";
+import { solarToLunarLocal } from "../services/lunarConverter";
 
 import {
   translateAstrolabe,
@@ -33,6 +34,25 @@ import {
   GRID_BASE_WIDTH,
 } from "./Styles";
 
+/* ─────────────────────────────────────────────
+   Design tokens
+───────────────────────────────────────────────*/
+const C = {
+  background:              "#0f131c",
+  surface:                  "#0f131c",
+  surfaceContainerLowest:   "#0a0e17",
+  surfaceContainerLow:      "#181b25",
+  surfaceContainer:         "#1c1f29",
+  surfaceContainerHigh:     "#262a34",
+  surfaceContainerHighest:  "#31353f",
+  primary:                  "#edb1ff",
+  primaryContainer:         "#6d208c",
+  onPrimary:                "#520070",
+  onSurface:                "#dfe2ef",
+  onSurfaceVariant:         "#d0c2d3",
+  outlineVariant:           "#4d4351",
+  secondaryContainer:       "#583d5f",
+};
 // ============================================================
 // POSITION
 // ============================================================
@@ -117,7 +137,6 @@ const generateChartData = (name, dob, time, gender) => {
 // ============================================================
 // COMPONENTS
 // ============================================================
-
 const PalaceCell = ({
   palace,
   isMenh,
@@ -144,79 +163,23 @@ const PalaceCell = ({
   const rightMinor = allMinor.slice(half);
 
   return (
-    <div
-      style={{
-        ...newPaletteStyles.cell,
-        boxShadow: isMenh
-          ? "0 0 0 1px rgba(237,177,255,0.4)"
-          : isBody
-          ? "0 0 0 1px rgba(103,232,249,0.3)"
-          : "none",
-      }}
-    >
+    <div style={{ ...newPaletteStyles.cell, boxShadow: isMenh ? "0 0 0 1px rgba(237,177,255,0.4)" : isBody ? "0 0 0 1px rgba(103,232,249,0.3)" : "none" }}>
       <div style={newPaletteStyles.content}>
         {/* Header */}
         <div style={newPaletteStyles.Header}>
           <span style={newPaletteStyles.StemBranch}>
-            {translateStemBranch(
-              rawPalace?.heavenlyStem,
-              rawBranch
-            )}
+            {translateStemBranch(rawPalace?.heavenlyStem, rawBranch)}
           </span>
 
           <span style={newPaletteStyles.PalaceName}>
-            {isMenh && (
-              <span
-                style={{
-                  fontSize: "10px",
-                  background: "#edb1ff",
-                  color: "#4c1d95",
-                  borderRadius: 4,
-                  padding: "0 3px",
-                  marginRight: 3,
-                }}
-              >
-                M
-              </span>
-            )}
-
-            {isBody && (
-              <span
-                style={{
-                  fontSize: "10px",
-                  background: "#a5f3fc",
-                  color: "#0c4a6e",
-                  borderRadius: 4,
-                  padding: "0 3px",
-                  marginRight: 3,
-                }}
-              >
-                T
-              </span>
-            )}
-
-            {isTuan && (
-              <span
-                style={{
-                  fontSize: "10px",
-                  background: "#6ee7b7",
-                  color: "#064e3b",
-                  borderRadius: 4,
-                  padding: "0 3px",
-                  marginRight: 3,
-                }}
-              >
-                Tuần
-              </span>
-            )}
-
+            {isMenh && <span style={{ fontSize: "10px", background: "#edb1ff", color: "#4c1d95", borderRadius: 4, padding: "0 3px", marginRight: 3 }}>M</span>}
+            {isBody && <span style={{ fontSize: "10px", background: "#a5f3fc", color: "#0c4a6e", borderRadius: 4, padding: "0 3px", marginRight: 3 }}>T</span>}
+            {isTuan && <span style={{ fontSize: "10px", background: "#6ee7b7", color: "#064e3b", borderRadius: 4, padding: "0 3px", marginRight: 3 }}>Tuần</span>}
             {palace.name}
           </span>
 
           <span style={newPaletteStyles.Age}>
-            {palace.decadal?.range
-              ? `${palace.decadal.range[0]}`
-              : palace.ageRange || ""}
+            {palace.decadal?.range ? `${palace.decadal.range[0]}` : palace.ageRange || ""}
           </span>
         </div>
 
@@ -225,58 +188,23 @@ const PalaceCell = ({
           {majorStars.length > 0 ? (
             majorStars.map((star, i) => (
               <div key={i}>
-                <span
-                  style={{
-                    color:
-                      MAJOR_BRIGHTNESS_COLOR[
-                        star.brightnessAbbr
-                      ] || "#47A0A5",
-                    fontWeight: 700,
-                  }}
-                >
+                <span style={{ color: MAJOR_BRIGHTNESS_COLOR[star.brightnessAbbr] || "#47A0A5", fontWeight: 700 }}>
                   {star.name}
                 </span>
-
                 {star.brightnessAbbr && (
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      opacity: 0.7,
-                      marginLeft: 3,
-                      color:
-                        MAJOR_BRIGHTNESS_COLOR[
-                          star.brightnessAbbr
-                        ] || "#888",
-                    }}
-                  >
+                  <span style={{ fontSize: "11px", opacity: 0.7, marginLeft: 3, color: MAJOR_BRIGHTNESS_COLOR[star.brightnessAbbr] || "#888" }}>
                     ({star.brightnessAbbr})
                   </span>
                 )}
-
                 {star.mutagen && (
-                  <span
-                    style={{
-                      fontSize: "10px",
-                      color: "#f0abfc",
-                      background: "#f0abfc18",
-                      padding: "0 3px",
-                      borderRadius: 3,
-                      marginLeft: 3,
-                    }}
-                  >
+                  <span style={{ fontSize: "10px", color: "#f0abfc", background: "#f0abfc18", padding: "0 3px", borderRadius: 3, marginLeft: 3 }}>
                     {star.mutagen}
                   </span>
                 )}
               </div>
             ))
           ) : (
-            <div
-              style={{
-                fontSize: "14px",
-                color: "#aaa",
-                fontStyle: "italic",
-              }}
-            >
+            <div style={{ fontSize: "14px", color: "#aaa", fontStyle: "italic" }}>
               — không chính tinh —
             </div>
           )}
@@ -287,74 +215,19 @@ const PalaceCell = ({
           <div style={newPaletteStyles.sideContainer}>
             <div style={newPaletteStyles.LeftStars}>
               {leftMinor.map((star, i) => (
-                <div
-                  key={i}
-                  style={{
-                    color: getMinorStarColor(star.name),
-                  }}
-                >
+                <div key={i} style={{ color: getMinorStarColor(star.name) }}>
                   {star.name}
-
-                  {star.brightnessAbbr && (
-                    <span
-                      style={{
-                        fontSize: "9px",
-                        opacity: 0.6,
-                        marginLeft: 2,
-                      }}
-                    >
-                      ({star.brightnessAbbr})
-                    </span>
-                  )}
-
-                  {star.mutagen && (
-                    <span
-                      style={{
-                        fontSize: "9px",
-                        color: "#f0abfc",
-                        marginLeft: 2,
-                      }}
-                    >
-                      {star.mutagen}
-                    </span>
-                  )}
+                  {star.brightnessAbbr && <span style={{ fontSize: "9px", opacity: 0.6, marginLeft: 2 }}>({star.brightnessAbbr})</span>}
+                  {star.mutagen && <span style={{ fontSize: "9px", color: "#f0abfc", marginLeft: 2 }}>{star.mutagen}</span>}
                 </div>
               ))}
             </div>
-
             <div style={newPaletteStyles.RightStars}>
               {rightMinor.map((star, i) => (
-                <div
-                  key={i}
-                  style={{
-                    color: getMinorStarColor(star.name),
-                  }}
-                >
+                <div key={i} style={{ color: getMinorStarColor(star.name) }}>
                   {star.name}
-
-                  {star.brightnessAbbr && (
-                    <span
-                      style={{
-                        fontSize: "9px",
-                        opacity: 0.6,
-                        marginLeft: 2,
-                      }}
-                    >
-                      ({star.brightnessAbbr})
-                    </span>
-                  )}
-
-                  {star.mutagen && (
-                    <span
-                      style={{
-                        fontSize: "9px",
-                        color: "#f0abfc",
-                        marginLeft: 2,
-                      }}
-                    >
-                      {star.mutagen}
-                    </span>
-                  )}
+                  {star.brightnessAbbr && <span style={{ fontSize: "9px", opacity: 0.6, marginLeft: 2 }}>({star.brightnessAbbr})</span>}
+                  {star.mutagen && <span style={{ fontSize: "9px", color: "#f0abfc", marginLeft: 2 }}>{star.mutagen}</span>}
                 </div>
               ))}
             </div>
@@ -362,63 +235,17 @@ const PalaceCell = ({
         )}
 
         {/* Footer */}
-        <div
-          style={{
-            marginTop: "auto",
-            paddingTop: 4,
-            fontSize: "10px",
-            color: "#5D277B",
-            fontFamily: "Manrope, sans-serif",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              width: "100%",
-              fontWeight: 500,
-            }}
-          >
-            <span>
-              {EARTHLY_BRANCHES[rawBranch] || rawBranch}
-            </span>
-
-            <span
-              style={{
-                flex: 1,
-                textAlign: "center",
-              }}
-            >
-              {palace.changsheng12Vi}
-            </span>
-
-            <span
-              style={{
-                textAlign: "right",
-              }}
-            >
-              {month ? `Tháng ${month}` : ""}
-            </span>
+        <div style={{ marginTop: "auto", paddingTop: 4, fontSize: "10px", color: "#5D277B", fontFamily: "Manrope, sans-serif" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", fontWeight: 500 }}>
+            <span>{EARTHLY_BRANCHES[rawBranch] || rawBranch}</span>
+            <span style={{ flex: 1, textAlign: "center" }}>{palace.changsheng12Vi}</span>
+            <span style={{ textAlign: "right" }}>{month ? `Tháng ${month}` : ""}</span>
           </div>
-
           {isCurrentYear && (
-            <div
-              style={{
-                marginTop: 4,
-                background: "#fbbf2420",
-                border: "1px solid #fbbf2460",
-                borderRadius: 4,
-                padding: "1px 5px",
-                width: "fit-content",
-                color: "#b45309",
-                fontWeight: 700,
-              }}
-            >
+            <div style={{ marginTop: 4, background: "#fbbf2420", border: "1px solid #fbbf2460", borderRadius: 4, padding: "1px 5px", width: "fit-content", color: "#b45309", fontWeight: 700 }}>
               TH {CURRENT_YEAR}
             </div>
           )}
-
           {onAnnotate && (
             <div
               onClick={(e) => {
@@ -426,32 +253,16 @@ const PalaceCell = ({
                 onAnnotate();
               }}
               title="Ghi chú cho cung này"
-              style={{
-                marginTop: 4,
-                alignSelf: "flex-end",
-                fontSize: "0.62rem",
-                color: "rgba(237,177,255,0.55)",
-                cursor: "pointer",
-                padding: "2px 6px",
-                borderRadius: 4,
-                userSelect: "none",
-                border:
-                  "1px solid rgba(237,177,255,0.2)",
-              }}
+              style={{ marginTop: 4, alignSelf: "flex-end", fontSize: "0.62rem", color: "rgba(237,177,255,0.55)", cursor: "pointer", padding: "2px 6px", borderRadius: 4, userSelect: "none", border: "1px solid rgba(237,177,255,0.2)" }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = "#edb1ff";
-                e.currentTarget.style.borderColor =
-                  "rgba(237,177,255,0.5)";
-                e.currentTarget.style.background =
-                  "rgba(237,177,255,0.08)";
+                e.currentTarget.style.borderColor = "rgba(237,177,255,0.5)";
+                e.currentTarget.style.background = "rgba(237,177,255,0.08)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color =
-                  "rgba(237,177,255,0.55)";
-                e.currentTarget.style.borderColor =
-                  "rgba(237,177,255,0.2)";
-                e.currentTarget.style.background =
-                  "none";
+                e.currentTarget.style.color = "rgba(237,177,255,0.55)";
+                e.currentTarget.style.borderColor = "rgba(237,177,255,0.2)";
+                e.currentTarget.style.background = "none";
               }}
             >
               ✎ ghi chú
@@ -462,7 +273,6 @@ const PalaceCell = ({
     </div>
   );
 };
-
 const CRow = ({ label, value, highlight }) => (
   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:8, padding:"2px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
     <span style={{ color:"#5a5a7a", fontSize:"0.6rem", flexShrink:0 }}>{label}</span>
@@ -585,83 +395,166 @@ function FontLoader() {
 // ============================================================
 // HEADER
 // ============================================================
-
 function ChartNav() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navLinks = [
-    { label:"Tra cứu",        to:"/" },
-    { label:"Dịch vụ",        to:"services" },
-    { label:"Lá số",          to:"/la-so" },
-    { label:"Tử vi hôm nay",  to:"/daily-horoscope" },
-    { label:"Nhật ký",        to:"/journal" },
-    { label:"Chatbot",        to:"/chatbot" },
-    { label:"14 Chính tinh",  to:"/major-stars" },
-    { label:"12 con giáp",    to:"zodiac" },
-    { label:"Liên hệ",        to:"contact" },
+  const navItems = [
+    { label: "Trang chủ",     to: "/",                activePath: "/" },
+    { label: "Dịch vụ",       to: "services",         activePath: null },
+    { label: "Lá số",         to: "/la-so",           activePath: "/la-so" },
+    { label: "Tử vi hôm nay", to: "/daily-horoscope", activePath: "/daily-horoscope" },
+    { label: "Nhật ký",       to: "/journal",         activePath: "/journal" },
+    { label: "Chatbot",       to: "/chatbot",         activePath: "/chatbot" },
+    { label: "14 Chính tinh", to: "/major-stars",     activePath: "/major-stars" },
+    { label: "12 con giáp",   to: "zodiac",           activePath: null },
+    { label: "Liên hệ",       to: "contact",          activePath: null },
   ];
 
+  const handleNav = (item) => {
+    if (["contact", "services", "zodiac"].includes(item.to)) {
+      if (window.location.pathname !== "/") {
+        navigate("/");
+        setTimeout(() => {
+          const el = document.getElementById(item.to);
+          if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
+        }, 150);
+      } else {
+        const el = document.getElementById(item.to);
+        if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
+      }
+    } else {
+      navigate(item.to);
+    }
+    setMobileOpen(false);
+  };
+
+  const userInitials = (user?.full_name || user?.email || "?")
+    .split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+
   return (
-    <nav style={{ position:"fixed", top:0, width:"100%", zIndex:50, background:"rgba(15,19,28,0.85)", backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)", borderBottom:"1px solid rgba(255,255,255,0.05)" }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"0.65rem clamp(1rem,4vw,1.5rem)", maxWidth:"80rem", margin:"0 auto" }}>
-        {/* LOGO */}
-        <div onClick={() => navigate("/")} style={{ display:"flex", alignItems:"center", gap:"0.5rem", cursor:"pointer", flexShrink:0 }}>
-          <img src="/favicon3.png" alt="logo" style={{ width:"36px", height:"36px", objectFit:"contain" }} />
-          <span className="chart-logo-text" style={{ fontFamily:"Cinzel, serif", fontSize:"clamp(1.1rem,3vw,1.65rem)", color:"#fff" }}>YinYang</span>
+    <nav style={{ position: "fixed", top: 0, width: "100%", zIndex: 50, background: "rgba(15,19,28,0.88)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "0 1px 0 rgba(255,255,255,0.06)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.65rem clamp(1rem, 4vw, 1.5rem)", maxWidth: "80rem", margin: "0 auto", gap: "1rem" }}>
+        {/* Logo */}
+        <div onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", flexShrink: 0 }}>
+          <img src="/favicon3.png" alt="logo" style={{ width: "36px", height: "36px", objectFit: "contain" }} />
+          <span style={{ fontFamily: "Cinzel, serif", fontSize: "clamp(1.1rem, 3vw, 1.65rem)", color: C.onSurface, lineHeight: 1 }}>YinYang</span>
         </div>
 
-        {/* DESKTOP NAV */}
-        <div className="chart-desktop-nav" style={{ display:"flex", gap:"1.25rem", alignItems:"center", flex:1, justifyContent:"center" }}>
-          {navLinks.map(({ label, to }) => (
-            <span key={label} className="nl" style={{ cursor:"pointer", color: location.pathname===to ? "#edb1ff" : "rgba(255,255,255,.75)", fontWeight: location.pathname===to ? 700 : 400 }} onClick={() => navigate(to)}>
-              {label}
-            </span>
-          ))}
+        {/* Desktop nav */}
+        <div className="hp-desktop-nav" style={{ display: "flex", gap: "clamp(0.6rem, 1.2vw, 1.15rem)", alignItems: "center", flex: 1, justifyContent: "center" }}>
+          {navItems.map(item => {
+            const isActive = item.activePath && location.pathname === item.activePath;
+            return (
+              <span
+                key={item.label}
+                className="nav-link"
+                style={{ cursor: "pointer", fontWeight: isActive ? 700 : 400, color: isActive ? C.primary : C.onSurfaceVariant, fontSize: "clamp(0.68rem, 1vw, 0.8rem)" }}
+                onClick={() => handleNav(item)}
+              >
+                {item.label}
+              </span>
+            );
+          })}
         </div>
 
-        {/* DESKTOP USER */}
-        <div className="chart-desktop-nav" style={{ display:"flex", gap:"0.75rem", alignItems:"center", flexShrink:0 }}>
-          {user && <NotificationBell />}
-          {user && (
-            <div onClick={() => navigate("/profile")} title={user.full_name || user.email} style={{ width:"30px", height:"30px", borderRadius:"50%", background:"linear-gradient(135deg,#edb1ff,#6d208c)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"0.7rem", fontWeight:700, color:"#111", cursor:"pointer" }}>
-              {(user.full_name || user.email || "?").split(" ").map(w => w[0]).slice(0,2).join("").toUpperCase()}
+        {/* Desktop user / login */}
+        {user ? (
+          <div className="hp-desktop-nav" style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexShrink: 0 }}>
+            <NotificationBell />
+            <div
+              onClick={() => navigate("/profile")}
+              title={user.full_name || user.email}
+              style={{ width: "30px", height: "30px", borderRadius: "50%", background: "linear-gradient(135deg,#edb1ff,#6d208c)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#111", cursor: "pointer" }}
+            >
+              {userInitials}
             </div>
-          )}
-          {user ? (
-            <button className="btn-primary" style={{ padding:"0.45rem 1.2rem", fontSize:"0.85rem", borderRadius:"0.75rem" }} onClick={() => { logout(); navigate("/"); }}>Đăng xuất</button>
-          ) : (
-            <button className="btn-outline hp-desktop-nav" style={{ padding:"0.45rem 1.25rem", fontSize:"0.85rem", fontFamily:"'Manrope', sans-serif", flexShrink:0 }} onClick={() => navigate("/login")}>Đăng nhập</button>
-          )}
-        </div>
+            <button
+              className="btn-outline"
+              style={{ padding: "0.4rem 1rem", fontSize: "0.78rem", fontFamily: "'Manrope', sans-serif" }}
+              onClick={logout}
+            >
+              Đăng xuất
+            </button>
+          </div>
+        ) : (
+          <button
+            className="btn-outline hp-desktop-nav"
+            style={{ padding: "0.45rem 1.25rem", fontSize: "0.85rem", fontFamily: "'Manrope', sans-serif", flexShrink: 0 }}
+            onClick={() => navigate("/login")}
+          >
+            Đăng nhập
+          </button>
+        )}
 
-        {/* MOBILE BUTTON */}
-        <button className="chart-mobile-btn" onClick={() => setMobileOpen(o => !o)} style={{ background:"none", border:"none", color:"#fff", fontSize:"1.6rem", cursor:"pointer", lineHeight:1, display:"none" }}>
+        {/* Hamburger */}
+        <button
+          className="hp-mobile-btn"
+          onClick={() => setMobileOpen(o => !o)}
+          style={{ background: "none", border: "none", color: C.onSurface, fontSize: "1.6rem", cursor: "pointer", lineHeight: 1, padding: "4px", flexShrink: 0 }}
+          aria-label={mobileOpen ? "Đóng menu" : "Mở menu"}
+        >
           {mobileOpen ? "✕" : "☰"}
         </button>
       </div>
 
-      {/* MOBILE DROPDOWN */}
+      {/* Mobile dropdown */}
       {mobileOpen && (
-        <div style={{ background:"rgba(15,19,28,0.98)", borderTop:"1px solid rgba(255,255,255,.08)", padding:"1rem 1.25rem", display:"flex", flexDirection:"column", gap:"0.85rem" }}>
-          {navLinks.map(({ label, to }) => (
-            <span key={label} style={{ cursor:"pointer", color: location.pathname===to ? "#edb1ff" : "rgba(255,255,255,.75)", fontWeight: location.pathname===to ? 700 : 400 }} onClick={() => { navigate(to); setMobileOpen(false); }}>
-              {label}
-            </span>
-          ))}
-          <div style={{ borderTop:"1px solid rgba(255,255,255,.08)", paddingTop:"12px", display:"flex", alignItems:"center", gap:"0.6rem" }}>
+        <div style={{ background: "rgba(15,19,28,0.98)", borderTop: "1px solid rgba(255,255,255,0.08)", padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+          <span style={{ fontSize: "11px", color: "rgba(237,177,255,0.5)", textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "6px" }}>
+            Điều hướng
+          </span>
+
+          {navItems.map(item => {
+            const isActive = item.activePath && location.pathname === item.activePath;
+            return (
+              <span
+                key={item.label}
+                style={{ cursor: "pointer", color: isActive ? C.primary : C.onSurfaceVariant, fontWeight: isActive ? 700 : 400, fontSize: "0.9rem", fontFamily: "'Manrope', sans-serif" }}
+                onClick={() => handleNav(item)}
+              >
+                {item.label}
+              </span>
+            );
+          })}
+
+          {/* User row */}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px", display: "flex", alignItems: "center", gap: "0.6rem" }}>
             {user ? (
               <>
-                <NotificationBell />
-                <div onClick={() => { navigate("/profile"); setMobileOpen(false); }} style={{ width:"28px", height:"28px", borderRadius:"50%", background:"linear-gradient(135deg,#edb1ff,#6d208c)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"0.65rem", fontWeight:700, color:"#111", cursor:"pointer" }}>
-                  {(user.full_name || user.email || "?").split(" ").map(w => w[0]).slice(0,2).join("").toUpperCase()}
+                <div
+                  onClick={() => { navigate("/profile"); setMobileOpen(false); }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, cursor: "pointer", minWidth: 0 }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { navigate("/profile"); setMobileOpen(false); } }}
+                  aria-label="Trang cá nhân"
+                >
+                  <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "linear-gradient(135deg,#edb1ff,#6d208c)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, color: "#111", flexShrink: 0 }}>
+                    {userInitials}
+                  </div>
+                  <span style={{ color: C.onSurfaceVariant, fontSize: "0.82rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {user.full_name || user.email}
+                  </span>
                 </div>
-                <button className="btn-primary" style={{ width:"auto", padding:"0.45rem 0.9rem" }} onClick={() => { logout(); navigate("/"); setMobileOpen(false); }}>Đăng xuất</button>
+                <button
+                  className="btn-outline"
+                  style={{ padding: "0.3rem 0.8rem", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif" }}
+                  onClick={() => { logout(); setMobileOpen(false); }}
+                >
+                  Đăng xuất
+                </button>
               </>
             ) : (
-              <button className="btn-outline hp-desktop-nav" onClick={() => { navigate("/login"); setMobileOpen(false); }}>Đăng nhập</button>
+              <button
+                className="btn-outline"
+                style={{ width: "100%", padding: "0.6rem", fontSize: "0.9rem", fontFamily: "'Manrope', sans-serif" }}
+                onClick={() => { navigate("/login"); setMobileOpen(false); }}
+              >
+                Đăng nhập
+              </button>
             )}
           </div>
         </div>
@@ -669,7 +562,6 @@ function ChartNav() {
     </nav>
   );
 }
-
 // ============================================================
 // AI INTERPRETATION
 // ============================================================
@@ -908,7 +800,12 @@ export default function LaSoTuVi() {
 
     if (formData) {
       const { name, birthDate, birthHour, gender, calMode, lunarDateInput } = formData;
-      // birthDate luôn là solar date (Home đã convert nếu cần)
+      // Kiểm tra birthDate hợp lệ
+      if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+        setError("Dữ liệu ngày sinh không hợp lệ. Vui lòng quay lại trang chủ và thử lại.");
+        return;
+      }
+
       buildChart(name, birthDate, birthHour, gender);
 
       if (calMode === "lunar" && lunarDateInput) {
@@ -918,12 +815,10 @@ export default function LaSoTuVi() {
       } else {
         // Người dùng nhập dương lịch: hiển thị solar ngay, gọi API lấy âm lịch
         setDisplaySolarDate(toDisplayDate(birthDate));
-        calendarService.solarToLunar(birthDate)
-          .then(res => {
-            const ld = res.data?.lunar_date ?? res.data?.date ?? res.data?.dob_lunar;
-            if (ld) setDisplayLunarDate(toDisplayDate(ld));
-          })
-          .catch(() => {}); // âm lịch không hiển thị nếu lỗi — không block chart
+        const lunarInfo = solarToLunarLocal(birthDate);
+        if (lunarInfo) {
+          setDisplayLunarDate(toDisplayDate(lunarInfo.lunarDateStr));
+        }
       }
 
       setInterpreting(true);

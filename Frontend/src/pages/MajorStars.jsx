@@ -154,7 +154,7 @@ const Background = () => (
   </div>
 );
 
-// ───────────────── Header giống home ─────────────────
+// ───────────────── Header ─────────────────
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -162,7 +162,7 @@ const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = [
-    { label: "Tra cứu",       to: "/",               activePath: "/" },
+    { label: "Trang chủ",     to: "/",                activePath: "/" },
     { label: "Dịch vụ",       to: "services",         activePath: null },
     { label: "Lá số",         to: "/la-so",           activePath: "/la-so" },
     { label: "Tử vi hôm nay", to: "/daily-horoscope", activePath: "/daily-horoscope" },
@@ -190,23 +190,11 @@ const Header = () => {
     .split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
 
   return (
-    <nav style={{
-      position: "fixed", top: 0, width: "100%", zIndex: 50,
-      background: "rgba(15,19,28,0.88)",
-      backdropFilter: "blur(20px)",
-      WebkitBackdropFilter: "blur(20px)",
-      boxShadow: "0 1px 0 rgba(255,255,255,0.06)",
-    }}>
-      <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "0.65rem clamp(1rem, 4vw, 1.5rem)",
-        maxWidth: "80rem", margin: "0 auto", gap: "1rem",
-      }}>
+    <nav style={{ position: "fixed", top: 0, width: "100%", zIndex: 50, background: "rgba(15,19,28,0.88)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "0 1px 0 rgba(255,255,255,0.06)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.65rem clamp(1rem, 4vw, 1.5rem)", maxWidth: "80rem", margin: "0 auto", gap: "1rem" }}>
         <div onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", flexShrink: 0 }}>
           <img src="/favicon3.png" alt="logo" style={{ width: "36px", height: "36px", objectFit: "contain" }} />
-          <span style={{ fontFamily: "Cinzel, serif", fontSize: "clamp(1.1rem, 3vw, 1.65rem)", color: C.onSurface, lineHeight: 1 }}>
-            YinYang
-          </span>
+          <span style={{ fontFamily: "Cinzel, serif", fontSize: "clamp(1.1rem, 3vw, 1.65rem)", color: C.onSurface, lineHeight: 1 }}>YinYang</span>
         </div>
 
         <div className="hp-desktop-nav" style={{ display: "flex", gap: "clamp(0.6rem, 1.2vw, 1.15rem)", alignItems: "center", flex: 1, justifyContent: "center" }}>
@@ -216,11 +204,7 @@ const Header = () => {
               <button
                 key={item.label}
                 className="nav-link"
-                style={{
-                  fontWeight: isActive ? 700 : 400,
-                  color: isActive ? C.primary : C.onSurfaceVariant,
-                  fontSize: "clamp(0.68rem, 1vw, 0.8rem)",
-                }}
+                style={{ fontWeight: isActive ? 700 : 400, color: isActive ? C.primary : C.onSurfaceVariant, fontSize: "clamp(0.68rem, 1vw, 0.8rem)" }}
                 onClick={() => handleNav(item)}
               >
                 {item.label}
@@ -235,20 +219,11 @@ const Header = () => {
             <div
               onClick={() => navigate("/profile")}
               title={user.full_name || user.email}
-              style={{
-                width: "30px", height: "30px", borderRadius: "50%",
-                background: "linear-gradient(135deg,#edb1ff,#6d208c)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "0.7rem", fontWeight: 700, color: "#111", cursor: "pointer",
-              }}
+              style={{ width: "30px", height: "30px", borderRadius: "50%", background: "linear-gradient(135deg,#edb1ff,#6d208c)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#111", cursor: "pointer" }}
             >
               {userInitials}
             </div>
-            <button
-              className="btn-outline"
-              style={{ padding: "0.4rem 1rem", fontSize: "0.78rem" }}
-              onClick={logout}
-            >
+            <button className="btn-outline" style={{ padding: "0.4rem 1rem", fontSize: "0.78rem" }} onClick={logout}>
               Đăng xuất
             </button>
           </div>
@@ -273,12 +248,7 @@ const Header = () => {
       </div>
 
       {mobileOpen && (
-        <div style={{
-          background: "rgba(15,19,28,0.98)",
-          borderTop: "1px solid rgba(255,255,255,0.08)",
-          padding: "1rem 1.25rem",
-          display: "flex", flexDirection: "column", gap: "0.85rem",
-        }}>
+        <div style={{ background: "rgba(15,19,28,0.98)", borderTop: "1px solid rgba(255,255,255,0.08)", padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
           <span style={{ fontSize: "11px", color: "rgba(237,177,255,0.5)", textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "6px" }}>
             Điều hướng
           </span>
@@ -297,18 +267,36 @@ const Header = () => {
           <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px", display: "flex", alignItems: "center", gap: "0.6rem" }}>
             {user ? (
               <>
-                <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "linear-gradient(135deg,#edb1ff,#6d208c)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, color: "#111", flexShrink: 0 }}>
-                  {userInitials}
+                {/* Avatar + tên => bấm tới profile */}
+                <div
+                  onClick={() => { navigate("/profile"); setMobileOpen(false); }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, cursor: "pointer", minWidth: 0 }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { navigate("/profile"); setMobileOpen(false); } }}
+                  aria-label="Trang cá nhân"
+                >
+                  <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "linear-gradient(135deg,#edb1ff,#6d208c)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, color: "#111", flexShrink: 0 }}>
+                    {userInitials}
+                  </div>
+                  <span style={{ color: C.onSurfaceVariant, fontSize: "0.82rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {user.full_name || user.email}
+                  </span>
                 </div>
-                <span style={{ color: C.onSurfaceVariant, fontSize: "0.82rem", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {user.full_name || user.email}
-                </span>
-                <button className="btn-outline" style={{ padding: "0.3rem 0.8rem", fontSize: "0.75rem" }} onClick={() => { logout(); setMobileOpen(false); }}>
+                <button
+                  className="btn-outline"
+                  style={{ padding: "0.3rem 0.8rem", fontSize: "0.75rem" }}
+                  onClick={() => { logout(); setMobileOpen(false); }}
+                >
                   Đăng xuất
                 </button>
               </>
             ) : (
-              <button className="btn-outline" style={{ width: "100%", padding: "0.6rem", fontSize: "0.9rem" }} onClick={() => { navigate("/login"); setMobileOpen(false); }}>
+              <button
+                className="btn-outline"
+                style={{ width: "100%", padding: "0.6rem", fontSize: "0.9rem" }}
+                onClick={() => { navigate("/login"); setMobileOpen(false); }}
+              >
                 Đăng nhập
               </button>
             )}
@@ -318,7 +306,6 @@ const Header = () => {
     </nav>
   );
 };
-
 // ───────────────── 14 Chính Tinh data ─────────────────
 const majorStarsData = [
   { name: "Tử Vi", chinese: "紫微", character: "Anh trai Chu Vũ Vương", meaning: "Hoàng Đế", description: "Sao chính của vũ trụ, đại diện cho sự chỉ huy, lãnh đạo, quyền lực và vận mệnh tối cao.", house: "Tâm chỉ", color: "#edb1ff" },
