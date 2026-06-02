@@ -35,16 +35,29 @@ services:
     volumes:
       - .:/app
       - reports_tmp:/tmp/tuvi_reports
+
+    networks:
+      default:
+      monitoring:
+        aliases:
+          - yinyang-api
+
     # start.sh runs `alembic upgrade head` then starts uvicorn
     command: sh backend/start.sh
+
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
 
-  # Celery worker — waits for API (= migrations done) before starting
   worker:
     build: ./backend
     env_file: .env
@@ -65,7 +78,6 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Celery beat — waits for API (= migrations done) before starting
   beat:
     build: ./backend
     env_file: .env
@@ -79,3 +91,7 @@ services:
 volumes:
   postgres_data:
   reports_tmp:
+
+networks:
+  monitoring:
+    external: true
