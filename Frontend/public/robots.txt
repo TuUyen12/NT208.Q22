@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /major-stars
+Disallow: /la-so
+Disallow: /daily-horoscope
+Disallow: /chatbot
+Disallow: /journal
+Disallow: /profile
+Disallow: /auth/
+
+Sitemap: https://yinyang.io.vn/sitemap.xml

@@ -1,5 +1,6 @@
-import { useState } from "react";   // ← Thêm dòng này
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { useAuth } from "../contexts/AuthContext";
 import NotificationBell from "../components/NotificationBell";
 
@@ -343,6 +344,14 @@ export default function MajorStars() {
 
   return (
     <>
+      <Helmet>
+        <title>Tra Cứu Sao Chiếu Mệnh Tử Vi | YinYang</title>
+        <meta name="description" content="Tìm hiểu ý nghĩa các sao chính trong tử vi Đẩu Số: Tử Vi, Thiên Phủ, Thái Dương, Thái Âm và hơn 100 sao khác. Tra cứu miễn phí tại YinYang." />
+        <link rel="canonical" href="https://yinyang.io.vn/major-stars" />
+        <meta property="og:title" content="Tra Cứu Sao Chiếu Mệnh Tử Vi | YinYang" />
+        <meta property="og:description" content="Tìm hiểu ý nghĩa các sao chính trong tử vi Đẩu Số. Tra cứu miễn phí tại YinYang." />
+        <meta property="og:url" content="https://yinyang.io.vn/major-stars" />
+      </Helmet>
       <GlobalStyles />
       <div style={{ minHeight: "100vh", background: C.bg, position: "relative" }}>
         <Background />
