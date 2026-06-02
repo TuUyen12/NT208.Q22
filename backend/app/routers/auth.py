@@ -1,6 +1,7 @@
+import secrets
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,9 +12,11 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.auth import (
     ChangePasswordRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     RegisterRequest,
     RegisterResponse,
+    ResetPasswordRequest,
     TokenResponse,
     UpdateProfileRequest,
     UserResponse,
@@ -107,3 +110,96 @@ async def request_account_deletion(
     """Queue deletion — data removed within 30 days (Req 23)."""
     await AuthService.queue_deletion(db, current_user)
     return {"detail": "Deletion request received. Data will be removed within 30 days."}
+
+
+_RESET_TOKEN_TTL = 900  # 15 minutes
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(body: ForgotPasswordRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    # Always return 200 — never reveal whether the email exists
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+
+    if user and user.hashed_password:  # only for password-based accounts
+        token = secrets.token_urlsafe(32)
+        redis = request.app.state.redis
+        await redis.setex(f"pwd_reset:{token}", _RESET_TOKEN_TTL, str(user.user_id))
+
+        reset_url = f"{settings.FRONTEND_URL}/reset-password?token={token}"
+        await _send_reset_email(user.email, user.full_name or user.email, reset_url)
+
+    return {"detail": "Nếu email tồn tại, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu."}
+
+
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+async def reset_password(body: ResetPasswordRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    redis = request.app.state.redis
+    user_id = await redis.get(f"pwd_reset:{body.token}")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="Token không hợp lệ hoặc đã hết hạn.")
+
+    result = await db.execute(select(User).where(User.user_id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=400, detail="Token không hợp lệ hoặc đã hết hạn.")
+
+    from app.core.security import hash_password
+    user.hashed_password = hash_password(body.new_password)
+    await db.commit()
+    await redis.delete(f"pwd_reset:{body.token}")
+
+
+async def _send_reset_email(to: str, name: str, reset_url: str) -> None:
+    from app.services.notification_service import _send_email
+    html = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#0f131c;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table width="520" cellpadding="0" cellspacing="0"
+               style="background:#1a1d2e;border-radius:16px;overflow:hidden;
+                      border:1px solid rgba(237,177,255,0.15);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#2d1b4e,#1a0d35);
+                        padding:28px 32px;text-align:center;">
+              <div style="font-size:28px;font-weight:700;color:#edb1ff;letter-spacing:2px;">YinYang</div>
+              <div style="font-size:13px;color:#b39ddb;margin-top:4px;">Tử Vi Phương Đông</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <div style="font-size:18px;font-weight:600;color:#f0e6ff;margin-bottom:12px;">
+                Chào {name},
+              </div>
+              <div style="font-size:14px;color:#9e8daa;line-height:1.7;margin-bottom:24px;">
+                Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.<br>
+                Link bên dưới có hiệu lực trong <b style="color:#edb1ff;">15 phút</b>.
+              </div>
+              <div style="text-align:center;margin-bottom:24px;">
+                <a href="{reset_url}"
+                   style="display:inline-block;padding:14px 32px;
+                          background:linear-gradient(135deg,#edb1ff,#6d208c);
+                          color:#111;font-weight:700;text-decoration:none;
+                          border-radius:10px;font-size:15px;">
+                  Đặt lại mật khẩu
+                </a>
+              </div>
+              <div style="font-size:12px;color:#6b5f75;line-height:1.7;">
+                Nếu bạn không yêu cầu điều này, hãy bỏ qua email này.<br>
+                Mật khẩu của bạn sẽ không thay đổi.
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
+    try:
+        await _send_email(to, "YinYang — Đặt lại mật khẩu", html)
+    except Exception:
+        pass  # fail silently — user sees generic success message regardless

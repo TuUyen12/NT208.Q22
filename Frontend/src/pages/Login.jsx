@@ -603,7 +603,7 @@ const LoginCard = () => {
             </div>
             <span style={{ fontSize:13, color:C.onSurfaceVariant }}>Ghi nhớ đăng nhập</span>
           </label>
-          <button className="btn-ghost">Quên mật khẩu?</button>
+          <button className="btn-ghost" onClick={() => navigate("/forgot-password")}>Quên mật khẩu?</button>
         </div>
 
         <button

@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import HomePage    from "./pages/Home";
-import LoginPage   from "./pages/Login";
-import SignUp      from "./pages/SignUp";
+import HomePage       from "./pages/Home";
+import LoginPage      from "./pages/Login";
+import SignUp         from "./pages/SignUp";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword  from "./pages/ResetPassword";
 import Chatbot        from "./pages/Chatbot";
 import LaSoTuVi       from "./pages/LaSoTuVi";
 import MajorStars     from "./pages/MajorStars";
@@ -23,8 +25,10 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/"              element={<HomePage />} />
-          <Route path="/login"         element={<LoginPage />} />
-          <Route path="/signup"        element={<SignUp />} />
+          <Route path="/login"            element={<LoginPage />} />
+          <Route path="/signup"           element={<SignUp />} />
+          <Route path="/forgot-password"  element={<ForgotPassword />} />
+          <Route path="/reset-password"   element={<ResetPassword />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/major-stars"   element={<MajorStars />} />
           <Route path="/chatbot"          element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />

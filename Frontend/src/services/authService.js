@@ -20,4 +20,10 @@ export const authService = {
   deleteMe: () => api.delete("/api/v1/auth/me"),
 
   googleLoginUrl: () => `${API_BASE}/api/v1/auth/google/login`,
+
+  forgotPassword: (email) =>
+    api.post("/api/v1/auth/forgot-password", { email }, { auth: false }),
+
+  resetPassword: (token, newPassword) =>
+    api.post("/api/v1/auth/reset-password", { token, new_password: newPassword }, { auth: false }),
 };
