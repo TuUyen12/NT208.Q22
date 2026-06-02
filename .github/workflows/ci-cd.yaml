@@ -76,19 +76,16 @@ jobs:
       - name: Inject .env
         run: cp /etc/yinyang/.env .env
 
-      - name: Check FK constraint name (verify migration will succeed)
-        run: |
-          docker compose exec -T db psql -U tuvi tuvi -c "
-            SELECT conname FROM pg_constraint
-            WHERE conrelid = 'charts'::regclass AND contype = 'f';
-          "
-
       - name: Backup database
         run: |
-          BACKUP_FILE="$HOME/backups/backup_$(date +%Y%m%d_%H%M%S).sql"
-          mkdir -p "$HOME/backups"
-          docker compose exec -T db pg_dump -U tuvi tuvi > "$BACKUP_FILE"
-          echo "Backup saved to $BACKUP_FILE"
+          if docker compose ps db --status running | grep -q "running"; then
+            BACKUP_FILE="$HOME/backups/backup_$(date +%Y%m%d_%H%M%S).sql"
+            mkdir -p "$HOME/backups"
+            docker compose exec -T db pg_dump -U tuvi tuvi > "$BACKUP_FILE"
+            echo "Backup saved to $BACKUP_FILE"
+          else
+            echo "DB not running — skipping backup (first deploy)"
+          fi
 
       - name: Build backend images
         run: docker compose build --no-cache api worker beat
@@ -107,7 +104,3 @@ jobs:
           timeout 60 sh -c 'until docker compose exec -T api python3 -c "import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")" 2>/dev/null; do sleep 3; done'
           echo "Deploy complete"
 
-      - name: Verify migration applied
-        run: |
-          docker compose exec -T db psql -U tuvi tuvi -c "\d users" | grep -v "role" && echo "OK: role column removed"
-          docker compose exec -T db psql -U tuvi tuvi -c "\dt chart_configurations" 2>&1 | grep "Did not find" && echo "OK: chart_configurations table dropped"
