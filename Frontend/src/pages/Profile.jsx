@@ -1,58 +1,136 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { authService } from "../services/authService";
 import { GlobalStyles, Background, C } from "./Login";
 import NotificationBell from "../components/NotificationBell";
 
-const NAV_ITEMS = [
-  { label: "Trang chủ", to: "/" },
-  { label: "Lá số", to: "/la-so" },
-  { label: "Tử vi ngày", to: "/horoscope" },
-  { label: "Nhật ký", to: "/journal" },
-];
-
-function NavBar() {
+/* ═════════════════ Header giống Home ══════════════ */
+const Header = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const location = useLocation();
+  const { user, logout } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navItems = [
+    { label: "Trang chủ", to: "/", activePath: "/" },
+    { label: "Dịch vụ", to: "services", activePath: null },
+    { label: "Lá số", to: "/la-so", activePath: "/la-so" },
+    { label: "Tử vi hôm nay", to: "/daily-horoscope", activePath: "/daily-horoscope" },
+    { label: "Nhật ký", to: "/journal", activePath: "/journal" },
+    { label: "Chatbot", to: "/chatbot", activePath: "/chatbot" },
+    { label: "14 Chính tinh", to: "/major-stars", activePath: "/major-stars" },
+    { label: "12 con giáp", to: "zodiac", activePath: null },
+    { label: "Liên hệ", to: "contact", activePath: null },
+  ];
+
+  const handleNav = (item) => {
+    if (["contact", "services", "zodiac"].includes(item.to)) {
+      const scrollToSection = () => {
+        const el = document.getElementById(item.to);
+        if (el) window.scrollTo({ top: el.offsetTop - 80, behavior: "smooth" });
+      };
+      if (location.pathname !== "/") {
+        navigate("/");
+        setTimeout(scrollToSection, 300);
+      } else {
+        scrollToSection();
+      }
+    } else {
+      navigate(item.to);
+    }
+    setMobileOpen(false);
+  };
+
+  const userInitials = (user?.full_name || user?.email || "?")
+    .split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+
   return (
-    <nav style={{
-      position: "fixed", top: 0, width: "100%", zIndex: 50,
-      background: "rgba(15,19,28,.85)",
-      backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-      borderBottom: "1px solid rgba(77,67,81,.12)",
-    }}>
-      <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        padding: "0.65rem 1.5rem", maxWidth: "1200px", margin: "0 auto",
-      }}>
+    <nav style={{ position: "fixed", top: 0, width: "100%", zIndex: 50, background: "rgba(15,19,28,0.88)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", boxShadow: "0 1px 0 rgba(255,255,255,0.06)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.65rem clamp(1rem, 4vw, 1.5rem)", maxWidth: "80rem", margin: "0 auto", gap: "1rem" }}>
+        {/* Logo */}
         <div onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", flexShrink: 0 }}>
-          <img src="/favicon3.png" alt="logo" style={{ width: "38px", height: "38px", objectFit: "contain" }} />
-          <div className="font-headline" style={{ fontFamily: "Cinzel, serif", fontSize: "1.65rem", color: C.onSurface }}>YinYang</div>
+          <img src="/favicon3.png" alt="logo" style={{ width: "36px", height: "36px", objectFit: "contain" }} />
+          <span style={{ fontFamily: "Cinzel, serif", fontSize: "clamp(1.1rem, 3vw, 1.65rem)", color: C.onSurface, lineHeight: 1 }}>YinYang</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "1.15rem" }}>
-          {NAV_ITEMS.map(({ label, to }) => (
-            <span key={to} onClick={() => navigate(to)} style={{ fontSize: "0.8rem", color: C.onSurfaceVariant, cursor: "pointer", whiteSpace: "nowrap" }}
-              onMouseEnter={e => e.currentTarget.style.color = C.primary}
-              onMouseLeave={e => e.currentTarget.style.color = C.onSurfaceVariant}
-            >{label}</span>
-          ))}
-          <NotificationBell />
-          <button onClick={logout} style={{ padding: "0.4rem 1rem", fontSize: "0.8rem", background: "transparent", border: `1px solid ${C.primary}`, color: C.primary, borderRadius: "8px", cursor: "pointer" }}>
-            Đăng xuất
+
+        {/* Desktop nav */}
+        <div className="hp-desktop-nav" style={{ display: "flex", gap: "clamp(0.6rem, 1.2vw, 1.15rem)", alignItems: "center", flex: 1, justifyContent: "center" }}>
+          {navItems.map(item => {
+            const isActive = item.activePath && location.pathname === item.activePath;
+            return (
+              <span key={item.label} className="nav-link" style={{ cursor: "pointer", fontWeight: isActive ? 700 : 400, color: isActive ? C.primary : C.onSurfaceVariant, fontSize: "clamp(0.68rem, 1vw, 0.8rem)" }} onClick={() => handleNav(item)}>
+                {item.label}
+              </span>
+            );
+          })}
+        </div>
+
+        {/* Desktop user */}
+        {user ? (
+          <div className="hp-desktop-nav" style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexShrink: 0 }}>
+            <NotificationBell />
+            <div onClick={() => navigate("/profile")} title={user.full_name || user.email} style={{ width: "30px", height: "30px", borderRadius: "50%", background: "linear-gradient(135deg,#edb1ff,#6d208c)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.7rem", fontWeight: 700, color: "#111", cursor: "pointer" }}>
+              {userInitials}
+            </div>
+            <button className="btn-outline" style={{ padding: "0.4rem 1rem", fontSize: "0.78rem", fontFamily: "'Manrope', sans-serif" }} onClick={logout}>Đăng xuất</button>
+          </div>
+        ) : (
+          <button className="btn-outline hp-desktop-nav" style={{ padding: "0.45rem 1.25rem", fontSize: "0.85rem", fontFamily: "'Manrope', sans-serif", flexShrink: 0 }} onClick={() => navigate("/")}>
+            <span className="mso" style={{ fontSize: 16, marginRight: 4 }}>arrow_back</span> Trang chủ
           </button>
-        </div>
+        )}
+
+        {/* Hamburger */}
+        <button className="hp-mobile-btn" onClick={() => setMobileOpen(o => !o)} style={{ background: "none", border: "none", color: C.onSurface, fontSize: "1.6rem", cursor: "pointer", lineHeight: 1, padding: "4px", flexShrink: 0 }} aria-label={mobileOpen ? "Đóng menu" : "Mở menu"}>
+          {mobileOpen ? "✕" : "☰"}
+        </button>
       </div>
+
+      {/* Mobile dropdown */}
+      {mobileOpen && (
+        <div style={{ background: "rgba(15,19,28,0.98)", borderTop: "1px solid rgba(255,255,255,0.08)", padding: "1rem 1.25rem", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+          <span style={{ fontSize: "11px", color: "rgba(237,177,255,0.5)", textTransform: "uppercase", letterSpacing: "0.08em", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: "6px" }}>Điều hướng</span>
+
+          {navItems.map(item => {
+            const isActive = item.activePath && location.pathname === item.activePath;
+            return (
+              <span key={item.label} style={{ cursor: "pointer", color: isActive ? C.primary : C.onSurfaceVariant, fontWeight: isActive ? 700 : 400, fontSize: "0.9rem", fontFamily: "'Manrope', sans-serif" }} onClick={() => handleNav(item)}>
+                {item.label}
+              </span>
+            );
+          })}
+
+          {/* User row */}
+          <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+            {user ? (
+              <>
+                <div onClick={() => { navigate("/profile"); setMobileOpen(false); }} style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, cursor: "pointer", minWidth: 0 }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { navigate("/profile"); setMobileOpen(false); } }} aria-label="Trang cá nhân">
+                  <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "linear-gradient(135deg,#edb1ff,#6d208c)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, color: "#111", flexShrink: 0 }}>
+                    {userInitials}
+                  </div>
+                  <span style={{ color: C.onSurfaceVariant, fontSize: "0.82rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {user.full_name || user.email}
+                  </span>
+                </div>
+                <button className="btn-outline" style={{ padding: "0.3rem 0.8rem", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif" }} onClick={() => { logout(); setMobileOpen(false); }}>Đăng xuất</button>
+              </>
+            ) : (
+              <button className="btn-outline" style={{ width: "100%", padding: "0.6rem", fontSize: "0.9rem", fontFamily: "'Manrope', sans-serif" }} onClick={() => { navigate("/"); setMobileOpen(false); }}>
+                <span className="mso" style={{ fontSize: 16, marginRight: 4 }}>arrow_back</span> Trang chủ
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
-}
+};
 
+/* ═════════════════ Các phần còn lại giữ nguyên ══════════════ */
 function Section({ title, children }) {
   return (
-    <div style={{
-      background: "rgba(255,255,255,.04)", border: "1px solid rgba(237,177,255,.1)",
-      borderRadius: "1rem", padding: "1.5rem",
-    }}>
+    <div style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(237,177,255,.1)", borderRadius: "1rem", padding: "1.5rem" }}>
       <h3 style={{ fontSize: "1rem", fontWeight: 600, color: C.primary, marginBottom: "1.25rem" }}>{title}</h3>
       {children}
     </div>
@@ -187,7 +265,7 @@ export default function Profile() {
       <GlobalStyles />
       <div style={{ minHeight: "100vh", background: C.bg, position: "relative" }}>
         <Background />
-        <NavBar />
+        <Header />
 
         <main style={{ position: "relative", zIndex: 10, paddingTop: "80px", paddingBottom: "3rem" }}>
           <div style={{ maxWidth: "720px", margin: "0 auto", padding: "0 1.5rem" }}>
@@ -235,7 +313,7 @@ export default function Profile() {
                 </form>
               </Section>
 
-              {/* Đổi mật khẩu — chỉ hiện nếu tài khoản có password */}
+              {/* Đổi mật khẩu */}
               {user?.has_password && (
                 <Section title="Đổi mật khẩu">
                   <form onSubmit={handleChangePassword}>
