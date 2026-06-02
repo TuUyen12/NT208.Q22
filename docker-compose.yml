@@ -1,10 +1,7 @@
 services:
   db:
     image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: tuvi
-      POSTGRES_PASSWORD: tuvi
-      POSTGRES_DB: tuvi
+    env_file: .env.prod
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -29,9 +26,7 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
-    env_file: .env
-    environment:
-      PYTHONDONTWRITEBYTECODE: "1"
+    env_file: .env.prod
     depends_on:
       db:
         condition: service_healthy
@@ -52,10 +47,7 @@ services:
   # Celery worker — waits for API (= migrations done) before starting
   worker:
     build: ./backend
-    env_file: .env
-    environment:
-      PYTHONPATH: /app/backend
-      PYTHONDONTWRITEBYTECODE: "1"
+    env_file: .env.prod
     depends_on:
       api:
         condition: service_healthy
@@ -76,10 +68,7 @@ services:
   # Celery beat — waits for API (= migrations done) before starting
   beat:
     build: ./backend
-    env_file: .env
-    environment:
-      PYTHONPATH: /app/backend
-      PYTHONDONTWRITEBYTECODE: "1"
+    env_file: .env.prod
     depends_on:
       api:
         condition: service_healthy
