@@ -68,7 +68,7 @@ app = FastAPI(
     openapi_url=None,
     lifespan=lifespan,
 )
-Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+Instrumentator().instrument(app).expose(app, endpoint="/api/metrics")
 
 app.include_router(
     daily_horoscope.router,
