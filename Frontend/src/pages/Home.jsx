@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import { useAuth } from "../contexts/AuthContext";
+import { useSEO } from "../hooks/useSEO";
 import { calendarService } from "../services/calendarService";
 import NotificationBell from "../components/NotificationBell";
 
@@ -1316,16 +1316,13 @@ const DailyBanner = () => {
 /* ─────────────────────── HomePage ──────────────────────── */
 export default function HomePage() {
   const { user } = useAuth();
+  useSEO({
+    title: "Lá Số Tử Vi Online Miễn Phí | YinYang",
+    description: "Xem lá số tử vi online miễn phí, chính xác theo tử vi Đẩu Số. Tra cứu sao chiếu mệnh, tử vi hàng ngày, nhật ký vận mệnh. Đăng ký ngay!",
+    canonical: "https://yinyang.io.vn/",
+  });
   return (
     <>
-      <Helmet>
-        <title>Lá Số Tử Vi Online Miễn Phí | YinYang</title>
-        <meta name="description" content="Xem lá số tử vi online miễn phí, chính xác theo tử vi Đẩu Số. Tra cứu sao chiếu mệnh, tử vi hàng ngày, nhật ký vận mệnh. Đăng ký ngay!" />
-        <link rel="canonical" href="https://yinyang.io.vn/" />
-        <meta property="og:title" content="Lá Số Tử Vi Online Miễn Phí | YinYang" />
-        <meta property="og:description" content="Xem lá số tử vi online miễn phí, chính xác theo tử vi Đẩu Số." />
-        <meta property="og:url" content="https://yinyang.io.vn/" />
-      </Helmet>
       <FontLoader />
       <div style={{ background: C.background, minHeight: "100vh" }}>
         <Header />
