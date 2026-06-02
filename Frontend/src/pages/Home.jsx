@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useSEO } from "../hooks/useSEO";
-import { calendarService } from "../services/calendarService";
 import NotificationBell from "../components/NotificationBell";
+import { lunarToSolarLocal } from "../services/lunarConverter";
 
 /* ─────────────────────────────────────────────
    Design tokens
@@ -209,7 +209,7 @@ const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const navItems = [
-    { label: "Tra cứu",       to: "/",                activePath: "/" },
+    { label: "Trang chủ",     to: "/",                activePath: "/" },
     { label: "Dịch vụ",       to: "services",         activePath: null },
     { label: "Lá số",         to: "/la-so",           activePath: "/la-so" },
     { label: "Tử vi hôm nay", to: "/daily-horoscope", activePath: "/daily-horoscope" },
@@ -383,17 +383,21 @@ const Header = () => {
           <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px", display: "flex", alignItems: "center", gap: "0.6rem" }}>
             {user ? (
               <>
-                <div style={{
-                  width: "28px", height: "28px", borderRadius: "50%",
-                  background: "linear-gradient(135deg,#edb1ff,#6d208c)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "0.65rem", fontWeight: 700, color: "#111", flexShrink: 0,
-                }}>
-                  {userInitials}
+                <div
+                  onClick={() => { navigate("/profile"); setMobileOpen(false); }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.6rem", flex: 1, cursor: "pointer", minWidth: 0 }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { navigate("/profile"); setMobileOpen(false); } }}
+                  aria-label="Trang cá nhân"
+                >
+                  <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "linear-gradient(135deg,#edb1ff,#6d208c)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.65rem", fontWeight: 700, color: "#111", flexShrink: 0 }}>
+                    {userInitials}
+                  </div>
+                  <span style={{ color: C.onSurfaceVariant, fontSize: "0.82rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {user.full_name || user.email}
+                  </span>
                 </div>
-                <span style={{ color: C.onSurfaceVariant, fontSize: "0.82rem", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {user.full_name || user.email}
-                </span>
                 <button
                   className="btn-outline"
                   style={{ padding: "0.3rem 0.8rem", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif" }}
@@ -465,35 +469,19 @@ const HeroSection = () => {
       }
 
       setConverting(true);
-
-      try {
-        const [year, month, day] = form.lunarDate
-          .split("-")
-          .map(Number);
-
-        const res = await calendarService.lunarToSolar(
-          year,
-          month,
-          day,
-          form.lunarLeap
-        );
-
-        birthDate =
-          res.data?.solar_date ??
-          res.data?.date ??
-          res.data?.dob_solar;
-      } catch {
-        alert("Không thể chuyển đổi ngày âm lịch. Vui lòng kiểm tra lại ngày nhập.");
+      const [year, month, day] = form.lunarDate.split("-").map(Number);
+      const converted = lunarToSolarLocal(year, month, day, form.lunarLeap);
+      if (!converted) {
+        alert("Ngày âm lịch không hợp lệ hoặc không thể chuyển đổi.");
         setConverting(false);
         return;
       }
-
+      birthDate = converted;
       setConverting(false);
-    } else {
-      if (!form.dob) {
-        alert("Vui lòng nhập ngày sinh dương lịch");
-        return;
-      }
+    }
+    if (!birthDate || !/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+      alert("Ngày sinh không hợp lệ. Vui lòng nhập lại.");
+      return;
     }
 
     navigate("/la-so", {
