@@ -13,21 +13,18 @@ scrape_configs:
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
-        filters:
-          - name: name
-            values:
-              - yinyang-api-1
-              - yinyang-worker-1
-              - yinyang-beat-1
-              - yinyang-frontend-1
     relabel_configs:
-      # lấy tên container làm label
+      # chỉ giữ các service thuộc compose project yinyang hoặc nt208q22
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        regex: api|worker|beat|frontend
+        action: keep
+      # tên service (api, worker, beat, frontend)
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: service
+      # tên container đầy đủ
       - source_labels: [__meta_docker_container_name]
         regex: /(.*)
         target_label: container
-      # lấy image làm label
-      - source_labels: [__meta_docker_container_image_name]
-        target_label: image
-      # thêm label app cố định
+      # label cố định
       - target_label: app
         replacement: yinyang
