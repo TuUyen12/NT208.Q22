@@ -898,26 +898,108 @@ const insightItems = [
 ];
 
 const InsightsSection = () => (
-  <section className="insights-section" style={{ padding: "6rem 2rem", maxWidth: "80rem", margin: "0 auto" }}>
-    <div style={{ display: "flex", flexDirection: "column", marginBottom: "4rem", gap: "1rem" }}>
-      <div style={{ maxWidth: "38rem" }}>
-        <h2 className="font-headline" style={{ fontSize: "clamp(1.5rem, 4vw, 3.2rem)", color: C.onSurface, marginBottom: "1rem", lineHeight: 1.2 }}>
+  <section
+    className="insights-section"
+    style={{
+      padding: "6rem 2rem",
+      maxWidth: "80rem",
+      margin: "0 auto",
+    }}
+  >
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        marginBottom: "4rem",
+        gap: "1rem",
+      }}
+    >
+      <div style={{ maxWidth: "42rem" }}>
+        <h2
+          className="font-headline"
+          style={{
+            fontFamily: "'Newsreader', serif",
+            fontSize: "clamp(1.6rem, 4vw, 3.1rem)",
+            color: C.onSurface,
+            marginBottom: "1rem",
+            lineHeight: 1.15,
+            fontWeight: 460,
+            letterSpacing: "-0.015em",
+          }}
+        >
           Khám phá bản thân qua các khía cạnh
         </h2>
-        <p style={{ color: C.onSurfaceVariant, fontWeight: 300, lineHeight: 1.8 }}>
-          Thấu hiểu các mảnh ghép cuộc đời thông qua lăng kính Tử Vi Đẩu Số. Mỗi lá số là một hành trình riêng biệt được khắc họa bởi các vì tinh tú.
+
+        <p
+          style={{
+            color: C.onSurfaceVariant,
+            fontWeight: 300,
+            lineHeight: 1.85,
+            fontSize: "clamp(0.9rem, 1.8vw, 1rem)",
+            letterSpacing: "0.01em",
+          }}
+        >
+          Thấu hiểu các mảnh ghép cuộc đời thông qua lăng kính Tử Vi Đẩu Số.
+          Mỗi lá số là một hành trình riêng biệt được khắc họa bởi các vì tinh tú.
         </p>
       </div>
     </div>
-    <div className="insights-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "2rem" }}>
+
+    <div
+      className="insights-grid"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+        gap: "2rem",
+      }}
+    >
       {insightItems.map(({ icon, title, desc }) => (
         <div key={title} className="insight-card">
           <div className="glow-spot" />
-          <div style={{ background: "rgba(88,61,95,0.3)", width: "4rem", height: "4rem", borderRadius: "1rem", display: "flex", alignItems: "center", justifyContent: "center", color: C.primary, fontSize: "2rem", marginBottom: "1.5rem" }}>
+
+          <div
+            style={{
+              background: "rgba(88,61,95,0.3)",
+              width: "4rem",
+              height: "4rem",
+              borderRadius: "1rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: C.primary,
+              fontSize: "2rem",
+              marginBottom: "1.5rem",
+            }}
+          >
             <span className="material-symbols-outlined">{icon}</span>
           </div>
-          <h3 className="font-headline" style={{ fontSize: "1.5rem", color: C.onSurface, marginBottom: "0.75rem" }}>{title}</h3>
-          <p style={{ color: C.onSurfaceVariant, fontSize: "0.875rem", lineHeight: 1.7 }}>{desc}</p>
+
+          <h3
+            className="font-headline"
+            style={{
+              fontFamily: "'Newsreader', serif",
+              fontSize: "1.45rem",
+              color: C.onSurface,
+              marginBottom: "0.75rem",
+              fontWeight: 480,
+              lineHeight: 1.25,
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {title}
+          </h3>
+
+          <p
+            style={{
+              color: C.onSurfaceVariant,
+              fontSize: "1.05rem",
+              lineHeight: 1.75,
+              fontWeight: 300,
+              letterSpacing: "0.005em",
+            }}
+          >
+            {desc}
+          </p>
         </div>
       ))}
     </div>
