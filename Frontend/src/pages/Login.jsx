@@ -529,7 +529,8 @@ const LoginCard = () => {
       <div className="card-pad" style={{ padding:"2.5rem 2.25rem" }}>
         <div className="fade-up-1" style={{ textAlign:"center", marginBottom:"1.75rem" }}>
           <div className="hn" style={{
-            fontSize:"2rem", fontWeight:700, color:C.primary,
+            fontSize:"2rem", fontWeight:400, color:C.primary,
+            fontFamily:"Cinzel,serif",
             letterSpacing:"-.02em", marginBottom:6,
           }}>YinYang</div>
           <p style={{ color:C.onSurfaceVariant, fontSize:13.5, opacity:.78, lineHeight:1.55 }}>
@@ -666,10 +667,11 @@ const LeftPanel = () => (
     <h1 className="hn" style={{
       fontSize:"clamp(2.2rem,3.5vw,3.4rem)",
       color:C.onSurface, lineHeight:1.14,
+      fontWeight:480,
       letterSpacing:"-.02em", marginBottom:"1.4rem",
     }}>
       Khám phá<br/>
-      <span style={{ color:C.primary }}>vận mệnh</span><br/>
+      <span style={{fontWeight:480, color:C.primary }}>vận mệnh</span><br/>
       của bạn
     </h1>
 
