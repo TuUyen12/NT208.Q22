@@ -1197,7 +1197,7 @@ const Footer = () => {
             {["alternate_email", "share"].map((icon) => (
               <a
                 key={icon}
-                href="#"
+                href="mailto:contact@yinyang.io.vn"
                 style={{
                   background: C.surfaceContainer, width: "3.5rem", height: "3.5rem",
                   borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
