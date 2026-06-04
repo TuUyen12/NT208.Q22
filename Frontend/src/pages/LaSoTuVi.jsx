@@ -566,26 +566,166 @@ function ChartNav() {
 // AI INTERPRETATION
 // ============================================================
 
-function AIInterpretation({ data }) {
+const TTS_SECTIONS = [
+  { key:"overall",        label:"Tổng quan" },
+  { key:"cung_menh",      label:"Cung Mệnh" },
+  { key:"cung_tai_bach",  label:"Tài Bạch" },
+  { key:"cung_quan_loc",  label:"Quan Lộc" },
+  { key:"cung_phu_the",   label:"Phu Thê" },
+  { key:"dai_han",        label:"Đại Hạn" },
+  { key:"luu_y",          label:"Lưu Ý" },
+];
+
+function useTTS(chartId) {
+  const [state, setState] = useState("idle"); // idle | loading | playing | error
+  const [voice, setVoice] = useState("female");
+  const [field, setField] = useState("overall");
+  const audioRef = useRef(null);
+  const urlRef = useRef(null);
+
+  const play = async () => {
+    if (state === "playing") {
+      audioRef.current?.pause();
+      setState("idle");
+      return;
+    }
+    setState("loading");
+    try {
+      const { audio_base64, content_type } = await chartService.tts(chartId, voice, field);
+      const bytes = Uint8Array.from(atob(audio_base64), c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: content_type });
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+      urlRef.current = URL.createObjectURL(blob);
+      const audio = new Audio(urlRef.current);
+      audioRef.current = audio;
+      audio.onended = () => setState("idle");
+      audio.onerror = () => setState("error");
+      await audio.play();
+      setState("playing");
+    } catch {
+      setState("error");
+    }
+  };
+
+  const stop = () => {
+    audioRef.current?.pause();
+    setState("idle");
+  };
+
+  // stop playback when field or voice changes
+  const changeField = (v) => { stop(); setField(v); };
+  const changeVoice = (v) => { stop(); setVoice(v); };
+
+  useEffect(() => () => {
+    audioRef.current?.pause();
+    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+  }, []);
+
+  return { state, voice, changeVoice, field, changeField, play, stop };
+}
+
+function AIInterpretation({ data, chartId }) {
+  const { state, voice, changeVoice, field, changeField, play } = useTTS(chartId);
+
   if (!data) return null;
 
-  const sections = [
-    { key:"overall",        label:"Tổng quan" },
-    { key:"cung_menh",      label:"Cung Mệnh" },
-    { key:"cung_tai_bach",  label:"Tài Bạch" },
-    { key:"cung_quan_loc",  label:"Quan Lộc" },
-    { key:"cung_phu_the",   label:"Phu Thê" },
-    { key:"dai_han",        label:"Đại Hạn" },
-    { key:"luu_y",          label:"Lưu Ý" },
-  ].filter(s => data[s.key]);
+  const sections = TTS_SECTIONS.filter(s => data[s.key]);
 
   if (sections.length === 0) return null;
 
+  const isPlaying = state === "playing";
+  const isLoading = state === "loading";
+
   return (
     <div style={{ marginTop:"3rem", background:"rgba(15,17,28,0.7)", border:"1px solid rgba(100,80,130,0.25)", borderRadius:14, padding:"clamp(1rem,4vw,1.5rem) clamp(1rem,5vw,2rem)", backdropFilter:"blur(12px)", color:"#d0c2d3", maxWidth:"800px", marginInline:"auto" }}>
-      <h2 style={{ color:"#edb1ff", fontFamily:"'Newsreader', serif", fontSize:"clamp(1.1rem,3vw,1.4rem)", marginBottom:"1.5rem", letterSpacing:"0.04em", textAlign:"center" }}>
-        ✦ Luận Giải Tử Vi
-      </h2>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:"0.75rem", marginBottom:"1.5rem", flexWrap:"wrap" }}>
+        <h2 style={{ color:"#edb1ff", fontFamily:"'Newsreader', serif", fontSize:"clamp(1.1rem,3vw,1.4rem)", letterSpacing:"0.04em", margin:0 }}>
+          ✦ Luận Giải Tử Vi
+        </h2>
+        <>
+          {/* Section picker */}
+          <select
+            value={field}
+            onChange={e => changeField(e.target.value)}
+            disabled={isLoading}
+            title="Chọn đoạn muốn nghe"
+            style={{
+              background:"rgba(15,17,28,0.9)",
+              border:"1px solid rgba(237,177,255,0.25)",
+              borderRadius:7,
+              color:"#edb1ff",
+              fontSize:"0.75rem",
+              padding:"4px 8px",
+              cursor:"pointer",
+              fontFamily:"'Manrope',sans-serif",
+            }}
+          >
+            {sections.map(s => (
+              <option key={s.key} value={s.key}>{s.label}</option>
+            ))}
+          </select>
+          {/* Voice picker */}
+          <select
+            value={voice}
+            onChange={e => changeVoice(e.target.value)}
+            disabled={isLoading}
+            title="Chọn giọng đọc"
+            style={{
+              background:"rgba(15,17,28,0.9)",
+              border:"1px solid rgba(237,177,255,0.25)",
+              borderRadius:7,
+              color:"#c4b5fd",
+              fontSize:"0.75rem",
+              padding:"4px 8px",
+              cursor:"pointer",
+              fontFamily:"'Manrope',sans-serif",
+            }}
+          >
+            <option value="female">Giọng nữ</option>
+            <option value="male">Giọng nam</option>
+          </select>
+          <button
+            onClick={play}
+            disabled={isLoading}
+            title={isPlaying ? "Dừng đọc" : "Nghe đoạn này"}
+            style={{
+              background: isPlaying ? "rgba(237,177,255,0.15)" : "rgba(237,177,255,0.08)",
+              border: "1px solid rgba(237,177,255,0.3)",
+              borderRadius: 8,
+              color: isLoading ? "rgba(237,177,255,0.4)" : "#edb1ff",
+              cursor: isLoading ? "default" : "pointer",
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              padding: "5px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.35rem",
+              transition: "background 0.2s",
+              fontFamily: "'Manrope', sans-serif",
+            }}
+          >
+            {isLoading ? (
+              <>
+                <span style={{ display:"inline-block", width:10, height:10, borderRadius:"50%", border:"2px solid rgba(237,177,255,0.4)", borderTopColor:"#edb1ff", animation:"spin 0.8s linear infinite" }} />
+                Đang tải...
+              </>
+            ) : isPlaying ? (
+              <>
+                <span style={{ display:"inline-block", width:10, height:10, background:"#edb1ff", borderRadius:2 }} />
+                Dừng
+              </>
+              ) : (
+                <>
+                  <span style={{ display:"inline-block", width:0, height:0, borderStyle:"solid", borderWidth:"5px 0 5px 9px", borderColor:"transparent transparent transparent #edb1ff" }} />
+                  Nghe đoạn này
+                </>
+              )}
+            </button>
+            {state === "error" && (
+              <span style={{ color:"rgba(255,100,100,0.7)", fontSize:"0.72rem" }}>Lỗi TTS — kiểm tra API key</span>
+            )}
+          </>
+      </div>
       {sections.map(({ key, label }) => (
         <div key={key} style={{ marginBottom:"1.4rem" }}>
           <div style={{ color:"#c4b5fd", fontSize:"0.75rem", fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:"0.4rem" }}>{label}</div>
@@ -694,6 +834,7 @@ function AnnotationPanel({ chartId, house, onClose }) {
     <>
       <style>{`
         @keyframes slideIn { from { transform: translateX(100%) } to { transform: translateX(0) } }
+        @keyframes spin { to { transform: rotate(360deg) } }
         .ann-note { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 10px 12px; border: 1px solid rgba(237,177,255,0.08); }
         .ann-note:hover { border-color: rgba(237,177,255,0.2); }
         .ann-del { background: none; border: none; cursor: pointer; color: rgba(248,113,113,0.6); font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; }
@@ -1082,7 +1223,7 @@ export default function LaSoTuVi() {
               </div>
             )}
 
-            {interpretation && <AIInterpretation data={interpretation} />}
+            {interpretation && <AIInterpretation data={interpretation} chartId={chartId} />}
 
             {location.state && (
               <div style={{ textAlign:"center", marginTop:"1rem" }}>

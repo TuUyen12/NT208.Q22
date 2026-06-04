@@ -41,3 +41,4 @@ backend/celerybeat-schedule
 nginx/
 setup.sh.env.local
 celerybeat-schedule
+deployLocal.sh
