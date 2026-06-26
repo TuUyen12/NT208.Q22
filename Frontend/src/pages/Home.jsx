@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useSEO } from "../hooks/useSEO";
@@ -1006,6 +1006,118 @@ const InsightsSection = () => (
   </section>
 );
 
+/* ─────────────────────── Audio Player (Web Speech API — client-side, không cần backend) ──────────────────────── */
+function useZodiacSpeech() {
+  const [state, setState] = useState("idle"); // idle | playing | error
+  const utterRef = useRef(null);
+
+  const play = (text) => {
+    if (!window.speechSynthesis) {
+      setState("error");
+      return;
+    }
+
+    if (state === "playing") {
+      window.speechSynthesis.cancel();
+      setState("idle");
+      return;
+    }
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "vi-VN";
+
+    const voices = window.speechSynthesis.getVoices();
+    const viVoice = voices.find((v) => v.lang === "vi-VN");
+    if (viVoice) utter.voice = viVoice;
+
+    utter.onend = () => setState("idle");
+    utter.onerror = () => setState("error");
+
+    utterRef.current = utter;
+    window.speechSynthesis.speak(utter);
+    setState("playing");
+  };
+
+  const stop = () => {
+    window.speechSynthesis.cancel();
+    setState("idle");
+  };
+
+  useEffect(() => {
+    // Một số trình duyệt (đặc biệt Chrome) nạp danh sách giọng đọc bất đồng bộ.
+    const warmUpVoices = () => window.speechSynthesis?.getVoices();
+    warmUpVoices();
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = warmUpVoices;
+    }
+    return () => window.speechSynthesis?.cancel();
+  }, []);
+
+  return { state, play, stop };
+}
+
+function ZodiacAudioPlayer({ text }) {
+  const { state, play, stop } = useZodiacSpeech();
+
+  const isPlaying = state === "playing";
+
+  const handleToggle = () => {
+    if (isPlaying) {
+      stop();
+    } else {
+      play(text);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "0.6rem",
+        marginBottom: "1.25rem",
+        flexWrap: "wrap",
+      }}
+    >
+      <button
+        onClick={handleToggle}
+        title={isPlaying ? "Dừng đọc" : "Nghe luận giải"}
+        style={{
+          background: isPlaying ? "rgba(237,177,255,0.15)" : "rgba(237,177,255,0.08)",
+          border: "1px solid rgba(237,177,255,0.3)",
+          borderRadius: 8,
+          color: "#edb1ff",
+          cursor: "pointer",
+          fontSize: "0.78rem",
+          fontWeight: 600,
+          padding: "5px 12px",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.35rem",
+        }}
+      >
+        {isPlaying ? (
+          <>
+            <span style={{ display: "inline-block", width: 10, height: 10, background: "#edb1ff", borderRadius: 2 }} />
+            Dừng
+          </>
+        ) : (
+          <>
+            <span style={{ display: "inline-block", width: 0, height: 0, borderStyle: "solid", borderWidth: "5px 0 5px 9px", borderColor: "transparent transparent transparent #edb1ff" }} />
+            Nghe
+          </>
+        )}
+      </button>
+
+      {state === "error" && (
+        <span style={{ color: "rgba(255,100,100,0.7)", fontSize: "0.72rem" }}>
+          Trình duyệt không hỗ trợ đọc
+        </span>
+      )}
+    </div>
+  );
+}
 /* ─────────────────────── 12 Con Giáp ──────────────────────── */
 const zodiacData = [
   { name: "Tý",   src: "https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/1f42d.svg" },
@@ -1159,6 +1271,9 @@ const ZodiacSection = () => {
               textAlign: "center",
             }}
           >
+            {/* ─── Audio player — đặt trên cùng trong khung nội dung ─── */}
+            <ZodiacAudioPlayer text={selectedZodiac.text} />
+
             <div
             className="zodiac-modal-header"
   style={{

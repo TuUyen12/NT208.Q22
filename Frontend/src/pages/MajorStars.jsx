@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { useSEO } from "../hooks/useSEO";
@@ -306,6 +306,109 @@ const Header = () => {
     </nav>
   );
 };
+// ───────────────── Speech text builder ─────────────────
+// Ghép character + meaning + description thành 1 đoạn văn xuôi mạch lạc để đọc thành tiếng
+const buildSpeechText = (star) => {
+  return `Sao ${star.name}, tương ứng với nhân vật ${star.character}. ` +
+         `Sao này mang ý nghĩa ${star.meaning}. ` +
+         `${star.description}`;
+};
+
+// ───────────────── Audio Player (Web Speech API — client-side, không cần backend) ─────────────────
+function useSpeech() {
+  const [state, setState] = useState("idle"); // idle | playing | error
+  const utterRef = useRef(null);
+
+  const play = (text) => {
+    if (!window.speechSynthesis) {
+      setState("error");
+      return;
+    }
+
+    if (state === "playing") {
+      window.speechSynthesis.cancel();
+      setState("idle");
+      return;
+    }
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "vi-VN";
+
+    const voices = window.speechSynthesis.getVoices();
+    const viVoice = voices.find((v) => v.lang === "vi-VN");
+    if (viVoice) utter.voice = viVoice;
+
+    utter.onend = () => setState("idle");
+    utter.onerror = () => setState("error");
+
+    utterRef.current = utter;
+    window.speechSynthesis.speak(utter);
+    setState("playing");
+  };
+
+  const stop = () => {
+    window.speechSynthesis.cancel();
+    setState("idle");
+  };
+
+  useEffect(() => {
+    const warmUpVoices = () => window.speechSynthesis?.getVoices();
+    warmUpVoices();
+    if (window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = warmUpVoices;
+    }
+    return () => window.speechSynthesis?.cancel();
+  }, []);
+
+  return { state, play, stop };
+}
+
+function StarAudioButton({ text, color }) {
+  const { state, play, stop } = useSpeech();
+  const isPlaying = state === "playing";
+
+  const handleToggle = (e) => {
+    e.stopPropagation(); // không trigger hover-card effect cha khi bấm nút
+    isPlaying ? stop() : play(text);
+  };
+
+  return (
+    <button
+      onClick={handleToggle}
+      title={isPlaying ? "Dừng đọc" : "Nghe diễn giải"}
+      style={{
+        background: isPlaying ? `${color}26` : "rgba(237,177,255,0.08)",
+        border: `1px solid ${isPlaying ? color : "rgba(237,177,255,0.3)"}`,
+        borderRadius: 8,
+        color: isPlaying ? color : "#edb1ff",
+        cursor: "pointer",
+        fontSize: "0.72rem",
+        fontWeight: 600,
+        padding: "4px 10px",
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.35rem",
+        fontFamily: "'Manrope', sans-serif",
+      }}
+    >
+      {isPlaying ? (
+        <>
+          <span style={{ display: "inline-block", width: 9, height: 9, background: "currentColor", borderRadius: 2 }} />
+          Dừng
+        </>
+      ) : (
+        <>
+          <span style={{ display: "inline-block", width: 0, height: 0, borderStyle: "solid", borderWidth: "4.5px 0 4.5px 8px", borderColor: "transparent transparent transparent currentColor" }} />
+          Nghe diễn giải
+        </>
+      )}
+      {state === "error" && (
+        <span style={{ marginLeft: 4, color: "rgba(255,100,100,0.8)" }}>— không hỗ trợ</span>
+      )}
+    </button>
+  );
+}
+
 // ───────────────── 14 Chính Tinh data ─────────────────
 const majorStarsData = [
   { name: "Tử Vi", chinese: "紫微", character: "Anh trai Chu Vũ Vương", meaning: "Hoàng Đế", description: "Sao chính của vũ trụ, đại diện cho sự chỉ huy, lãnh đạo, quyền lực và vận mệnh tối cao.", house: "Tâm chỉ", color: "#edb1ff" },
@@ -403,12 +506,17 @@ export default function MajorStars() {
                   <p style={{ fontSize: "0.875rem", color: C.onSurfaceVariant, lineHeight: 1.7, marginBottom: "1rem" }}>
                     {star.description}
                   </p>
+                  {/* ─── Nút nghe diễn giải bằng giọng đọc ─── */}
+                  <div style={{ marginBottom: "1rem" }}>
+                    <StarAudioButton text={buildSpeechText(star)} color={star.color} />
+                  </div>
 
                   <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "1rem", borderTop: "1px solid rgba(237,177,255,.1)" }}>
                     <div style={{ fontSize: "0.75rem", color: C.onSurfaceVariant }}>
                       <strong style={{ color: C.primary }}>Cung:</strong> {star.house}
                     </div>
                   </div>
+
                 </div>
               ))}
             </div>
