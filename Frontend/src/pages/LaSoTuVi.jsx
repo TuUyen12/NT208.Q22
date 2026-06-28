@@ -163,7 +163,15 @@ const PalaceCell = ({
   const rightMinor = allMinor.slice(half);
 
   return (
-    <div style={{ ...newPaletteStyles.cell, boxShadow: isMenh ? "0 0 0 1px rgba(237,177,255,0.4)" : isBody ? "0 0 0 1px rgba(103,232,249,0.3)" : "none" }}>
+    <div
+      style={{
+        ...newPaletteStyles.cell,
+        background: "#FFFBF5",
+        border: "1.5px solid #f4e4c7", // Viền sẽ hiển thị rõ
+        borderRadius: "0",
+       
+      }}
+    >
       <div style={newPaletteStyles.content}>
         {/* Header */}
         <div style={newPaletteStyles.Header}>
@@ -197,7 +205,7 @@ const PalaceCell = ({
                   </span>
                 )}
                 {star.mutagen && (
-                  <span style={{ fontSize: "10px", color: "#f0abfc", background: "#f0abfc18", padding: "0 3px", borderRadius: 3, marginLeft: 3 }}>
+                  <span style={{ fontSize: "10px", color: "#d46b84", background: "rgba(212,107,132,0.1)", padding: "0 3px", borderRadius: 3, marginLeft: 3 }}>
                     {star.mutagen}
                   </span>
                 )}
@@ -218,7 +226,7 @@ const PalaceCell = ({
                 <div key={i} style={{ color: getMinorStarColor(star.name) }}>
                   {star.name}
                   {star.brightnessAbbr && <span style={{ fontSize: "9px", opacity: 0.6, marginLeft: 2 }}>({star.brightnessAbbr})</span>}
-                  {star.mutagen && <span style={{ fontSize: "9px", color: "#f0abfc", marginLeft: 2 }}>{star.mutagen}</span>}
+                  {star.mutagen && <span style={{ fontSize: "9px", color: "#d46b84", marginLeft: 2 }}>{star.mutagen}</span>}
                 </div>
               ))}
             </div>
@@ -227,7 +235,7 @@ const PalaceCell = ({
                 <div key={i} style={{ color: getMinorStarColor(star.name) }}>
                   {star.name}
                   {star.brightnessAbbr && <span style={{ fontSize: "9px", opacity: 0.6, marginLeft: 2 }}>({star.brightnessAbbr})</span>}
-                  {star.mutagen && <span style={{ fontSize: "9px", color: "#f0abfc", marginLeft: 2 }}>{star.mutagen}</span>}
+                  {star.mutagen && <span style={{ fontSize: "9px", color: "#d46b84", marginLeft: 2 }}>{star.mutagen}</span>}
                 </div>
               ))}
             </div>
@@ -253,15 +261,16 @@ const PalaceCell = ({
                 onAnnotate();
               }}
               title="Ghi chú cho cung này"
-              style={{ marginTop: 4, alignSelf: "flex-end", fontSize: "0.62rem", color: "rgba(237,177,255,0.55)", cursor: "pointer", padding: "2px 6px", borderRadius: 4, userSelect: "none", border: "1px solid rgba(237,177,255,0.2)" }}
+              // Cập nhật màu nút ghi chú cho hợp với nền sáng
+              style={{ marginTop: 4, alignSelf: "flex-end", fontSize: "0.62rem", color: "#d46b84", cursor: "pointer", padding: "2px 6px", borderRadius: 4, userSelect: "none", border: "1px solid rgba(212,107,132,0.3)" }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#edb1ff";
-                e.currentTarget.style.borderColor = "rgba(237,177,255,0.5)";
-                e.currentTarget.style.background = "rgba(237,177,255,0.08)";
+                e.currentTarget.style.color = "#c25e76";
+                e.currentTarget.style.borderColor = "rgba(212,107,132,0.6)";
+                e.currentTarget.style.background = "rgba(212,107,132,0.08)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = "rgba(237,177,255,0.55)";
-                e.currentTarget.style.borderColor = "rgba(237,177,255,0.2)";
+                e.currentTarget.style.color = "#d46b84";
+                e.currentTarget.style.borderColor = "rgba(212,107,132,0.3)";
                 e.currentTarget.style.background = "none";
               }}
             >
@@ -273,10 +282,12 @@ const PalaceCell = ({
     </div>
   );
 };
+
+// Cập nhật CRow: Màu chữ đậm lên để đọc được trên nền trắng/sáng của CenterCell
 const CRow = ({ label, value, highlight }) => (
-  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:8, padding:"2px 0", borderBottom:"1px solid rgba(255,255,255,0.04)" }}>
-    <span style={{ color:"#5a5a7a", fontSize:"0.6rem", flexShrink:0 }}>{label}</span>
-    <span style={{ color: highlight ? "#d8b4fe" : "#c4c4d4", fontSize:"0.63rem", fontWeight: highlight ? 600 : 400, textAlign:"right" }}>{value}</span>
+  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:8, padding:"2px 0", borderBottom:"1px solid rgba(110,62,212,.1)" }}>
+    <span style={{ color:"#666", fontSize:"0.6rem", flexShrink:0 }}>{label}</span>
+    <span style={{ color: highlight ? "#d46b84" : "#222", fontSize:"0.63rem", fontWeight: highlight ? 700 : 500, textAlign:"right" }}>{value}</span>
   </div>
 );
 
@@ -289,7 +300,14 @@ const CenterCell = ({ personal, astrolabe, raw, displaySolarDate, displayLunarDa
   const nguHanh  = fiveElementsClass || "";
 
   return (
-    <div style={{ ...styles.centerCell, background:"#FEFBFF", border:"1.5px solid #9C46BE", borderRadius:"10px", boxShadow:"none", backdropFilter:"none" }}>
+    <div style={{ 
+        ...styles.centerCell, 
+        background: "#FFFBF5", 
+        border: "1.5px solid #f4e4c7", // Viền cứng cho cung giữa
+        borderRadius: "0",
+      
+      }}
+    >
       <div style={{ fontSize:"0.58rem", letterSpacing:"0.2em", color:"#9C46BE", marginBottom:4, textTransform:"uppercase", fontWeight:700 }}>
         Tử Vi Đẩu Số
       </div>
@@ -297,7 +315,7 @@ const CenterCell = ({ personal, astrolabe, raw, displaySolarDate, displayLunarDa
         {personal.name}
       </div>
 
-      <div style={{ width:"100%", background:"#FFF8FD", border:"1px solid #E7C7F3", borderRadius:10, padding:"10px 12px", marginBottom:10, fontSize:"0.65rem" }}>
+      <div style={{ width:"100%", background:"#ffffff", border:"1px solid #E7C7F3", borderRadius:10, padding:"10px 12px", marginBottom:10, fontSize:"0.65rem" }}>
         <CRow label="Dương lịch" value={displaySolarDate || "—"} />
         <CRow label="Âm lịch"    value={displayLunarDate  || "—"} />
         <CRow label="Giờ sinh"   value={`${personal.time} · ${timeName}`} />
@@ -305,7 +323,7 @@ const CenterCell = ({ personal, astrolabe, raw, displaySolarDate, displayLunarDa
       </div>
 
       {(nguHanh || nayinVi) && (
-        <div style={{ width:"100%", background:"#FFF8FD", border:"1px solid #E7C7F3", borderRadius:10, padding:"10px 12px", marginBottom:10, fontSize:"0.65rem" }}>
+        <div style={{ width:"100%", background:"#ffffff", border:"1px solid #E7C7F3", borderRadius:10, padding:"10px 12px", marginBottom:10, fontSize:"0.65rem" }}>
           {nguHanh  && <CRow label="Ngũ hành cục" value={nguHanh}  highlight />}
           {nayinVi  && <CRow label="Nạp âm mệnh"  value={nayinVi} />}
         </div>
@@ -333,8 +351,9 @@ const CenterCell = ({ personal, astrolabe, raw, displaySolarDate, displayLunarDa
   );
 };
 
+// Cập nhật Legend (Chú giải) màu sáng hơn chút để dễ nhìn nều nền phía sau bị tối
 const Legend = () => (
-  <div style={{ marginTop:12, display:"flex", gap:"0.75rem", flexWrap:"wrap", justifyContent:"center", fontSize:"clamp(0.52rem, 1.3vw, 0.6rem)", color:"rgba(255,255,255,0.35)", padding:"8px 16px", background:"rgba(255,255,255,0.02)", borderRadius:8, border:"1px solid rgba(255,255,255,0.05)" }}>
+  <div style={{ marginTop:12, display:"flex", gap:"0.75rem", flexWrap:"wrap", justifyContent:"center", fontSize:"clamp(0.52rem, 1.3vw, 0.6rem)", color:"#888", padding:"8px 16px", background:"rgba(110,62,212,.03)", borderRadius:8, border:"1px solid rgba(110,62,212,.1)" }}>
     {[
       { color:"#f9e4ff",  label:"Chính tinh Miếu (M)" },
       { color:"#c4b5fd",  label:"Vượng (V) / Đắc (Đ)" },
@@ -342,7 +361,7 @@ const Legend = () => (
       { color:"#4ade80",  label:"Cát tinh" },
       { color:"#f87171",  label:"Hung tinh" },
       { color:"#93c5fd",  label:"Trung tính" },
-      { color:"#f0abfc",  label:"Tứ hóa" },
+      { color:"#d46b84",  label:"Tứ hóa" },
       { color:"#edb1ff",  label:"Cung Mệnh" },
       { color:"#a5f3fc",  label:"Thân cung" },
       { color:"#6ee7b7",  label:"Tuần không" },

@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useSEO } from "../hooks/useSEO";
 import NotificationBell from "../components/NotificationBell";
 import { lunarToSolarLocal } from "../services/lunarConverter";
+import background2 from "../assets/Background2.jpg";
 
 /* ─────────────────────────────────────────────
    Design tokens
@@ -82,33 +83,18 @@ const FontLoader = () => (
     .field-input:focus, .field-select:focus { box-shadow: 0 0 0 2px rgba(237,177,255,0.4); }
     .field-input::placeholder { color: rgba(208,194,211,0.4); }
     .field-select option { background: ${C.surfaceContainerLowest}; }
-    .insight-card {
-      position: relative; overflow: hidden;
-      background: ${C.surfaceContainerLow}; border-radius: 2rem;
-      padding: 2rem; cursor: pointer; transition: background 0.5s;
+
+    .zodiac-card:hover {
+      border-color: rgba(237,177,255,0.4);
+      transform: translateY(-4px) scale(1.05);
     }
-    .insight-card:hover { background: ${C.surfaceContainerHigh}; }
-    .insight-card .glow-spot {
-      position: absolute; top: -1rem; right: -1rem; width: 6rem; height: 6rem;
-      background: radial-gradient(circle at center, rgba(237,177,255,0.15) 0%, transparent 70%);
-      opacity: 0; transition: opacity 0.4s;
-    }
-    .insight-card:hover .glow-spot { opacity: 1; }
-    .zodiac-card {
-      background: ${C.surface}; padding: 1.5rem; border-radius: 1rem;
-      border: 1px solid rgba(77,67,81,0.1); text-align: center;
-      cursor: pointer; transition: border-color 0.3s;
-    }
-    .zodiac-card:hover { border-color: rgba(237,177,255,0.4); }
     .zodiac-card img {
       width: 100%; aspect-ratio: 1/1; object-fit: cover;
       border-radius: 0.75rem; margin-bottom: 1rem;
-      filter: grayscale(1); transition: filter 0.7s;
+      filter: brightness(1); transition: filter 0.3s;
     }
-    .zodiac-card:hover img { filter: grayscale(0); }
-    .footer-link {
-      color: ${C.onSurfaceVariant}; text-decoration: none;
-      display: inline-block; transition: color 0.2s, transform 0.2s;
+    .zodiac-card:hover img {
+      filter: brightness(1.15) drop-shadow(0 0 10px rgba(237,177,255,0.5));
     }
     .footer-link:hover { color: ${C.primary}; transform: translateX(4px); }
 
@@ -437,7 +423,7 @@ const HeroSection = () => {
   const currentYear = new Date().getFullYear();
   const [calMode, setCalMode] = useState("solar");
   const [form, setForm] = useState({
-    name: "", dob: "",lunarDate: "", time: "", gender: "Nam", year: currentYear.toString(), 
+    name: "", dob: "", lunarDate: "", time: "", gender: "Nam", year: currentYear.toString(),
     lunarLeap: false,
   });
   const [converting, setConverting] = useState(false);
@@ -497,6 +483,17 @@ const HeroSection = () => {
       },
     });
   };
+
+  // Inline style thu nhỏ font chữ và căn chỉnh lại padding cho gọn gàng
+  const lightInputStyle = {
+    background: "#ffffff",
+    border: "1px solid #D7C7F4",
+    color: "#333",
+    borderRadius: "0.5rem",
+    fontSize: "0.9rem", // Thu nhỏ chữ trong ô nhập
+    padding: "0.75rem 1rem", // Cân đối lại khoảng trắng bên trong ô
+  };
+
   return (
     <section
       className="hero-section-padding"
@@ -506,6 +503,38 @@ const HeroSection = () => {
         overflow: "hidden", padding: "6rem 1.5rem 4rem",
       }}
     >
+      {/* Animation cho ảnh minh họa lá số và CSS tùy chỉnh cho option dropdown */}
+      <style>{`
+        @keyframes logoFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-4px); }
+        }
+
+        @keyframes logoGlow {
+          0%, 100% {
+            filter:
+              drop-shadow(0 0 4px rgba(245, 196, 81, 0.16))
+              drop-shadow(0 0 10px rgba(245, 196, 81, 0.10));
+          }
+          50% {
+            filter:
+              drop-shadow(0 0 10px rgba(245, 196, 81, 0.24))
+              drop-shadow(0 0 22px rgba(245, 196, 81, 0.14));
+          }
+        }
+
+        .logo-float-glow {
+          animation: logoFloat 3s ease-in-out infinite,
+                     logoGlow 3s ease-in-out infinite;
+        }
+
+        /* Ghi đè nền tối của option trong thẻ select */
+        .light-select option {
+          background: #ffffff !important;
+          color: #333 !important;
+        }
+      `}</style>
+
       <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
         <img
           src="/background2.png"
@@ -516,17 +545,16 @@ const HeroSection = () => {
       </div>
 
       <div style={{ position: "relative", zIndex: 10, maxWidth: "80rem", width: "100%" }}>
-
         <div
-  className="hero-top"
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: "4rem",
-    gap: "1rem",
-  }}
->
+          className="hero-top"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "4rem",
+            gap: "1rem",
+          }}
+        >
           {/* Cột trái */}
           <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
             <h1
@@ -547,7 +575,7 @@ const HeroSection = () => {
 
             <p
               style={{
-                color: C.onSurfaceVariant,
+                color: "#dfe2ef",
                 fontSize: "clamp(0.75rem, 2.5vw, 1.6rem)",
                 fontWeight: 300,
                 letterSpacing: "0.02em",
@@ -565,6 +593,7 @@ const HeroSection = () => {
             <img
               src="/favicon3.png"
               alt="Minh họa lá số"
+              className="logo-float-glow"
               style={{
                 width: "clamp(80px, 22vw, 450px)",
                 height: "auto",
@@ -574,18 +603,39 @@ const HeroSection = () => {
           </div>
         </div>
 
-        {/* Form */}
+        {/* Form Nền Kem Và Cắt Góc */}
         <div
-          className="glass-panel hero-form-panel"
+          className="hero-form-panel"
           style={{
             maxWidth: "70rem", margin: "0 auto", padding: "3rem",
-            borderRadius: "2rem", border: `1px solid rgba(77, 67, 81, 0.12)`,
-            boxShadow: "0 32px 80px rgba(0,0,0,0.4)",
+            background: "#FFFBF5",
+            borderRadius: "0",
+            filter: "drop-shadow(0 20px 40px rgba(0,0,0,0.3))",
+
+            // --- KỸ THUẬT CẮT GÓC KHUYẾT (MASK) ---
+            WebkitMaskImage: `
+              radial-gradient(circle at 0 0, transparent 20px, black 20px),
+              radial-gradient(circle at 100% 0, transparent 20px, black 20px),
+              radial-gradient(circle at 100% 100%, transparent 20px, black 20px),
+              radial-gradient(circle at 0 100%, transparent 20px, black 20px)
+            `,
+            WebkitMaskPosition: "top left, top right, bottom right, bottom left",
+            WebkitMaskSize: "51% 51%",
+            WebkitMaskRepeat: "no-repeat",
+            maskImage: `
+              radial-gradient(circle at 0 0, transparent 20px, black 20px),
+              radial-gradient(circle at 100% 0, transparent 20px, black 20px),
+              radial-gradient(circle at 100% 100%, transparent 20px, black 20px),
+              radial-gradient(circle at 0 100%, transparent 20px, black 20px)
+            `,
+            maskPosition: "top left, top right, bottom right, bottom left",
+            maskSize: "51% 51%",
+            maskRepeat: "no-repeat",
           }}
         >
           {/* Toggle dương / âm lịch */}
           <div style={{ display: "flex", justifyContent: "center", marginBottom: "2rem" }}>
-            <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", borderRadius: 999, padding: "4px", border: "1px solid rgba(237,177,255,0.15)", gap: 4 }}>
+            <div style={{ display: "flex", background: "rgba(110,62,212,.08)", borderRadius: 999, padding: "4px", border: "1px solid #D7C7F4", gap: 4 }}>
               {[{ key: "solar", label: "Dương lịch" }, { key: "lunar", label: "Âm lịch" }].map(({ key, label }) => (
                 <button
                   key={key}
@@ -595,12 +645,12 @@ const HeroSection = () => {
                     borderRadius: 999,
                     border: "none",
                     cursor: "pointer",
-                    fontSize: "0.78rem",
-                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    fontWeight: 700,
                     fontFamily: "'Manrope', sans-serif",
                     transition: "all 0.2s",
-                    background: calMode === key ? "linear-gradient(135deg, #edb1ff, #6d208c)" : "transparent",
-                    color: calMode === key ? "#fff" : "rgba(237,177,255,0.55)",
+                    background: calMode === key ? "#d9659e" : "transparent",
+                    color: calMode === key ? "#fff" : "#888",
                   }}
                 >
                   {label}
@@ -615,20 +665,20 @@ const HeroSection = () => {
           >
             {/* Họ tên */}
             <div>
-              <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Họ và Tên</label>
-              <input className="field-input" type="text" name="name" placeholder="Nguyễn Văn A" value={form.name} onChange={handleChange} />
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", color: "#d9659e", textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Họ và Tên</label>
+              <input className="field-input" type="text" name="name" placeholder="Nguyễn Văn A" value={form.name} onChange={handleChange} style={lightInputStyle} />
             </div>
 
             {/* Ngày sinh */}
             <div>
-              <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem"}}>
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", color: "#d9659e", textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>
                 Ngày sinh
               </label>
-              <input className="field-input" type="date" name={calMode === "solar" ? "dob" : "lunarDate"} value={calMode === "solar" ? form.dob : form.lunarDate} onChange={handleChange} style={{ colorScheme: "dark" }}/>
+              <input className="field-input" type="date" name={calMode === "solar" ? "dob" : "lunarDate"} value={calMode === "solar" ? form.dob : form.lunarDate} onChange={handleChange} style={{ ...lightInputStyle, colorScheme: "light" }} />
               {calMode === "lunar" && (
                 <label
-                  style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: "0.72rem", color: "rgba(237,177,255,0.6)", cursor: "pointer"}} >
-                  <input type="checkbox" name="lunarLeap" checked={form.lunarLeap} onChange={handleChange} style={{ accentColor: "#edb1ff" }} />
+                  style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: "0.75rem", color: "#666", cursor: "pointer" }} >
+                  <input type="checkbox" name="lunarLeap" checked={form.lunarLeap} onChange={handleChange} style={{ accentColor: "#d9659e" }} />
                   Tháng nhuận
                 </label>
               )}
@@ -636,22 +686,22 @@ const HeroSection = () => {
 
             {/* Giờ sinh */}
             <div>
-              <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Giờ sinh</label>
-              <input className="field-input" type="time" name="time" value={form.time} onChange={handleChange} style={{ colorScheme: "dark" }} />
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", color: "#d9659e", textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Giờ sinh</label>
+              <input className="field-input" type="time" name="time" value={form.time} onChange={handleChange} style={{ ...lightInputStyle, colorScheme: "light" }} />
             </div>
 
             {/* Giới tính */}
             <div>
-              <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Giới tính</label>
-              <select className="field-select" name="gender" value={form.gender} onChange={handleChange}>
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", color: "#d9659e", textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Giới tính</label>
+              <select className="field-select light-select" name="gender" value={form.gender} onChange={handleChange} style={lightInputStyle}>
                 <option>Nam</option><option>Nữ</option>
               </select>
             </div>
 
             {/* Năm tra cứu */}
             <div>
-              <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", color: C.primary, textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Năm tra cứu</label>
-              <select className="field-select" name="year" value={form.year} onChange={handleChange}>
+              <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", color: "#d9659e", textTransform: "uppercase", marginBottom: "0.5rem", marginLeft: "0.25rem" }}>Năm tra cứu</label>
+              <select className="field-select light-select" name="year" value={form.year} onChange={handleChange} style={lightInputStyle}>
                 {yearOptions.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
@@ -661,12 +711,24 @@ const HeroSection = () => {
             {/* Submit */}
             <div style={{ display: "flex", alignItems: "flex-end" }}>
               <button
-                className="btn-outline"
-                style={{ width: "100%", padding: "1rem", fontSize: "clamp(0.9rem, 2vw, 1.3rem)", fontFamily: "'Manrope', sans-serif", opacity: converting ? 0.6 : 1, cursor: converting ? "not-allowed" : "pointer" }}
+                style={{
+                  width: "100%", padding: "0.85rem", fontSize: "clamp(0.9rem, 2vw, 1.1rem)",
+                  fontFamily: "'Manrope', sans-serif", fontWeight: 700,
+                  opacity: converting ? 0.6 : 1, cursor: converting ? "not-allowed" : "pointer",
+                  background: "#d9659e",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "0.75rem",
+                  transition: "background 0.2s, transform 0.1s"
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = "#d9659e"}
+                onMouseLeave={e => e.currentTarget.style.background = "#d9659e"}
+                onMouseDown={e => e.currentTarget.style.transform = "scale(0.98)"}
+                onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
                 onClick={handleGetChartClick}
                 disabled={converting}
               >
-                {converting ? "Đang chuyển đổi..." : "Giải Mã Lá Số"}
+                {converting ? "Đang xử lý..." : "Giải Mã Lá Số"}
               </button>
             </div>
           </div>
@@ -675,7 +737,6 @@ const HeroSection = () => {
     </section>
   );
 };
-
 /* ─────────────────────── Combo / Packages ──────────────────────── */
 const comboData = [
   {
@@ -829,62 +890,62 @@ const ComboSection = () => {
     marginBottom: "1rem",
     textAlign: "center",
   }}
->
-        {selectedCombo.title}
-      </h3>
+    >
+            {selectedCombo.title}
+          </h3>
 
-      <p
-        style={{
-          color: C.onSurfaceVariant,
-          fontSize: "1.1rem",
-          lineHeight: 1.8,
-          marginBottom: "1.25rem",
-          textAlign: "justify",
-        }}
-      >
-        {selectedCombo.desc}
-      </p>
+          <p
+            style={{
+              color: C.onSurfaceVariant,
+              fontSize: "1.1rem",
+              lineHeight: 1.8,
+              marginBottom: "1.25rem",
+              textAlign: "justify",
+            }}
+          >
+            {selectedCombo.desc}
+          </p>
 
-      <div
-        style={{
-          color: C.primary,
-          fontWeight: 700,
-          marginBottom: "1rem",
-        }}
-      >
-        {selectedCombo.stats} • {selectedCombo.price}
+          <div
+            style={{
+              color: C.primary,
+              fontWeight: 700,
+              marginBottom: "1rem",
+            }}
+          >
+            {selectedCombo.stats} • {selectedCombo.price}
+          </div>
+
+          <ul
+            style={{
+              paddingLeft: "1.2rem",
+              color: C.onSurfaceVariant,
+              lineHeight: 1.9,
+              fontSize: "1.05rem",
+              marginBottom: "1.75rem",
+            }}
+          >
+            {selectedCombo.details.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
+
+          <div style={{ display: "flex", justifyContent: "center" }}>
+          <button
+            className="btn-outline"
+            onClick={() => setSelectedCombo(null)}
+            style={{
+              padding: "0.75rem 2rem",
+              fontSize: "1rem",
+              minWidth: "120px",
+            }}
+          >
+            Đóng
+          </button>
+          </div>
+        </div>
       </div>
-
-      <ul
-        style={{
-          paddingLeft: "1.2rem",
-          color: C.onSurfaceVariant,
-          lineHeight: 1.9,
-          fontSize: "1.05rem",
-          marginBottom: "1.75rem",
-        }}
-      >
-        {selectedCombo.details.map((item, index) => (
-          <li key={index}>{item}</li>
-        ))}
-      </ul>
-
-      <div style={{ display: "flex", justifyContent: "center" }}>
-  <button
-    className="btn-outline"
-    onClick={() => setSelectedCombo(null)}
-    style={{
-      padding: "0.75rem 2rem",
-      fontSize: "1rem",
-      minWidth: "120px",
-    }}
-  >
-    Đóng
-  </button>
-</div>
-    </div>
-  </div>
-)}
+    )}
   </section>
   );
 };
@@ -899,109 +960,151 @@ const insightItems = [
 
 const InsightsSection = () => (
   <section
-    className="insights-section"
     style={{
-      padding: "6rem 2rem",
-      maxWidth: "80rem",
-      margin: "0 auto",
+      width: "100%",
+      background: `
+        linear-gradient(rgba(3, 0, 7, 0.9), rgba(13, 0, 19, 0.93)),
+        url(${background2})
+      `,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      padding: "6rem 0",
     }}
   >
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        marginBottom: "4rem",
-        gap: "1rem",
+        maxWidth: "80rem",
+        margin: "0 auto",
+        padding: "0 2rem",
       }}
     >
-      <div style={{ maxWidth: "42rem" }}>
-        <h2
-          className="font-headline"
-          style={{
-            fontFamily: "'Newsreader', serif",
-            fontSize: "clamp(1.6rem, 4vw, 3.1rem)",
-            color: C.onSurface,
-            marginBottom: "1rem",
-            lineHeight: 1.15,
-            fontWeight: 460,
-            letterSpacing: "-0.015em",
-          }}
-        >
-          Khám phá bản thân qua các khía cạnh
-        </h2>
-
-        <p
-          style={{
-            color: C.onSurfaceVariant,
-            fontWeight: 300,
-            lineHeight: 1.85,
-            fontSize: "clamp(0.9rem, 1.8vw, 1rem)",
-            letterSpacing: "0.01em",
-          }}
-        >
-          Thấu hiểu các mảnh ghép cuộc đời thông qua lăng kính Tử Vi Đẩu Số.
-          Mỗi lá số là một hành trình riêng biệt được khắc họa bởi các vì tinh tú.
-        </p>
-      </div>
-    </div>
-
-    <div
-      className="insights-grid"
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-        gap: "2rem",
-      }}
-    >
-      {insightItems.map(({ icon, title, desc }) => (
-        <div key={title} className="insight-card">
-          <div className="glow-spot" />
-
-          <div
-            style={{
-              background: "rgba(88,61,95,0.3)",
-              width: "4rem",
-              height: "4rem",
-              borderRadius: "1rem",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: C.primary,
-              fontSize: "2rem",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <span className="material-symbols-outlined">{icon}</span>
-          </div>
-
-          <h3
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          marginBottom: "4rem",
+          gap: "1rem",
+        }}
+      >
+        <div style={{ maxWidth: "42rem" }}>
+          <h2
             className="font-headline"
             style={{
               fontFamily: "'Newsreader', serif",
-              fontSize: "1.45rem",
-              color: C.onSurface,
-              marginBottom: "0.75rem",
-              fontWeight: 480,
-              lineHeight: 1.25,
-              letterSpacing: "-0.01em",
+              fontSize: "clamp(1.6rem, 4vw, 3.1rem)",
+              color: "#edb1ff",
+              marginBottom: "1rem",
+              lineHeight: 1.15,
+              fontWeight: 460,
+              letterSpacing: "-0.015em",
             }}
           >
-            {title}
-          </h3>
-
+            Khám phá bản thân qua các khía cạnh
+          </h2>
+          <div style={{ width: "6rem", height: "4px", background: C.primaryContainer, borderRadius: "9999px", margin: "0.3rem" }} />
           <p
             style={{
+              marginTop: "1rem",
               color: C.onSurfaceVariant,
-              fontSize: "1.05rem",
-              lineHeight: 1.75,
               fontWeight: 300,
-              letterSpacing: "0.005em",
+              lineHeight: 1.85,
+              fontSize: "clamp(0.9rem, 1.8vw, 1rem)",
+              letterSpacing: "0.01em",
             }}
           >
-            {desc}
+            Thấu hiểu các mảnh ghép cuộc đời thông qua lăng kính Tử Vi Đẩu Số.
+            Mỗi lá số là một hành trình riêng biệt được khắc họa bởi các vì tinh tú.
           </p>
         </div>
-      ))}
+      </div>
+
+      <div
+        className="insights-grid"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gap: "2rem",
+        }}
+      >
+        {insightItems.map(({ title, desc }) => (
+          <div
+            key={title}
+            className="insight-card"
+            style={{
+              background: "#FFFBF5",
+              padding: "2rem 1.6rem",
+              borderRadius: "0",
+              minHeight: "200px",
+              display: "flex",
+              flexDirection: "column",
+              cursor: "pointer",
+              // Sử dụng drop-shadow thay cho box-shadow để bóng ôm theo góc khuyết
+              filter: "drop-shadow(0 6px 20px rgba(80,50,130,.06))",
+              transition: "transform .28s ease, filter .28s ease",
+
+              // --- KỸ THUẬT CẮT GÓC KHUYẾT (MASK) ---
+              WebkitMaskImage: `
+                radial-gradient(circle at 0 0, transparent 16px, black 16px),
+                radial-gradient(circle at 100% 0, transparent 16px, black 16px),
+                radial-gradient(circle at 100% 100%, transparent 16px, black 16px),
+                radial-gradient(circle at 0 100%, transparent 16px, black 16px)
+              `,
+              WebkitMaskPosition: "top left, top right, bottom right, bottom left",
+              WebkitMaskSize: "51% 51%",
+              WebkitMaskRepeat: "no-repeat",
+
+              maskImage: `
+                radial-gradient(circle at 0 0, transparent 16px, black 16px),
+                radial-gradient(circle at 100% 0, transparent 16px, black 16px),
+                radial-gradient(circle at 100% 100%, transparent 16px, black 16px),
+                radial-gradient(circle at 0 100%, transparent 16px, black 16px)
+              `,
+              maskPosition: "top left, top right, bottom right, bottom left",
+              maskSize: "51% 51%",
+              maskRepeat: "no-repeat",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-6px)";
+              e.currentTarget.style.borderColor = "#A97CF3";
+              e.currentTarget.style.boxShadow =
+                "0 18px 35px rgba(126,92,212,.18)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.borderColor = "#D7C7F4";
+              e.currentTarget.style.boxShadow =
+                "0 6px 20px rgba(80,50,130,.06)";
+            }}
+          >
+            {/* Tiêu đề */}
+            <h3
+              className="font-headline"
+              style={{
+                color: "#d46b84",
+                fontSize: "1.45rem",
+                fontWeight: 700,
+                marginBottom: ".8rem",
+                lineHeight: 1.25,
+              }}
+            >
+              {title}
+            </h3>
+
+            {/* Nội dung */}
+            <p
+              style={{
+                color: "#444",
+                fontSize: "1rem",
+                lineHeight: 1.8,
+                fontWeight: 400,
+              }}
+            >
+              {desc}
+            </p>
+          </div>
+        ))}
+      </div>
     </div>
   </section>
 );

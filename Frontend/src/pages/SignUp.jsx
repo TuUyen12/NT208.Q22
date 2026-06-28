@@ -67,139 +67,214 @@ const SignupCard = () => {
   };
 
   return (
-    <div className="glass fade-up" style={{
-      width:"100%", maxWidth:430,
-      borderRadius:28,
-      border:`1px solid rgba(77,67,81,.18)`,
-      boxShadow:"0 48px 120px rgba(0,0,0,.55), 0 0 80px rgba(109,32,140,.12)",
-      overflow:"hidden",
-      position:"relative",
-    }}>
-      <div style={{
-        position:"absolute", top:-70, left:"50%", transform:"translateX(-50%)",
-        width:280, height:140,
-        background:"radial-gradient(ellipse,rgba(237,177,255,.13) 0%,transparent 70%)",
-      }}/>
+    <div
+      className="fade-up"
+      style={{
+        width: "100%",
+        maxWidth: 430,
+        background: "#FFFBF5",
+        padding: "2.5rem 2.25rem",
+        position: "relative",
 
-      <div className="card-pad" style={{ padding:"2.5rem 2.25rem" }}>
+        WebkitMaskImage: `
+          radial-gradient(circle at 0 0, transparent 16px, black 16px),
+          radial-gradient(circle at 100% 0, transparent 16px, black 16px),
+          radial-gradient(circle at 100% 100%, transparent 16px, black 16px),
+          radial-gradient(circle at 0 100%, transparent 16px, black 16px)
+        `,
+        WebkitMaskPosition: "top left, top right, bottom right, bottom left",
+        WebkitMaskSize: "51% 51%",
+        WebkitMaskRepeat: "no-repeat",
 
-        {/* TITLE */}
-        <div style={{ textAlign:"center", marginBottom:"1.75rem" }}>
-          <div className="hn" style={{
-            fontSize:"2rem", fontWeight:700, color:"#edb1ff"
-          }}>
-            Tạo tài khoản
-          </div>
-          <p style={{ opacity:.7, fontSize:13 }}>
-            Bắt đầu hành trình khám phá vận mệnh
-          </p>
+        maskImage: `
+          radial-gradient(circle at 0 0, transparent 16px, black 16px),
+          radial-gradient(circle at 100% 0, transparent 16px, black 16px),
+          radial-gradient(circle at 100% 100%, transparent 16px, black 16px),
+          radial-gradient(circle at 0 100%, transparent 16px, black 16px)
+        `,
+        maskPosition: "top left, top right, bottom right, bottom left",
+        maskSize: "51% 51%",
+        maskRepeat: "no-repeat",
+      }}
+    >
+      {/* TITLE */}
+      <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
+        <div
+          style={{
+            fontSize: "2rem",
+            fontWeight: 700,
+            color: C.purple,
+            fontFamily: "Cinzel, serif",
+            letterSpacing: "-.02em",
+            marginBottom: 6,
+          }}
+        >
+          YinYang
         </div>
 
-        {/* NAME */}
+        <p
+          style={{
+            color: "#666",
+            fontSize: 13.5,
+            lineHeight: 1.55,
+          }}
+        >
+          Tạo tài khoản để bắt đầu hành trình khám phá vận mệnh
+        </p>
+      </div>
+
+      {/* NAME */}
+      <div style={{ marginBottom: "1.1rem" }}>
         <Field label="Họ tên" icon="person" error={errors.name}>
           <input
             className={`inp${errors.name ? " err" : ""}`}
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Nguyễn Văn A"
+            style={{
+              background: "transparent",
+              border: "1px solid " + C.purple,
+            }}
           />
         </Field>
-
-        {/* EMAIL */}
-        <div style={{ marginTop:14 }}>
-          <Field label="Email" icon="alternate_email" error={errors.email}>
-            <input
-              className={`inp${errors.email ? " err" : ""}`}
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
-          </Field>
-        </div>
-
-        {/* PASSWORD */}
-        <div style={{ marginTop:14 }}>
-          <Field label="Mật khẩu" icon="lock" error={errors.pw}>
-            <input
-              className={`inp${errors.pw ? " err" : ""}`}
-              type={showPw ? "text" : "password"}
-              value={pw}
-              onChange={e => setPw(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPw(v => !v)}
-              style={{
-                position:"absolute", right:14, top:"50%",
-                transform:"translateY(-50%)",
-                background:"none", border:"none"
-              }}
-            >
-              <span className="mso">
-                {showPw ? "visibility_off" : "visibility"}
-              </span>
-            </button>
-          </Field>
-          <StrengthMeter password={pw}/>
-        </div>
-
-        {/* CONFIRM PASSWORD */}
-        <div style={{ marginTop:14 }}>
-          <Field label="Xác nhận mật khẩu" icon="lock" error={errors.confirmPw}>
-            <input
-              className={`inp${errors.confirmPw ? " err" : ""}`}
-              type={showConfirm ? "text" : "password"}
-              value={confirmPw}
-              onChange={e => setConfirmPw(e.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirm(v => !v)}
-              style={{
-                position:"absolute", right:14, top:"50%",
-                transform:"translateY(-50%)",
-                background:"none", border:"none"
-              }}
-            >
-              <span className="mso">
-                {showConfirm ? "visibility_off" : "visibility"}
-              </span>
-            </button>
-          </Field>
-        </div>
-
-        {/* SUBMIT */}
-        <button
-          ref={btnRef}
-          className="btn-pri"
-          onClick={handleSignup}
-          disabled={loading}
-          style={{ marginTop:20 }}
-        >
-          {loading ? "Đang tạo..." :
-           success ? "Thành công!" :
-           "Đăng ký"}
-        </button>
-
-        {errors.general && (
-          <div style={{ color: "#ff6b6b", marginTop: 12, fontSize: 13 }}>
-            {errors.general}
-          </div>
-        )}
-
-        {/* BACK TO LOGIN */}
-        <div style={{ marginTop:16, textAlign:"center" }}>
-          <span style={{ fontSize:13 }}>
-            Đã có tài khoản?{" "}
-            <span
-              style={{ color:"#edb1ff", cursor:"pointer" }}
-              onClick={() => navigate("/login")}
-            >
-              Đăng nhập
-            </span>
-          </span>
-        </div>
-
       </div>
+
+      {/* EMAIL */}
+      <div style={{ marginBottom: "1.1rem" }}>
+        <Field label="Email" icon="alternate_email" error={errors.email}>
+          <input
+            className={`inp${errors.email ? " err" : ""}`}
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="example@email.com"
+            style={{
+              background: "transparent",
+              border: "1px solid " + C.purple,
+            }}
+          />
+        </Field>
+      </div>
+
+      {/* PASSWORD */}
+      <div style={{ marginBottom: "1.1rem" }}>
+        <Field label="Mật khẩu" icon="lock" error={errors.pw}>
+          <input
+            className={`inp${errors.pw ? " err" : ""}`}
+            type={showPw ? "text" : "password"}
+            value={pw}
+            onChange={e => setPw(e.target.value)}
+            placeholder="••••••••"
+            style={{
+              background: "transparent",
+              border: "1px solid " + C.purple,
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() => setShowPw(v => !v)}
+            style={{
+              position: "absolute",
+              right: 14,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              color: C.purple,
+              cursor: "pointer",
+            }}
+          >
+            <span className="mso">
+              {showPw ? "visibility_off" : "visibility"}
+            </span>
+          </button>
+        </Field>
+
+        <StrengthMeter password={pw} />
+      </div>
+
+      {/* CONFIRM PASSWORD */}
+      <div style={{ marginBottom: "1.5rem" }}>
+        <Field
+          label="Xác nhận mật khẩu"
+          icon="lock"
+          error={errors.confirmPw}
+        >
+          <input
+            className={`inp${errors.confirmPw ? " err" : ""}`}
+            type={showConfirm ? "text" : "password"}
+            value={confirmPw}
+            onChange={e => setConfirmPw(e.target.value)}
+            placeholder="••••••••"
+            style={{
+              background: "transparent",
+              border: "1px solid " + C.purple,
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() => setShowConfirm(v => !v)}
+            style={{
+              position: "absolute",
+              right: 14,
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "none",
+              border: "none",
+              color: C.purple,
+              cursor: "pointer",
+            }}
+          >
+            <span className="mso">
+              {showConfirm ? "visibility_off" : "visibility"}
+            </span>
+          </button>
+        </Field>
+      </div>
+
+      {/* SUBMIT */}
+      <button
+        ref={btnRef}
+        className="btn-pri"
+        onClick={handleSignup}
+        disabled={loading}
+        style={{
+          marginBottom: "1.4rem",
+          background: C.purple,
+          borderRadius: "0.5rem",
+        }}
+      >
+        {loading
+          ? "Đang tạo..."
+          : success
+          ? "Thành công!"
+          : "Đăng ký"}
+      </button>
+
+      {errors.general && (
+        <div
+          style={{
+            color: "#ff6b6b",
+            marginBottom: "1rem",
+            fontSize: 13,
+          }}
+        >
+          {errors.general}
+        </div>
+      )}
+
+      <button
+        className="btn-soc"
+        style={{
+          borderColor: C.purple,
+          color: C.purple,
+          background: "transparent",
+        }}
+        onClick={() => navigate("/login")}
+      >
+        Đã có tài khoản? Đăng nhập
+      </button>
     </div>
   );
 };
@@ -223,7 +298,7 @@ export default function SignUp() {
           justifyContent:"center",
           padding:"88px 24px"
         }}>
-          <div style={{ display:"flex", gap:"4rem", maxWidth:880 }}>
+          <div style={{ display:"flex", gap:"4rem", maxWidth:880, alignItems: "flex-start" }}>
             <LeftPanel/>
             <SignupCard/>
           </div>

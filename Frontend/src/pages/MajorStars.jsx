@@ -380,7 +380,7 @@ function StarAudioButton({ text, color }) {
         background: isPlaying ? `${color}26` : "rgba(237,177,255,0.08)",
         border: `1px solid ${isPlaying ? color : "rgba(237,177,255,0.3)"}`,
         borderRadius: 8,
-        color: isPlaying ? color : "#edb1ff",
+        color: isPlaying ? color : "#4a1e57",
         cursor: "pointer",
         fontSize: "0.72rem",
         fontWeight: 600,
@@ -411,23 +411,26 @@ function StarAudioButton({ text, color }) {
 
 // ───────────────── 14 Chính Tinh data ─────────────────
 const majorStarsData = [
-  { name: "Tử Vi", chinese: "紫微", character: "Anh trai Chu Vũ Vương", meaning: "Hoàng Đế", description: "Sao chính của vũ trụ, đại diện cho sự chỉ huy, lãnh đạo, quyền lực và vận mệnh tối cao.", house: "Tâm chỉ", color: "#edb1ff" },
-  { name: "Thiên Cơ", chinese: "天機", character: "Quân Sư / Thái Sư nhà Chu", meaning: "Trí Tuệ", description: "Sao thể hiện sự thông minh, sáng tạo, linh hoạt và khôn ngoan.", house: "Sáng tạo", color: "#d3bcfc" },
-  { name: "Vũ Khúc", chinese: "武曲", character: "Chu Vũ Vương", meaning: "Quân Tướng", description: "Sao biểu thị sự kiên cường, quyết đoán, tràng năng lực hành động.", house: "Hành Động", color: "#ff9d8f" },
-  { name: "Phá Quân", chinese: "破軍", character: "Trụ Vương", meaning: "Chiến Binh Phá Hoại", description: "Sao mang tính chất phá vỡ, thay đổi, cách tân và đưa lại sự mới mẻ.", house: "Biến Động", color: "#ffb4ab" },
-  { name: "Thiên Lương", chinese: "天梁", character: "Cựu tổng binh nhà Thương", meaning: "Dũng Mãnh", description: "Sao duy dương của hệ thống, mang tính trường thọ, an toàn và bảo vệ.", house: "Bảo Vệ", color: "#ffc8c8" },
-  { name: "Thái Âm", chinese: "太陰", character: "Phu Nhân Hoàng Phi Hổ", meaning: "Phương Ẩm", description: "Sao duy âm của hệ thống, thể hiện sự trầm tĩnh, nhu mỹ, công ích và sự tích lũy.", house: "Tích Lũy", color: "#c4d4ff" },
+  // --- NHÀ CHU ---
+  { name: "Vũ Khúc", chinese: "武曲", character: "Chu Vũ Vương", meaning: "Quân Tướng", description: "Sao biểu thị sự kiên cường, quyết đoán, tràn đầy năng lực hành động.", house: "Hành Động", color: "#ff9d8f" },
   { name: "Thất Sát", chinese: "七殺", character: "Thủ Lĩnh Cấm Quân", meaning: "Quân Tướng Hùng Mạnh", description: "Sao của sự quyết liệt, mạnh mẽ lôi cuốn và bá chủ.", house: "Thống Lĩnh", color: "#ffcb69" },
+  { name: "Thiên Lương", chinese: "天梁", character: "Cựu tổng binh nhà Thương", meaning: "Dũng Mãnh", description: "Sao mang tính trường thọ, an toàn, che chở và bảo vệ.", house: "Bảo Vệ", color: "#ffc8c8" },
+  { name: "Tử Vi", chinese: "紫微", character: "Anh trai Chu Vũ Vương", meaning: "Hoàng Đế", description: "Sao chính của vũ trụ, đại diện cho sự chỉ huy, lãnh đạo, quyền lực và vận mệnh tối cao.", house: "Tâm Chỉ", color: "#edb1ff" },
+  { name: "Thái Âm", chinese: "太陰", character: "Phu Nhân Hoàng Phi Hổ", meaning: "Phương Ẩm", description: "Sao duy âm của hệ thống, thể hiện sự trầm tĩnh, nhu mỹ, công ích và sự tích lũy.", house: "Tích Lũy", color: "#c4d4ff" },
   { name: "Thiên Đồng", chinese: "天同", character: "Cha của Chu Vũ Vương", meaning: "Vui Vẻ", description: "Sao mang lại niềm vui, lạc quan, yêu thương và sự bảo vệ.", house: "Hạnh Phúc", color: "#b8e5c9" },
-  { name: "Cự Môn", chinese: "巨門", character: "Vợ của Khương Tử Nha (Thiên Cơ)", meaning: "Nói Lên Sự Thật", description: "Sao của sự chân thật lộ liễu, không giấu giếm, khéo léo công việc miệng.", house: "Giao Tiếp", color: "#d4c9ff" },
-  { name: "Liêm Trinh", chinese: "廉貞", character: "Gian thần nhà Thương", meaning: "Hạnh Phúc Giàu Có", description: "Sao của tính cách kiên nguyên, liêm khiết và có nguyên tắc cao.", house: "Nguyên Tắc", color: "#ffb8d1" },
-  { name: "Thiên Phủ", chinese: "天府", character: "Hoàng Hậu / Lãnh Thổ Chủ", meaning: "Kho Tàng", description: "Sao của sự tích trữ, giàu có, an toàn và ổn định.", house: "Tài Phú", color: "#ffe8aa" },
-  { name: "Đấu Mủ", chinese: "鬥牲", character: "Tước Chủ", meaning: "Đấu Tranh", description: "Sao của sự cạnh tranh, không nhân nhượng, dốc hết mình trong công việc.", house: "Cạnh Tranh", color: "#e0b0ff" },
-  { name: "Tham Lương", chinese: "貪狼", character: "Tướng Tham Dục", meaning: "Tham Vọng", description: "Sao của sự thầm khát, hứng thú, nhiều đam mê và ngoại tình.", house: "Đa Tài", color: "#ffb347" },
-  { name: "Tú Khúc", chinese: "祿存", character: "Sao Lộc", meaning: "Mùa Vụ Luân Hồi", description: "Sao của sự may mắn, phúc lộc, cơ hội và tài lộc.", house: "Luân Hồi", color: "#90ee90" },
-  { name: "Hóa Quyền", chinese: "化權", character: "Quyền Lực", meaning: "Biến Hóa Quyền Lực", description: "Sao của sự nổi tiếng, ảnh hưởng, lãnh đạo và kiểm soát.", house: "Ảnh Hưởng", color: "#ffd4a3" },
+  { name: "Thiên Cơ", chinese: "天機", character: "Quân Sư / Thái Sư nhà Chu", meaning: "Trí Tuệ", description: "Sao thể hiện sự thông minh, sáng tạo, linh hoạt và khôn ngoan.", house: "Sáng Tạo", color: "#d3bcfc" },
+
+  // --- NHÀ THƯƠNG ---
+  { name: "Phá Quân", chinese: "破軍", character: "Trụ Vương", meaning: "Chiến Binh Phá Hoại", description: "Sao mang tính chất phá vỡ, thay đổi, cách tân và đưa lại sự mới mẻ.", house: "Biến Động", color: "#ffb4ab" },
+  { name: "Thiên Phủ", chinese: "天府", character: "Hoàng Hậu của Trụ Vương", meaning: "Kho Tàng", description: "Sao của sự tích trữ, giàu có, an toàn và ổn định.", house: "Tài Phú", color: "#ffe8aa" },
+  { name: "Tham Lang", chinese: "貪狼", character: "Ái Hậu của Trụ Vương", meaning: "Tham Vọng", description: "Sao của sự khao khát, hứng thú, nhiều đam mê và dục vọng.", house: "Đa Tài", color: "#ffb347" },
+  { name: "Liêm Trinh", chinese: "廉貞", character: "Gian thần nhà Thương", meaning: "Hạnh Phúc Giàu Có", description: "Sao của tính cách kiên trung, liêm khiết và có nguyên tắc cao.", house: "Nguyên Tắc", color: "#ffb8d1" },
+  { name: "Thiên Tướng", chinese: "天相", character: "Thái Sư nhà Thương", meaning: "Tướng Ấn", description: "Sao của sự phò tá, quyền uy, chính trực, thanh lịch và thích sự công bằng.", house: "Quyền Uy", color: "#81c784" },
+  { name: "Cự Môn", chinese: "巨門", character: "Vợ của Khương Tử Nha", meaning: "Nói Lên Sự Thật", description: "Sao của sự chân thật, ăn nói sắc sảo, khéo léo nhưng dễ gặp thị phi.", house: "Giao Tiếp", color: "#d4c9ff" },
+  { name: "Thái Dương", chinese: "太陽", character: "Á tướng nhà Thương", meaning: "Mặt Trời", description: "Sao của sự quang minh, chính đại, quyền quý, cho đi không nề hà.", house: "Sự Nghiệp", color: "#ff8a65" }
 ];
 
+// ───────────────── Main component ─────────────────
 // ───────────────── Main component ─────────────────
 export default function MajorStars() {
   const navigate = useNavigate();
@@ -465,55 +468,73 @@ export default function MajorStars() {
                   key={idx}
                   style={{
                     padding: "1.5rem",
-                    background: "rgba(88,61,95,.25)",
-                    backdropFilter: "blur(12px)",
-                    border: "1px solid rgba(237,177,255,.15)",
-                    borderRadius: "1.5rem",
-                    transition: "all 0.3s ease",
+                    background: "#FFFBF5", // Đổi nền kem
+                    borderRadius: "0",     // Xóa bo góc mặc định để mask hoạt động chuẩn
+                    filter: "drop-shadow(0 6px 20px rgba(80,50,130,.06))", // Bóng đổ ôm theo góc khuyết
+                    transition: "transform 0.3s ease, filter 0.3s ease",
                     cursor: "pointer",
                     position: "relative",
-                    overflow: "hidden",
+
+                    // --- KỸ THUẬT CẮT GÓC KHUYẾT (MASK) ---
+                    WebkitMaskImage: `
+                      radial-gradient(circle at 0 0, transparent 16px, black 16px),
+                      radial-gradient(circle at 100% 0, transparent 16px, black 16px),
+                      radial-gradient(circle at 100% 100%, transparent 16px, black 16px),
+                      radial-gradient(circle at 0 100%, transparent 16px, black 16px)
+                    `,
+                    WebkitMaskPosition: "top left, top right, bottom right, bottom left",
+                    WebkitMaskSize: "51% 51%",
+                    WebkitMaskRepeat: "no-repeat",
+                    maskImage: `
+                      radial-gradient(circle at 0 0, transparent 16px, black 16px),
+                      radial-gradient(circle at 100% 0, transparent 16px, black 16px),
+                      radial-gradient(circle at 100% 100%, transparent 16px, black 16px),
+                      radial-gradient(circle at 0 100%, transparent 16px, black 16px)
+                    `,
+                    maskPosition: "top left, top right, bottom right, bottom left",
+                    maskSize: "51% 51%",
+                    maskRepeat: "no-repeat",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(237,177,255,.4)";
-                    e.currentTarget.style.background = "rgba(88,61,95,.35)";
-                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.transform = "translateY(-4px)";
+                    e.currentTarget.style.filter = "drop-shadow(0 18px 35px rgba(126,92,212,.18))"; // Bóng đổ khi hover
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(237,177,255,.15)";
-                    e.currentTarget.style.background = "rgba(88,61,95,.25)";
                     e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.filter = "drop-shadow(0 6px 20px rgba(80,50,130,.06))"; // Trả về bóng ban đầu
                   }}
                 >
-                  {/* Top accent bar */}
-                  <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "4px", background: star.color, opacity: 0.6 }} />
+                  {/* Top accent bar (Vẫn giữ lại màu sắc đặc trưng của từng sao để tạo điểm nhấn) */}
+                  <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "4px", background: star.color, opacity: 0.9 }} />
 
-                  <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "1rem" }}>
-                    <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: C.primary }}>{star.name}</h3>
-                    <span style={{ fontSize: "0.875rem", color: C.onSurfaceVariant, opacity: 0.7 }}>{star.chinese}</span>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "1rem", marginTop: "0.25rem" }}>
+                    <h3 style={{ fontSize: "1.25rem", fontWeight: 700, color: "#d46b84" }}>{star.name}</h3>
+                    <span style={{ fontSize: "0.875rem", color: "#888" }}>{star.chinese}</span>
                   </div>
 
                   <div style={{ marginBottom: "0.8rem" }}>
-                    <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.08em", color: C.onSurfaceVariant, textTransform: "uppercase", marginBottom: "0.25rem" }}>Nhân vật</div>
-                    <p style={{ fontSize: "0.875rem", color: C.onSurfaceVariant }}>{star.character}</p>
+                    <div style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", color: "#d46b84", textTransform: "uppercase", marginBottom: "0.25rem" }}>Nhân vật</div>
+                    <p style={{ fontSize: "0.875rem", color: "#444" }}>{star.character}</p>
                   </div>
 
                   <div style={{ marginBottom: "0.8rem" }}>
-                    <div style={{ fontSize: "0.7rem", fontWeight: 600, letterSpacing: "0.08em", color: star.color, textTransform: "uppercase", marginBottom: "0.25rem" }}>Ý Nghĩa</div>
-                    <p style={{ fontSize: "0.875rem", fontWeight: 600, color: C.primary }}>{star.meaning}</p>
+                    <div style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.08em", color: "#d46b84", textTransform: "uppercase", marginBottom: "0.25rem" }}>Ý Nghĩa</div>
+                    <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "#333" }}>{star.meaning}</p>
                   </div>
 
-                  <p style={{ fontSize: "0.875rem", color: C.onSurfaceVariant, lineHeight: 1.7, marginBottom: "1rem" }}>
+                  <p style={{ fontSize: "0.875rem", color: "#444", lineHeight: 1.7, marginBottom: "1rem" }}>
                     {star.description}
                   </p>
-                  {/* ─── Nút nghe diễn giải bằng giọng đọc ─── */}
+                  
+                  {/* Nút nghe diễn giải bằng giọng đọc */}
                   <div style={{ marginBottom: "1rem" }}>
                     <StarAudioButton text={buildSpeechText(star)} color={star.color} />
                   </div>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "1rem", borderTop: "1px solid rgba(237,177,255,.1)" }}>
-                    <div style={{ fontSize: "0.75rem", color: C.onSurfaceVariant }}>
-                      <strong style={{ color: C.primary }}>Cung:</strong> {star.house}
+                  {/* Đường phân cách */}
+                  <div style={{ display: "flex", justifyContent: "space-between", paddingTop: "1rem", borderTop: "1px solid rgba(110,62,212,.15)" }}>
+                    <div style={{ fontSize: "0.75rem", color: "#666" }}>
+                      <strong style={{ color: "#d46b84" }}>Cung:</strong> {star.house}
                     </div>
                   </div>
 
@@ -528,15 +549,21 @@ export default function MajorStars() {
                 style={{
                   padding: "1rem 2rem",
                   background: "linear-gradient(135deg, #edb1ff 0%, #6d208c 100%)",
-                  color: "#111",
+                  color: "#fff",
                   border: "none",
                   borderRadius: "0.75rem",
                   fontWeight: 600,
                   cursor: "pointer",
                   transition: "all 0.2s",
                 }}
-                onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 0 30px rgba(237,177,255,.4)")}
-                onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "linear-gradient(135deg, #edb1ff 0%, #6d208c 100%)";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "linear-gradient(135deg, #edb1ff 0%, #6d208c 100%)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
               >
                 Quay Lại Trang Chủ
               </button>

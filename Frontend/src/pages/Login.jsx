@@ -23,6 +23,7 @@ const C = {
   secondaryContainer:     "#583d5f",
   error:                  "#ffb4ab",
   tertiary:               "#d3bcfc",
+  purple:                 "#852c82",
 };
 
 /* GLOBAL STYLES — thêm class responsive của header Home */
@@ -448,12 +449,12 @@ const Field = ({ label, icon, error, children }) => (
     <label style={{
       display:"block", fontSize:11, fontWeight:700,
       letterSpacing:".12em", textTransform:"uppercase",
-      color:C.primary, marginBottom:8, marginLeft:2,
+      color:C.purple, marginBottom:8, marginLeft:2,
     }}>{label}</label>
     <div style={{ position:"relative" }}>
       <span className="mso" style={{
         position:"absolute", left:14, top:"50%", transform:"translateY(-50%)",
-        fontSize:18, color:C.onSurfaceVariant, opacity:.5,
+        fontSize:18, color:C.purple, opacity:.5,
         pointerEvents:"none", transition:"color .2s, opacity .2s",
       }}>{icon}</span>
       {children}
@@ -510,136 +511,109 @@ const LoginCard = () => {
     }
   };
 
-  return (
-    <div className="glass fade-up" style={{
-      width:"100%", maxWidth:430,
-      borderRadius:28,
-      border:`1px solid rgba(77,67,81,.18)`,
-      boxShadow:"0 48px 120px rgba(0,0,0,.55), 0 0 80px rgba(109,32,140,.12)",
-      overflow:"hidden",
-      position:"relative",
-    }}>
-      <div style={{
-        position:"absolute", top:-70, left:"50%", transform:"translateX(-50%)",
-        width:280, height:140,
-        background:"radial-gradient(ellipse,rgba(237,177,255,.13) 0%,transparent 70%)",
-        pointerEvents:"none",
-      }}/>
+return (
+    <div 
+      className="fade-up" 
+      style={{
+        width: "100%", 
+        maxWidth: 430,
+        background: "#FFFBF5", // Nền kem
+        padding: "2.5rem 2.25rem",
+        position: "relative",
+        
+       // --- KỸ THUẬT CẮT GÓC KHUYẾT (MASK) ---
+        WebkitMaskImage: `
+          radial-gradient(circle at 0 0, transparent 16px, black 16px),
+          radial-gradient(circle at 100% 0, transparent 16px, black 16px),
+          radial-gradient(circle at 100% 100%, transparent 16px, black 16px),
+          radial-gradient(circle at 0 100%, transparent 16px, black 16px)
+        `,
+        WebkitMaskPosition: "top left, top right, bottom right, bottom left",
+        WebkitMaskSize: "51% 51%",
+        WebkitMaskRepeat: "no-repeat",
+        maskImage: `
+          radial-gradient(circle at 0 0, transparent 16px, black 16px),
+          radial-gradient(circle at 100% 0, transparent 16px, black 16px),
+          radial-gradient(circle at 100% 100%, transparent 16px, black 16px),
+          radial-gradient(circle at 0 100%, transparent 16px, black 16px)
+        `,
+        maskPosition: "top left, top right, bottom right, bottom left",
+        maskSize: "51% 51%",
+        maskRepeat: "no-repeat",
+      }}
+    >
+      <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
+        <div style={{
+          fontSize: "2rem", fontWeight: 700, color: C.purple,
+          fontFamily: "Cinzel, serif",
+          letterSpacing: "-.02em", marginBottom: 6,
+        }}>YinYang</div>
+        <p style={{ color: "#666", fontSize: 13.5, lineHeight: 1.55 }}>
+          Chào mừng trở lại — đăng nhập để tiếp tục hành trình
+        </p>
+      </div>
 
-      <div className="card-pad" style={{ padding:"2.5rem 2.25rem" }}>
-        <div className="fade-up-1" style={{ textAlign:"center", marginBottom:"1.75rem" }}>
-          <div className="hn" style={{
-            fontSize:"2rem", fontWeight:400, color:C.primary,
-            fontFamily:"Cinzel,serif",
-            letterSpacing:"-.02em", marginBottom:6,
-          }}>YinYang</div>
-          <p style={{ color:C.onSurfaceVariant, fontSize:13.5, opacity:.78, lineHeight:1.55 }}>
-            Chào mừng trở lại — đăng nhập để tiếp tục hành trình
-          </p>
-        </div>
-
-        <div className="fade-up-1" style={{ marginBottom:"1.25rem" }}>
-          <button
-            className="btn-soc"
-            onClick={() => { window.location.href = authService.googleLoginUrl(); }}
-          >
-            <GoogleIcon/>
-            Tiếp tục với Google
-          </button>
-        </div>
-
-        <div className="divider fade-up-2" style={{ marginBottom:"1.25rem" }}>Hoặc dùng email</div>
-
-        <div className="fade-up-2" style={{ marginBottom:"1.1rem" }}>
-          <Field label="Email" icon="alternate_email" error={errors.email}>
-            <input
-              className={`inp${errors.email ? " err" : ""}`}
-              type="email"
-              placeholder="example@email.com"
-              value={email}
-              autoComplete="email"
-              onChange={e => { setEmail(e.target.value); setErrors(p => ({...p, email:""})); }}
-            />
-          </Field>
-        </div>
-
-        <div className="fade-up-2" style={{ marginBottom:"0.6rem" }}>
-          <Field label="Mật khẩu" icon="lock" error={errors.pw}>
-            <input
-              className={`inp${errors.pw ? " err" : ""}`}
-              type={showPw ? "text" : "password"}
-              placeholder="••••••••"
-              value={pw}
-              autoComplete="current-password"
-              style={{ paddingRight:44 }}
-              onChange={e => { setPw(e.target.value); setErrors(p => ({...p, pw:""})); }}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPw(v => !v)}
-              style={{
-                position:"absolute", right:14, top:"50%", transform:"translateY(-50%)",
-                background:"none", border:"none", cursor:"pointer",
-                color:C.onSurfaceVariant, opacity:.55, padding:0, lineHeight:1,
-                transition:"opacity .2s",
-              }}
-              onMouseEnter={e => (e.currentTarget.style.opacity="1")}
-              onMouseLeave={e => (e.currentTarget.style.opacity=".55")}
-            >
-              <span className="mso" style={{ fontSize:18 }}>
-                {showPw ? "visibility_off" : "visibility"}
-              </span>
-            </button>
-          </Field>
-          <StrengthMeter password={pw}/>
-        </div>
-
-        <div className="fade-up-3" style={{
-          display:"flex", justifyContent:"space-between", alignItems:"center",
-          marginBottom:"1.5rem",
-        }}>
-          <label className="cb-wrap" onClick={() => setRemember(v => !v)}>
-            <div className={`cb-box${remember ? " on" : ""}`}>
-              {remember && <span className="mso" style={{ fontSize:12, color:"#fff" }}>check</span>}
-            </div>
-            <span style={{ fontSize:13, color:C.onSurfaceVariant }}>Ghi nhớ đăng nhập</span>
-          </label>
-          <button className="btn-ghost" onClick={() => navigate("/forgot-password")}>Quên mật khẩu?</button>
-        </div>
-
-        <button
-          ref={btnRef}
-          className="btn-pri fade-up-3"
-          disabled={loading}
-          onClick={handleLogin}
-          style={{ marginBottom:"1.4rem" }}
-        >
-          {loading ? (
-            <><div className="spinner"/> Đang xử lý...</>
-          ) : success ? (
-            <><span className="mso" style={{ fontSize:17 }}>check_circle</span> Đăng nhập thành công!</>
-          ) : "Đăng nhập"}
-        </button>
-
-        {errors.general && (
-          <div style={{ color: "#ff6b6b", marginBottom: 14, fontSize: 13 }}>
-            {errors.general}
-          </div>
-        )}
-
-        <div className="divider" style={{ marginBottom:"1.4rem" }}>Chưa có tài khoản?</div>
-
+      {/* Button Google/FB với màu sắc tương thích nền kem */}
+      <div style={{ marginBottom: "1.25rem" }}>
         <button
           className="btn-soc"
-          style={{ borderColor:`rgba(237,177,255,.2)`, color:C.primary }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor=`rgba(237,177,255,.45)`; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor=`rgba(237,177,255,.2)`; }}
-          onClick={() => navigate("/signup")}
+          onClick={() => { window.location.href = authService.googleLoginUrl(); }}
+          style={{ background: C.purple, color: "#fff", border: "none" }}
         >
-          <span className="mso" style={{ fontSize:16 }}>person_add</span>
-          Tạo tài khoản miễn phí
+          <GoogleIcon/>
+          Tiếp tục với Google
         </button>
       </div>
+
+      <div className="divider" style={{ marginBottom: "1.25rem", color: "#efe6e6" }}>Hoặc dùng email</div>
+
+      {/* Input fields */}
+      <div style={{ marginBottom: "1.1rem" }}>
+        <Field label="Email" icon="alternate_email" error={errors.email}>
+          <input
+            className={`inp${errors.email ? " err" : ""}`}
+            type="email"
+            placeholder="example@email.com"
+            value={email}
+            onChange={e => { setEmail(e.target.value); setErrors(p => ({...p, email:""})); }}
+            style={{ background: "transparent", border: "1px solid" + C.purple }}
+          />
+        </Field>
+      </div>
+
+      <div style={{ marginBottom: "1.5rem" }}>
+        <Field label="Mật khẩu" icon="lock" error={errors.pw}>
+          <input
+            className={`inp${errors.pw ? " err" : ""}`}
+            type={showPw ? "text" : "password"}
+            placeholder="••••••••"
+            value={pw}
+            onChange={e => { setPw(e.target.value); setErrors(p => ({...p, pw:""})); }}
+            style={{ background: "transparent", border: "1px solid" + C.purple }}
+          />
+        </Field>
+      </div>
+
+      <button
+        className="btn-pri"
+        disabled={loading}
+        onClick={handleLogin}
+        style={{ 
+          marginBottom: "1.4rem", 
+          background: C.purple, 
+          borderRadius: "0.5rem" 
+        }}
+      >
+        {loading ? "Đang xử lý..." : "Đăng nhập"}
+      </button>
+
+      <button
+        className="btn-soc"
+        style={{ borderColor: C.purple, color: C.purple, background: "transparent" }}
+        onClick={() => navigate("/signup")}
+      >
+        Tạo tài khoản miễn phí
+      </button>
     </div>
   );
 };
