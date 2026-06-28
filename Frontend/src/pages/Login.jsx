@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { authService } from "../services/authService";
@@ -474,12 +474,11 @@ const LoginCard = () => {
   const { login, user } = useAuth();
   const [email,    setEmail]    = useState("");
   const [pw,       setPw]       = useState("");
-  const [showPw,   setShowPw]   = useState(false);
-  const [remember, setRemember] = useState(false);
+  const [showPw]                = useState(false);
+  const [remember]              = useState(false);
   const [loading,  setLoading]  = useState(false);
-  const [success,  setSuccess]  = useState(false);
+  const [, setSuccess] = useState(false);
   const [errors,   setErrors]   = useState({});
-  const btnRef = useRef(null);
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
