@@ -294,6 +294,6 @@ Dự án môn học **NT208 — Kỹ thuật Phần mềm Hướng Dịch vụ**
 | 24521563 | Vũ Lê Phát Tài | Nhóm Trưởng | 25% |
 | 22520513 | Nguyễn Duy Hùng | Thành viên | 25% |
 | 22521537 | Mai Kim Trinh | Thành viên | 25% |
-| 22521638 | Lê Thị Tú Uyên | Thành viên | 25% |
+| 22521639 | Lê Thị Tú Uyên | Thành viên | 25% |
 ---
 Chúng em đã biết làm web và hiểu hệ thống web hoạt động như thế nào.
