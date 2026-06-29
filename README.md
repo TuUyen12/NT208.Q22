@@ -1,16 +1,14 @@
-
-Readme · MD
 # YinYang — Ứng Dụng Tử Vi Trực Tuyến
- 
+
 > **NT208.Q22 — Production Release**  
 > Website: https://yinyang.io.vn
- 
+
 Ứng dụng tra cứu và luận giải **Tử Vi**, **Lá Số**, **Tử Bình** kết hợp AI — được xây dựng với React (Frontend) và FastAPI (Backend), triển khai bằng Docker.
- 
+
 ---
- 
+
 ## Mục Lục
- 
+
 - [Tính Năng](#tính-năng)
 - [Kiến Trúc](#kiến-trúc)
 - [Công Nghệ Sử Dụng](#công-nghệ-sử-dụng)
@@ -21,10 +19,11 @@ Readme · MD
 - [API Endpoints](#api-endpoints)
 - [CI/CD](#cicd)
 - [Monitoring](#monitoring)
+
 ---
- 
+
 ## Tính Năng
- 
+
 - **Lá Số Tử Vi**: Tính và hiển thị lá số tử vi theo ngày, tháng, năm, giờ sinh.
 - **Lưu Sao / Đại Vận / Tiểu Vận**: Tính toán tự động, cập nhật định kỳ mỗi ngày.
 - **Tử Hình Nhật / Ngày Tốt Xấu**: Xem tử hình nhật và các ngày tốt xấu theo lịch âm.
@@ -36,10 +35,11 @@ Readme · MD
 - **Lịch Âm Dương**: Xem và tra cứu lịch âm dương.
 - **Đăng Nhập Google / Facebook**: OAuth2 tích hợp.
 - **Bảo Mật**: JWT, AES-256 mã hóa thông tin nhạy cảm, rate limiting, CORS.
+
 ---
- 
+
 ## Kiến Trúc
- 
+
 ```
 Browser (React + iztro)
        │  HTTPS REST JSON /api/v1/…
@@ -57,17 +57,17 @@ Browser (React + iztro)
                    ├── 00:05 ICT → recalculate_luu_sao_all_users
                    └── 07:00 ICT → send_daily_horoscope_emails
 ```
- 
+
 **Luồng request:**
 ```
 Request → HTTPBearer → decode JWT → get_current_user (DB)
        → rate_limit (Redis) → router handler → JSON response
 ```
- 
+
 ---
- 
+
 ## Công Nghệ Sử Dụng
- 
+
 ### Frontend
 | Thư viện | Phiên bản | Mục đích |
 |---|---|---|
@@ -78,7 +78,7 @@ Request → HTTPBearer → decode JWT → get_current_user (DB)
 | react-router-dom | 7.x | Routing |
 | Tailwind CSS | 4.x | Styling |
 | html2canvas | — | Xuất ảnh lá số |
- 
+
 ### Backend
 | Thư viện | Mục đích |
 |---|---|
@@ -94,42 +94,43 @@ Request → HTTPBearer → decode JWT → get_current_user (DB)
 | reportlab | Xuất PDF lá số |
 | cryptography (AES-256) | Mã hóa thông tin nhạy cảm |
 | Prometheus + Grafana | Monitoring |
- 
+
 ---
- 
+
 ## Yêu Cầu Hệ Thống
- 
+
 - **Docker** ≥ 24 và **Docker Compose** ≥ 2.20
 - (Tùy chọn) Node.js 20+ và Python 3.12+ để phát triển local không dùng Docker
+
 ---
- 
+
 ## Cài Đặt & Chạy
- 
+
 ### 1. Clone repo
- 
+
 ```bash
 git clone <repo-url>
 cd NT208.Q22-prod
 ```
- 
+
 ### 2. Tạo file `.env`
- 
+
 ```bash
 cp backend/.env.example .env
 ```
- 
+
 Điền đầy đủ các giá trị bắt buộc (xem mục [Biến Môi Trường](#biến-môi-trường)).
- 
+
 ### 3. Khởi động bằng Docker Compose
- 
+
 ```bash
 docker compose up -d
 ```
- 
+
 Các service sẽ khởi động theo thứ tự: `db` → `redis` → `api` (kèm migrate DB) → `worker` → `beat` → `frontend`.
- 
+
 ### 4. Truy cập
- 
+
 | Service | URL |
 |---|---|
 | Frontend | http://localhost:4173 |
@@ -138,9 +139,9 @@ Các service sẽ khởi động theo thứ tự: `db` → `redis` → `api` (k�
 | API Docs (ReDoc) | http://localhost:8000/api/redoc |
 | Health check | http://localhost:8000/health |
 | Metrics (Prometheus) | http://localhost:8000/api/metrics |
- 
+
 ### 5. Phát triển local (không Docker)
- 
+
 **Backend:**
 ```bash
 cd backend
@@ -149,20 +150,20 @@ pip install -r requirements.txt
 alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
- 
+
 **Frontend:**
 ```bash
 cd Frontend
 npm install
 npm run dev
 ```
- 
+
 ---
- 
+
 ## Biến Môi Trường
- 
+
 Tạo file `.env` ở thư mục gốc từ `backend/.env.example`. Các biến bắt buộc:
- 
+
 | Biến | Mô tả |
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string (asyncpg) |
@@ -175,13 +176,13 @@ Tạo file `.env` ở thư mục gốc từ `backend/.env.example`. Các biến 
 | `GEMINI_API_KEY` | API key cho Google Gemini |
 | `SMTP_USER` / `SMTP_PASSWORD` | Gmail App Password để gửi email |
 | `ALLOWED_ORIGINS` | Danh sách origins cho CORS (JSON array) |
- 
+
 > ⚠️ **Không commit file `.env` lên git!**
- 
+
 ---
- 
+
 ## Cấu Trúc Thư Mục
- 
+
 ```
 NT208.Q22-prod/
 ├── Frontend/                   # React + Vite app
@@ -216,13 +217,13 @@ NT208.Q22-prod/
 ├── docker-compose.yml
 └── .env.example
 ```
- 
+
 ---
- 
+
 ## API Endpoints
- 
+
 Tất cả các route (trừ `/health` và auth) đều yêu cầu **Bearer token** và chịu **rate limit** (mặc định 100 req/60s).
- 
+
 | Prefix | Module | Mô tả |
 |---|---|---|
 | `/api/v1/auth` | auth | Đăng ký, đăng nhập, refresh token, OAuth Google/Facebook |
@@ -236,15 +237,15 @@ Tất cả các route (trừ `/health` và auth) đều yêu cầu **Bearer toke
 | `/api/v1/calendar` | calendar | Lịch âm dương |
 | `/health` | — | Health check |
 | `/api/metrics` | — | Prometheus metrics |
- 
+
 Xem chi tiết tại `/api/docs` (Swagger UI) hoặc `/api/redoc`.
- 
+
 ---
- 
+
 ## CI/CD
- 
+
 GitHub Actions tự động kích hoạt khi push lên nhánh `main` hoặc `prod`:
- 
+
 1. **Frontend job**: `npm ci` → `eslint` → `vite build`
 2. **Backend job**: `pip install ruff` → `ruff check`
 3. **Deploy job** (chỉ nhánh `prod`):
@@ -252,25 +253,47 @@ GitHub Actions tự động kích hoạt khi push lên nhánh `main` hoặc `pro
    - Build lại Docker images
    - `docker compose up -d --remove-orphans`
    - Chờ health check pass
+
 Runner: **self-hosted** (deploy thẳng lên VM production).
- 
+
 ---
- 
+
 ## Monitoring
- 
+
 Stack monitoring riêng biệt tại thư mục `monitoring/`:
- 
+
 ```bash
 cd monitoring
 docker compose up -d
 ```
- 
+
 | Service | Mô tả |
 |---|---|
 | Prometheus | Thu thập metrics từ `/api/metrics` |
 | Loki | Tập hợp logs |
 | Promtail | Đẩy logs vào Loki |
 | Grafana | Dashboard trực quan |
- 
+
+---
+
+## Demo & Tài Nguyên
+
+| Tài nguyên | Đường dẫn |
+|---|---|
+| 🎬 Video demo | [Video demo - Google Drive](https://drive.google.com/drive/folders/13HpX7TLNb1CJt57NfDfHyrG9qSR9zM2a) |
+| 👥 Video khảo sát người dùng | [Video khảo sát user - Google Drive](https://drive.google.com/drive/u/0/folders/1ADrEqqJfjyYODC8aOybmXVK2gLukK_uX?hl=en) |
+
+---
+
+## Thành Viên & Tỉ Lệ Đóng Góp
+
+Dự án môn học **NT208 — Kỹ thuật Phần mềm Hướng Dịch vụ**, nhóm Q22.
+
+| MSSV | Họ và Tên | Vai Trò | Đóng Góp |
+|---|---|---|---|
+| 24521563 | Vũ Lê Phát Tài | Nhóm Trưởng | 25% |
+| 22520513 | Nguyễn Duy Hùng | Thành viên | 25% |
+| 22521537 | Mai Kim Trinh | Thành viên | 25% |
+| 22521638 | Lê Thị Tú Uyên | Thành viên | 25% |
 ---
 Chúng em đã biết làm web và hiểu hệ thống web hoạt động như thế nào.
